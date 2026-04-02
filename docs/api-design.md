@@ -68,15 +68,16 @@ Slack App のイベントURL設定時に送信されるチャレンジリクエ�
 
 **処理内容:**
 1. `X-Slack-Signature` で署名検証
-2. `event_id` で冪等性チェック（`action_log.slack_event_id` と照合）
-3. `channel` が `SLACK_WATCHED_CHANNELS` に含まれるか確認
-4. `subtype` が null の通常メッセージのみ処理（bot メッセージ、編集等は除外）
-5. ユーザー upsert
-6. `action_log` に `action_type: "message"` で挿入
-7. テキストに感謝キーワードが含まれる場合、追加で `action_type: "thanks"` を挿入
-8. `bonsai.total_messages` をインクリメント（+感謝なら `total_thanks` も）
-9. 成長ステージ再判定 + `visual_state` 再計算
-10. `bonsai` テーブル更新
+2. リクエストボディを Zod スキーマでバリデーション（`slack-event-schema.ts`）
+3. `event_id` で冪等性チェック（`action_log.slack_event_id` と照合）
+4. `channel` が `SLACK_WATCHED_CHANNELS` に含まれるか確認
+5. `subtype` が null の通常メッセージのみ処理（bot メッセージ、編集等は除外）
+6. ユーザー upsert
+7. `action_log` に `action_type: "message"` で挿入
+8. テキストに感謝キーワードが含まれる場合、追加で `action_type: "thanks"` を挿入
+9. `bonsai.total_messages` をインクリメント（+感謝なら `total_thanks` も）
+10. 成長ステージ再判定 + `visual_state` 再計算
+11. `bonsai` テーブル更新
 
 **Response:** `200 OK`（ボディなし。処理は `waitUntil()` で非同期実行）
 
@@ -157,12 +158,14 @@ Slack OAuth コールバックエンドポイント。
 - `state` — CSRF検証用トークン
 
 **処理内容:**
-1. `state` パラメータをセッション保存値と照合（CSRF対策）
-2. `code` を使って Slack の `openid.connect.token` API でトークン交換
-3. トークンから `user_id`, `team_id`, `name`, `picture` を取得
-4. `users` テーブルに upsert
-5. `bonsai` レコードが未存在なら作成（初期状態: seed ステージ）
-6. iron-session でセッションCookieを設定
+1. クエリパラメータを Zod スキーマでバリデーション（`slack-oauth-schema.ts`）
+2. `state` パラメータをセッション保存値と照合（CSRF対策）
+3. `code` を使って Slack の `openid.connect.token` API でトークン交換
+4. トークンレスポンスを Zod スキーマでバリデーション
+5. トークンから `user_id`, `team_id`, `name`, `picture` を取得
+6. `users` テーブルに upsert
+7. `bonsai` レコードが未存在なら作成（初期状態: seed ステージ）
+8. iron-session でセッションCookieを設定
 
 **セッションデータ:**
 ```typescript

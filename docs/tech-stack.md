@@ -11,6 +11,7 @@
 | リアルタイム | Supabase Realtime | Supabase Cloud 付属 |
 | 認証 | Slack OAuth + iron-session | - |
 | データ取得 | SWR | 最新安定版 |
+| バリデーション | Zod | 最新安定版 |
 | CSS | Tailwind CSS | 最新安定版 |
 | デプロイ | Vercel | - |
 | パッケージマネージャ | npm | - |
@@ -46,6 +47,20 @@
   - `mutate()` — キャッシュの手動更新（Supabase Realtimeとの連携に使用）
   - `SWRConfig` の `fallback` — SSRで取得したデータの注入
 - **選定理由**: フロントエンドがリードオンリーのため、ミューテーション管理が不要。TanStack Queryと比較して軽量（バンドルサイズ約1/3）で、シンプルなAPI。Three.jsを使う3Dアプリではバンドルサイズの軽量さが有利。詳細は [ADR-001](adr/001-swr-adoption.md) を参照
+
+### Zod
+
+- **役割**: ランタイムスキーマバリデーション + TypeScript型の自動導出
+- **主要機能**:
+  - `z.object` / `z.discriminatedUnion` — 外部データの構造検証
+  - `z.infer<typeof schema>` — スキーマからTypeScript型を導出（型の二重管理を防止）
+  - `z.enum` — 成長ステージ等の列挙型定義
+- **適用箇所**:
+  - 環境変数（`shared/config/env.ts`）— 起動時に全設定を一括検証
+  - Slackイベントペイロード（`features/slack-auth/`）— Webhookリクエストの構造検証
+  - OAuthコールバック（`features/slack-auth/`）— クエリパラメータ・トークンレスポンスの検証
+  - エンティティ型定義（`entities/*/model/types.ts`）— Zodスキーマから型を導出
+- **選定理由**: 外部境界が多く（Slack Webhook、OAuth、環境変数、Supabaseレスポンス）ランタイムバリデーションが不可欠。Valibotより若干大きいが、エコシステムの充実度とdiscriminated unionの表現力で優位。詳細は [ADR-002](adr/002-zod-adoption.md) を参照
 
 ### Tailwind CSS
 
@@ -145,6 +160,7 @@ three
 @supabase/ssr
 iron-session
 swr
+zod
 ```
 
 ### devDependencies

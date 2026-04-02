@@ -184,3 +184,4 @@ feature-name/
 | Slack連携方式 | Events API（リアルタイム） | ポーリングでは盆栽成長のリアルタイム体験が損なわれる |
 | 非同期処理 | Vercel waitUntil() | Slackの3秒ルール対応。DB処理をレスポンス後に実行 |
 | データ取得管理 | SWR（TanStack Queryではなく） | フロントエンドがリードオンリーでミューテーション不要。軽量で3Dアプリに有利。詳細は [ADR-001](adr/001-swr-adoption.md) |
+| バリデーション | Zod（Valibot・手動実装ではなく） | 型とバリデーションの一元化（`z.infer`）。Slackイベント判別に`discriminatedUnion`が最適。詳細は [ADR-002](adr/002-zod-adoption.md) |

@@ -32,7 +32,8 @@ tamamori/
 │   ├── api-design.md                        #   API設計
 │   ├── data-model.md                        #   データモデル設計
 │   └── adr/                                 #   Architecture Decision Records
-│       └── 001-swr-adoption.md              #     データ取得ライブラリとしてSWR採用
+│       ├── 001-swr-adoption.md              #     データ取得ライブラリとしてSWR採用
+│       └── 002-zod-adoption.md              #     バリデーションライブラリとしてZod採用
 │
 ├── supabase/
 │   └── migrations/                          # DBマイグレーションSQL
@@ -97,7 +98,9 @@ tamamori/
 │   │   │   ├── model/
 │   │   │   │   └── session.ts               #   iron-session 設定、セッション型定義
 │   │   │   └── lib/
-│   │   │       └── verify-signature.ts      #   Slack 署名検証
+│   │   │       ├── verify-signature.ts      #   Slack 署名検証
+│   │   │       ├── slack-event-schema.ts    #   Slackイベントペイロードの Zod スキーマ
+│   │   │       └── slack-oauth-schema.ts    #   OAuthレスポンスの Zod スキーマ
 │   │   │
 │   │   ├── bonsai-growth/                   # 盆栽成長計算
 │   │   │   ├── index.ts
@@ -118,7 +121,7 @@ tamamori/
 │   │   ├── bonsai/                          # 盆栽エンティティ
 │   │   │   ├── index.ts
 │   │   │   ├── model/
-│   │   │   │   └── types.ts                 #   BonsaiVisualState, GrowthStage 型
+│   │   │   │   └── types.ts                 #   Zodスキーマ + 型導出（BonsaiVisualState, GrowthStage）
 │   │   │   ├── api/
 │   │   │   │   └── bonsai-api.ts            #   SWRフック（useBonsai, useAllBonsai）
 │   │   │   └── ui/
@@ -133,13 +136,13 @@ tamamori/
 │   │   ├── user/                            # ユーザーエンティティ
 │   │   │   ├── index.ts
 │   │   │   ├── model/
-│   │   │   │   └── types.ts                 #   User 型
+│   │   │   │   └── types.ts                 #   Zodスキーマ + 型導出（User）
 │   │   │   └── api/
 │   │   │       └── user-api.ts              #   ユーザーデータ取得・upsert
 │   │   └── action/                          # アクションエンティティ
 │   │       ├── index.ts
 │   │       ├── model/
-│   │       │   └── types.ts                 #   ActionLog, ActionType 型
+│   │       │   └── types.ts                 #   Zodスキーマ + 型導出（ActionLog, ActionType）
 │   │       └── api/
 │   │           └── action-api.ts            #   SWRフック（useActionLogs）+ サーバー用挿入関数
 │   │
@@ -160,7 +163,7 @@ tamamori/
 │       │       └── client.ts                #   Slack API クライアント初期化
 │       ├── config/                          # 設定
 │       │   ├── index.ts                     #   Public API
-│       │   └── env.ts                       #   環境変数のバリデーション・エクスポート
+│       │   └── env.ts                       #   環境変数の Zod バリデーション・エクスポート
 │       └── types/                           # 共通型定義
 │           └── index.ts                     #   Public API（型の再エクスポート）
 │
