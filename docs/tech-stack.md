@@ -10,6 +10,7 @@
 | データベース | Supabase (PostgreSQL) | Supabase Cloud |
 | リアルタイム | Supabase Realtime | Supabase Cloud 付属 |
 | 認証 | Slack OAuth + iron-session | - |
+| データ取得 | SWR | 最新安定版 |
 | CSS | Tailwind CSS | 最新安定版 |
 | デプロイ | Vercel | - |
 | パッケージマネージャ | npm | - |
@@ -36,6 +37,15 @@
 
 - **役割**: R3Fのユーティリティ集。OrbitControls、Html（3D空間内のHTML描画）、InstancedMesh等
 - **選定理由**: 頻出パターンの再実装を避ける
+
+### SWR
+
+- **役割**: クライアントサイドのデータ取得・キャッシュ管理
+- **主要機能**:
+  - `useSWR` — 宣言的なデータフェッチフック（stale-while-revalidate戦略）
+  - `mutate()` — キャッシュの手動更新（Supabase Realtimeとの連携に使用）
+  - `SWRConfig` の `fallback` — SSRで取得したデータの注入
+- **選定理由**: フロントエンドがリードオンリーのため、ミューテーション管理が不要。TanStack Queryと比較して軽量（バンドルサイズ約1/3）で、シンプルなAPI。Three.jsを使う3Dアプリではバンドルサイズの軽量さが有利。詳細は [ADR-001](adr/001-swr-adoption.md) を参照
 
 ### Tailwind CSS
 
@@ -134,6 +144,7 @@ three
 @supabase/supabase-js
 @supabase/ssr
 iron-session
+swr
 ```
 
 ### devDependencies

@@ -183,3 +183,4 @@ feature-name/
 | セッション管理 | iron-session | Slackのみの単一OAuth。next-authより軽量 |
 | Slack連携方式 | Events API（リアルタイム） | ポーリングでは盆栽成長のリアルタイム体験が損なわれる |
 | 非同期処理 | Vercel waitUntil() | Slackの3秒ルール対応。DB処理をレスポンス後に実行 |
+| データ取得管理 | SWR（TanStack Queryではなく） | フロントエンドがリードオンリーでミューテーション不要。軽量で3Dアプリに有利。詳細は [ADR-001](adr/001-swr-adoption.md) |

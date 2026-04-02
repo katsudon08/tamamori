@@ -30,7 +30,9 @@ tamamori/
 │   ├── tech-stack.md                        #   技術スタック
 │   ├── directory-structure.md               #   ディレクトリ構成（本ファイル）
 │   ├── api-design.md                        #   API設計
-│   └── data-model.md                        #   データモデル設計
+│   ├── data-model.md                        #   データモデル設計
+│   └── adr/                                 #   Architecture Decision Records
+│       └── 001-swr-adoption.md              #     データ取得ライブラリとしてSWR採用
 │
 ├── supabase/
 │   └── migrations/                          # DBマイグレーションSQL
@@ -46,7 +48,7 @@ tamamori/
 ├── src/
 │   ├── app/                                 # ===== FSD: app 層 =====
 │   │   │                                    # Next.js App Router のルーティング・レイアウト
-│   │   ├── layout.tsx                       # ルートレイアウト（プロバイダー設定）
+│   │   ├── layout.tsx                       # ルートレイアウト（SWRConfig, プロバイダー設定）
 │   │   ├── page.tsx                         # / ランディング・サインイン
 │   │   ├── (pages)/                         # ルートグループ（URLに影響しない）
 │   │   │   ├── garden/
@@ -96,6 +98,7 @@ tamamori/
 │   │   │   │   └── session.ts               #   iron-session 設定、セッション型定義
 │   │   │   └── lib/
 │   │   │       └── verify-signature.ts      #   Slack 署名検証
+│   │   │
 │   │   ├── bonsai-growth/                   # 盆栽成長計算
 │   │   │   ├── index.ts
 │   │   │   ├── model/
@@ -104,11 +107,11 @@ tamamori/
 │   │   │   └── lib/
 │   │   │       ├── classify-event.ts        #   Slackイベント分類
 │   │   │       └── hash.ts                  #   決定的ハッシュ関数
-│   │   └── realtime-sync/                   # リアルタイム同期
+│   │   └── realtime-sync/                   # リアルタイム同期（Realtime → SWR mutate）
 │   │       ├── index.ts
 │   │       └── model/
-│   │           ├── use-bonsai-realtime.ts   #   単一盆栽のRealtime購読フック
-│   │           └── use-all-bonsai.ts        #   全盆栽のRealtime購読フック
+│   │           ├── use-bonsai-realtime.ts   #   単一盆栽のRealtime購読 + SWRキャッシュ更新
+│   │           └── use-all-bonsai.ts        #   全盆栽のRealtime購読 + SWRキャッシュ更新
 │   │
 │   ├── entities/                            # ===== FSD: entities 層 =====
 │   │   │                                    # ビジネスエンティティ
@@ -117,7 +120,7 @@ tamamori/
 │   │   │   ├── model/
 │   │   │   │   └── types.ts                 #   BonsaiVisualState, GrowthStage 型
 │   │   │   ├── api/
-│   │   │   │   └── bonsai-api.ts            #   盆栽データ取得・更新
+│   │   │   │   └── bonsai-api.ts            #   SWRフック（useBonsai, useAllBonsai）
 │   │   │   └── ui/
 │   │   │       ├── BonsaiScene.tsx           #   3Dシーン（Canvas, ライティング）
 │   │   │       ├── Bonsai.tsx               #   盆栽コンポーネント（全パーツ統合）
@@ -138,7 +141,7 @@ tamamori/
 │   │       ├── model/
 │   │       │   └── types.ts                 #   ActionLog, ActionType 型
 │   │       └── api/
-│   │           └── action-api.ts            #   アクションログ取得・挿入
+│   │           └── action-api.ts            #   SWRフック（useActionLogs）+ サーバー用挿入関数
 │   │
 │   └── shared/                              # ===== FSD: shared 層 =====
 │       │                                    # ビジネスロジックを持たない共有コード

@@ -189,62 +189,149 @@ interface SessionData {
 
 ## 3. Supabase クライアント API（フロントエンド）
 
-フロントエンドからのデータ取得はSupabase JSクライアントを使用する。Next.js API Routeを経由せず、直接Supabaseと通信する。
+フロントエンドからのデータ取得はSupabase JSクライアントを使用し、**SWR** でキャッシュ管理を行う。Next.js API Routeを経由せず、直接Supabaseと通信する。
 
-### 盆栽データ取得
+### SWR フック定義（entities層）
+
+各エンティティの `api/` セグメントに SWR フックを定義する。
 
 ```typescript
+// entities/bonsai/api/bonsai-api.ts
+import useSWR from 'swr';
+import { createClient } from '@/shared/lib/supabase/client';
+
+const supabase = createClient();
+
 // 単一ユーザーの盆栽
-const { data } = await supabase
-  .from('bonsai')
-  .select(`
-    *,
-    users!inner (display_name, avatar_url)
-  `)
-  .eq('user_id', userId)
-  .single();
+export function useBonsai(userId: string | undefined) {
+  return useSWR(
+    userId ? ['bonsai', userId] : null,
+    async ([, id]) => {
+      const { data, error } = await supabase
+        .from('bonsai')
+        .select(`
+          *,
+          users!inner (display_name, avatar_url)
+        `)
+        .eq('user_id', id)
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  );
+}
 
 // 全ユーザーの盆栽（花壇ビュー）
-const { data } = await supabase
-  .from('bonsai')
-  .select(`
-    *,
-    users!inner (display_name, avatar_url)
-  `)
-  .order('created_at', { ascending: true });
-```
-
-### アクションログ取得（統計ページ）
-
-```typescript
-// 日別アクション集計
-const { data } = await supabase
-  .from('action_log')
-  .select('action_type, created_at')
-  .eq('user_id', userId)
-  .gte('created_at', startDate)
-  .order('created_at', { ascending: true });
-```
-
-### Realtime 購読
-
-```typescript
-// 盆栽テーブルの変更をリアルタイム購読
-const channel = supabase
-  .channel('bonsai-changes')
-  .on(
-    'postgres_changes',
-    {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'bonsai',
-      filter: userId ? `user_id=eq.${userId}` : undefined,
-    },
-    (payload) => {
-      // payload.new に更新後のデータ
+export function useAllBonsai() {
+  return useSWR(
+    'all-bonsai',
+    async () => {
+      const { data, error } = await supabase
+        .from('bonsai')
+        .select(`
+          *,
+          users!inner (display_name, avatar_url)
+        `)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data;
     }
-  )
-  .subscribe();
+  );
+}
+```
+
+```typescript
+// entities/action/api/action-api.ts
+import useSWR from 'swr';
+import { createClient } from '@/shared/lib/supabase/client';
+
+const supabase = createClient();
+
+// 日別アクション集計（統計ページ）
+export function useActionLogs(userId: string | undefined, startDate: string) {
+  return useSWR(
+    userId ? ['action-logs', userId, startDate] : null,
+    async ([, id, start]) => {
+      const { data, error } = await supabase
+        .from('action_log')
+        .select('action_type, created_at')
+        .eq('user_id', id)
+        .gte('created_at', start)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data;
+    }
+  );
+}
+```
+
+### SSR初期データの注入
+
+SSRページでは `SWRConfig` の `fallback` でサーバー取得データを注入し、初回レンダリングでのデータ表示を即座に行う。
+
+```typescript
+// src/app/(pages)/garden/page.tsx
+import { SWRConfig } from 'swr';
+import { createClient } from '@/shared/lib/supabase/server';
+import { GardenViewer } from '@/widgets/garden-viewer';
+
+export default async function GardenPage() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('bonsai')
+    .select('*, users!inner (display_name, avatar_url)')
+    .order('created_at', { ascending: true });
+
+  return (
+    <SWRConfig value={{ fallback: { 'all-bonsai': data } }}>
+      <GardenViewer />
+    </SWRConfig>
+  );
+}
+```
+
+### Realtime 購読 + SWR キャッシュ更新
+
+Supabase Realtime のコールバック内で SWR の `mutate()` を使用してキャッシュを更新し、Three.js シーンの再レンダリングをトリガーする。
+
+```typescript
+// features/realtime-sync/model/use-bonsai-realtime.ts
+import { useEffect } from 'react';
+import { useSWRConfig } from 'swr';
+import { createClient } from '@/shared/lib/supabase/client';
+
+const supabase = createClient();
+
+export function useBonsaiRealtime(userId?: string) {
+  const { mutate } = useSWRConfig();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('bonsai-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'bonsai',
+          filter: userId ? `user_id=eq.${userId}` : undefined,
+        },
+        (payload) => {
+          // 特定盆栽のキャッシュを更新
+          if (payload.new.user_id) {
+            mutate(['bonsai', payload.new.user_id]);
+          }
+          // 全盆栽リストのキャッシュも更新
+          mutate('all-bonsai');
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, mutate]);
+}
 ```
 
 ## 4. Supabase Row Level Security (RLS)
@@ -266,7 +353,7 @@ const channel = supabase
 | ページ | パス | データ取得方法 | Realtime |
 |-------|------|-------------|----------|
 | ランディング | `/` | なし | なし |
-| 花壇 | `/garden` | 全bonsai + users (SSR + Realtime) | 全bonsaiのUPDATE購読 |
-| 個別盆栽 | `/bonsai/[userId]` | 単一bonsai + users (SSR + Realtime) | 該当bonsaiのUPDATE購読 |
+| 花壇 | `/garden` | `useAllBonsai()` (SSR fallback + SWR + Realtime) | 全bonsaiのUPDATE購読 |
+| 個別盆栽 | `/bonsai/[userId]` | `useBonsai(userId)` (SSR fallback + SWR + Realtime) | 該当bonsaiのUPDATE購読 |
 | 自分の盆栽 | `/bonsai/me` | セッションからuserId取得 → リダイレクト | なし |
-| 統計 | `/stats` | action_log 集計 (CSR) | なし |
+| 統計 | `/stats` | `useActionLogs(userId, startDate)` (SWR CSR) | なし |
