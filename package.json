@@ -11,7 +11,8 @@
     "test:watch": "jest --watch",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "gen:types": "supabase gen types typescript --local > src/shared/lib/supabase/types.ts"
   },
   "dependencies": {
     "next": "16.2.2",
