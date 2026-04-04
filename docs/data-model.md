@@ -2,38 +2,51 @@
 
 ## ER図
 
-```
-┌──────────────┐       1:1        ┌──────────────────┐
-│    users     │ ───────────────> │      bonsai      │
-│              │                  │                  │
-│ id (PK)      │                  │ id (PK)          │
-│ slack_user_id│                  │ user_id (FK, UQ) │
-│ slack_team_id│                  │ total_messages   │
-│ display_name │                  │ total_reactions  │
-│ avatar_url   │                  │ total_thanks     │
-│ created_at   │                  │ growth_stage     │
-│ updated_at   │                  │ visual_state     │
-└──────┬───────┘                  │ created_at       │
-       │                          │ updated_at       │
-       │ 1:N                      └──────────────────┘
-       │
-       ▼
-┌──────────────────┐
-│   action_log     │
-│                  │
-│ id (PK)          │
-│ user_id (FK)     │
-│ action_type      │
-│ slack_event_id   │              ┌──────────────────┐
-│ slack_channel    │              │  growth_rules    │
-│ metadata         │              │                  │
-│ created_at       │              │ id (PK)          │
-└──────────────────┘              │ stage (UQ)       │
-                                  │ min_messages     │
-                                  │ min_reactions    │
-                                  │ min_thanks       │
-                                  │ sort_order       │
-                                  └──────────────────┘
+```mermaid
+erDiagram
+    users ||--|| bonsai : "1:1"
+    users ||--o{ action_log : "1:N"
+
+    users {
+        UUID id PK
+        TEXT slack_user_id UK
+        TEXT slack_team_id
+        TEXT display_name
+        TEXT avatar_url
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    bonsai {
+        UUID id PK
+        UUID user_id FK,UK
+        INT total_messages
+        INT total_reactions
+        INT total_thanks
+        TEXT growth_stage
+        JSONB visual_state
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    action_log {
+        UUID id PK
+        UUID user_id FK
+        TEXT action_type
+        TEXT slack_event_id UK
+        TEXT slack_channel
+        JSONB metadata
+        TIMESTAMPTZ created_at
+    }
+
+    growth_rules {
+        UUID id PK
+        TEXT stage UK
+        INT min_messages
+        INT min_reactions
+        INT min_thanks
+        INT sort_order
+    }
 ```
 
 ## テーブル定義

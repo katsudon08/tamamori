@@ -2,107 +2,82 @@
 
 ## システム全体像
 
-```
-┌─────────────┐     Events API      ┌──────────────────────────────┐
-│   Slack     │ ──────────────────> │  Next.js (Vercel)            │
-│  Workspace  │                     │                              │
-│             │ <── OAuth ────────> │  ┌──────────────────────┐    │
-└─────────────┘                     │  │ API Routes            │    │
-                                    │  │  /api/slack/events     │    │
-                                    │  │  /api/auth/slack/*     │    │
-                                    │  └──────────┬─────────────┘    │
-                                    │             │                  │
-                                    │  ┌──────────▼─────────────┐    │
-                                    │  │ Growth Engine          │    │
-                                    │  │  イベント分類            │    │
-                                    │  │  カウンター更新          │    │
-                                    │  │  ステージ判定            │    │
-                                    │  │  ビジュアルステート計算   │    │
-                                    │  └──────────┬─────────────┘    │
-                                    │             │                  │
-                                    │  ┌──────────▼─────────────┐    │
-                                    │  │ Frontend (React/R3F)   │    │
-                                    │  │  盆栽3Dビューア         │    │
-                                    │  │  花壇ビュー             │    │
-                                    │  │  統計ページ             │    │
-                                    │  └─────────────────────────┘    │
-                                    └──────────────┬─────────────────┘
-                                                   │
-                                    ┌──────────────▼─────────────────┐
-                                    │  Supabase                      │
-                                    │  ┌───────────┐ ┌────────────┐  │
-                                    │  │ PostgreSQL │ │ Realtime   │  │
-                                    │  │  users     │ │ WebSocket  │──── Push to Frontend
-                                    │  │  bonsai    │ │            │  │
-                                    │  │  action_log│ └────────────┘  │
-                                    │  │  growth_   │                 │
-                                    │  │  rules     │                 │
-                                    │  └───────────┘                  │
-                                    └─────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Slack["Slack Workspace"]
+        S[Slack]
+    end
+
+    subgraph Vercel["Next.js (Vercel)"]
+        API["API Routes\n/api/slack/events\n/api/auth/slack/*"]
+        GE["Growth Engine\nイベント分類\nカウンター更新\nステージ判定\nビジュアルステート計算"]
+        FE["Frontend (React/R3F)\n盆栽3Dビューア\n花壇ビュー\n統計ページ"]
+
+        API --> GE --> FE
+    end
+
+    subgraph Supabase
+        PG["PostgreSQL\nusers / bonsai\naction_log / growth_rules"]
+        RT["Realtime\nWebSocket"]
+    end
+
+    S -- "Events API" --> API
+    S <-- "OAuth" --> API
+    GE --> PG
+    RT -- "Push to Frontend" --> FE
 ```
 
 ## イベント処理フロー
 
-```
-1. Slackでイベント発生（メッセージ投稿 / リアクション追加）
-   │
-2. Slack Events API → POST /api/slack/events
-   │
-3. 署名検証 (x-slack-signature)
-   │
-4. 200 OK を即座に返却（Slackの3秒ルール対応）
-   │
-5. waitUntil() で非同期処理を開始
-   │
-   ├─ 6a. チャンネルフィルタリング（SLACK_WATCHED_CHANNELS に含まれるか）
-   │
-   ├─ 6b. 冪等性チェック（slack_event_id が action_log に存在するか）
-   │
-   ├─ 6c. イベント分類
-   │       ├─ message.channels → "message" (+ テキストに感謝キーワードがあれば "thanks" も)
-   │       └─ reaction_added   → "reaction"
-   │
-   ├─ 7. ユーザー upsert（users テーブル）
-   │
-   ├─ 8. action_log に挿入
-   │
-   ├─ 9. bonsai カウンター更新 (total_messages / total_reactions / total_thanks)
-   │
-   ├─ 10. 成長ステージ再判定（growth_rules テーブルと比較）
-   │
-   └─ 11. visual_state 再計算 → bonsai テーブル UPDATE
-                                       │
-                                       ▼
-                              Supabase Realtime が変更を検知
-                                       │
-                                       ▼
-                              フロントエンドに WebSocket で Push
-                                       │
-                                       ▼
-                              Three.js シーンが lerp アニメーションで更新
+```mermaid
+flowchart TD
+    A["1. Slackでイベント発生\n（メッセージ投稿 / リアクション追加）"]
+    B["2. Slack Events API\nPOST /api/slack/events"]
+    C["3. 署名検証\n(x-slack-signature)"]
+    D["4. 200 OK を即座に返却\n（Slackの3秒ルール対応）"]
+    E["5. waitUntil() で非同期処理を開始"]
+    F6a["6a. チャンネルフィルタリング\n（SLACK_WATCHED_CHANNELS に含まれるか）"]
+    F6b["6b. 冪等性チェック\n（slack_event_id が action_log に存在するか）"]
+    F6c["6c. イベント分類"]
+    F6c_msg["message.channels → message\n(+ 感謝キーワードがあれば thanks も)"]
+    F6c_react["reaction_added → reaction"]
+    F7["7. ユーザー upsert（users テーブル）"]
+    F8["8. action_log に挿入"]
+    F9["9. bonsai カウンター更新\n(total_messages / total_reactions / total_thanks)"]
+    F10["10. 成長ステージ再判定\n（growth_rules テーブルと比較）"]
+    F11["11. visual_state 再計算\nbonsai テーブル UPDATE"]
+    G["Supabase Realtime が変更を検知"]
+    H["フロントエンドに WebSocket で Push"]
+    I["Three.js シーンが lerp アニメーションで更新"]
+
+    A --> B --> C --> D --> E
+    E --> F6a --> F6b --> F6c
+    F6c --> F6c_msg
+    F6c --> F6c_react
+    F6c --> F7 --> F8 --> F9 --> F10 --> F11
+    F11 --> G --> H --> I
 ```
 
 ## 認証フロー
 
-```
-1. ユーザーが "/" にアクセス → ランディングページ表示
-   │
-2. "Sign in with Slack" ボタンをクリック
-   │
-3. GET /api/auth/slack → Slack OAuth 認可URL にリダイレクト
-   │  (scopes: openid, profile)
-   │
-4. ユーザーがSlackで認可
-   │
-5. Slack → GET /api/auth/slack/callback?code=xxx
-   │
-6. code をトークンに交換 → Slack user_id, team_id, display_name, avatar 取得
-   │
-7. users テーブルに upsert + bonsai レコードが未存在なら作成
-   │
-8. iron-session でセッションCookieを設定
-   │
-9. /garden にリダイレクト
+```mermaid
+sequenceDiagram
+    actor User as ユーザー
+    participant App as Next.js App
+    participant SlackOAuth as Slack OAuth
+    participant DB as Supabase
+
+    User->>App: 1. "/" にアクセス
+    App-->>User: ランディングページ表示
+    User->>App: 2. "Sign in with Slack" クリック
+    App->>SlackOAuth: 3. GET /api/auth/slack → 認可URLにリダイレクト<br/>(scopes: openid, profile)
+    User->>SlackOAuth: 4. Slackで認可
+    SlackOAuth->>App: 5. GET /api/auth/slack/callback?code=xxx
+    App->>SlackOAuth: 6. code をトークンに交換
+    SlackOAuth-->>App: user_id, team_id, display_name, avatar
+    App->>DB: 7. users upsert + bonsai レコード作成（未存在時）
+    App->>App: 8. iron-session でセッションCookie設定
+    App-->>User: 9. /garden にリダイレクト
 ```
 
 ## レイヤーアーキテクチャ (FSD)
@@ -111,16 +86,18 @@
 
 ### レイヤー構成と依存ルール
 
-```
-  app        ← エントリポイント。Next.js App Router のルーティング・レイアウト・プロバイダー
-   ↓ import
-  widgets    ← 大きなUI構成ブロック。複数の features/entities を組み合わせる
-   ↓ import
-  features   ← ユーザーインタラクション。ビジネスロジックを含む
-   ↓ import
-  entities   ← ビジネスエンティティ。型定義、API呼び出し、UIパーツ
-   ↓ import
-  shared     ← 共有インフラ。UI基盤、ユーティリティ、設定、型
+```mermaid
+graph TD
+    app["app\nエントリポイント\nNext.js App Router のルーティング・レイアウト・プロバイダー"]
+    widgets["widgets\n大きなUI構成ブロック\n複数の features/entities を組み合わせる"]
+    features["features\nユーザーインタラクション\nビジネスロジックを含む"]
+    entities["entities\nビジネスエンティティ\n型定義、API呼び出し、UIパーツ"]
+    shared["shared\n共有インフラ\nUI基盤、ユーティリティ、設定、型"]
+
+    app -- "import" --> widgets
+    widgets -- "import" --> features
+    features -- "import" --> entities
+    entities -- "import" --> shared
 ```
 
 **依存ルール**: 上位レイヤーは下位レイヤーのみをインポートできる。同一レイヤー内の他スライスへのインポートは禁止。
@@ -150,24 +127,26 @@ feature-name/
 
 ## デプロイアーキテクチャ
 
-```
-┌──────────────┐
-│   Vercel     │
-│              │
-│  Next.js App │
-│  ├─ SSR/SSG  │ ←── Static + Server-side rendering
-│  ├─ API Routes│ ←── Slack Webhook, Auth endpoints
-│  └─ Edge     │
-└──────┬───────┘
-       │ HTTPS
-       ▼
-┌──────────────┐
-│  Supabase    │
-│  (Cloud)     │
-│  ├─ Database │
-│  ├─ Realtime │
-│  └─ Auth*    │  * 将来的に利用検討
-└──────────────┘
+```mermaid
+flowchart TD
+    subgraph Vercel
+        App["Next.js App"]
+        SSR["SSR/SSG\nStatic + Server-side rendering"]
+        Routes["API Routes\nSlack Webhook, Auth endpoints"]
+        Edge["Edge"]
+
+        App --- SSR
+        App --- Routes
+        App --- Edge
+    end
+
+    subgraph Supabase["Supabase (Cloud)"]
+        Database
+        Realtime
+        Auth["Auth *\n* 将来的に利用検討"]
+    end
+
+    Vercel -- "HTTPS" --> Supabase
 ```
 
 - **Vercel**: Next.jsアプリのホスティング。自動デプロイ（Git push）、プレビューデプロイ対応
