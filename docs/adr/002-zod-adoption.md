@@ -11,20 +11,24 @@
 ### バリデーションが必要なシステム境界
 
 #### 1. Slack Webhook (`POST /api/slack/events`) — 最重要
+
 - Slackから送信されるイベントペイロード（`url_verification` / `event_callback`）
 - イベント種別に応じて構造が異なる（message / reaction_added）
 - 不正なペイロードがDBに到達すると、冪等性チェックの破綻やカウンター異常を引き起こす
 
 #### 2. OAuth Callback (`GET /api/auth/slack/callback`)
+
 - クエリパラメータ（`code`, `state`）
 - Slackトークン交換レスポンス（`user_id`, `team_id`, `name`, `picture`）
 - 不正なユーザーデータがusersテーブルに入るリスク
 
 #### 3. 環境変数
+
 - `SLACK_CLIENT_ID`, `SLACK_SIGNING_SECRET`, `SUPABASE_URL` 等の必須設定
 - 不備があるとランタイムエラーで初めて発覚する
 
 #### 4. Supabase レスポンス / Realtime ペイロード
+
 - `visual_state`（JSONB）がThree.jsレンダリングに直結
 - 不正な値（NaN, 範囲外）が3Dシーンをクラッシュさせるリスク
 
@@ -33,6 +37,7 @@
 ### 選択肢A: Zod ✅ 採用
 
 **メリット:**
+
 - `z.infer<typeof schema>` でスキーマからTypeScript型を自動導出 — 型定義の二重管理を防止
 - `z.discriminatedUnion` でSlackイベントの型判別が自然に書ける
 - 環境変数バリデーション（`z.object({...}).parse(process.env)`）で起動時に全設定の不備を検出
@@ -41,16 +46,19 @@
 - APIが直感的で学習コストが低い
 
 **デメリット:**
+
 - Valibotより若干大きいバンドルサイズ（~6KB差）
 - ランタイムバリデーションのオーバーヘッド（このプロジェクトの規模では無視できる）
 
 ### 選択肢B: Valibot
 
 **メリット:**
+
 - Zodより軽量（~6KB, gzip ~2KB）
 - Tree-shakingに最適化された関数ベースAPI
 
 **デメリット:**
+
 - エコシステムがZodに比べ小規模（ドキュメント、事例、サードパーティ統合が少ない）
 - `discriminatedUnion`の表現力がZodに劣る
 - コミュニティのナレッジベースが限定的
@@ -58,9 +66,11 @@
 ### 選択肢C: 手動バリデーション（ライブラリ不使用）
 
 **メリット:**
+
 - 依存ゼロ
 
 **デメリット:**
+
 - 型定義とバリデーションロジックの二重管理が発生
 - Slackイベントの判別ロジックが冗長かつエラーを起こしやすい
 - 環境変数チェックが散在し、漏れが発生しやすい
@@ -81,16 +91,17 @@
 ## 影響
 
 ### パッケージ
+
 - `zod` を dependencies に追加
 
 ### バリデーション適用箇所（FSD配置）
 
-| バリデーション対象 | Zodスキーマの配置場所 | 用途 |
-|-------------------|---------------------|------|
-| 環境変数 | `shared/config/env.ts` | 起動時に全設定を検証 |
-| Slackイベントペイロード | `features/slack-auth/lib/slack-event-schema.ts` | Webhookリクエストボディの検証 |
-| OAuthコールバック | `features/slack-auth/lib/slack-oauth-schema.ts` | クエリパラメータ・トークンレスポンスの検証 |
-| エンティティ型定義 | `entities/*/model/types.ts` | Zodスキーマから型を導出（`z.infer`） |
+| バリデーション対象      | Zodスキーマの配置場所                           | 用途                                       |
+| ----------------------- | ----------------------------------------------- | ------------------------------------------ |
+| 環境変数                | `shared/config/env.ts`                          | 起動時に全設定を検証                       |
+| Slackイベントペイロード | `features/slack-auth/lib/slack-event-schema.ts` | Webhookリクエストボディの検証              |
+| OAuthコールバック       | `features/slack-auth/lib/slack-oauth-schema.ts` | クエリパラメータ・トークンレスポンスの検証 |
+| エンティティ型定義      | `entities/*/model/types.ts`                     | Zodスキーマから型を導出（`z.infer`）       |
 
 ### 型定義パターン
 
@@ -101,24 +112,32 @@ entities層の `model/types.ts` では、Zodスキーマを定義し `z.infer` �
 import { z } from 'zod';
 
 export const growthStageSchema = z.enum([
-  'seed', 'sprout', 'young', 'branching',
-  'leafy', 'budding', 'flowering', 'full_bloom',
+    'seed',
+    'sprout',
+    'young',
+    'branching',
+    'leafy',
+    'budding',
+    'flowering',
+    'full_bloom',
 ]);
 
 export const visualStateSchema = z.object({
-  trunkHeight: z.number(),
-  trunkThickness: z.number(),
-  branches: z.array(z.object({
-    angle: z.number(),
-    length: z.number(),
-    depth: z.number().int(),
-    seed: z.number(),
-  })),
-  leaves: z.number().int(),
-  leafColor: z.string(),
-  flowers: z.number().int(),
-  flowerColor: z.string(),
-  potColor: z.string(),
+    trunkHeight: z.number(),
+    trunkThickness: z.number(),
+    branches: z.array(
+        z.object({
+            angle: z.number(),
+            length: z.number(),
+            depth: z.number().int(),
+            seed: z.number(),
+        }),
+    ),
+    leaves: z.number().int(),
+    leafColor: z.string(),
+    flowers: z.number().int(),
+    flowerColor: z.string(),
+    potColor: z.string(),
 });
 
 export type GrowthStage = z.infer<typeof growthStageSchema>;

@@ -3,48 +3,48 @@ import { z } from 'zod';
 // --- イベント内部スキーマ ---
 
 const messageEventSchema = z.object({
-  type: z.literal('message'),
-  subtype: z.string().optional(),
-  user: z.string(),
-  text: z.string(),
-  channel: z.string(),
-  ts: z.string(),
+    type: z.literal('message'),
+    subtype: z.string().optional(),
+    user: z.string(),
+    text: z.string(),
+    channel: z.string(),
+    ts: z.string(),
 });
 
 const reactionAddedEventSchema = z.object({
-  type: z.literal('reaction_added'),
-  user: z.string(),
-  reaction: z.string(),
-  item: z.object({
-    type: z.string(),
-    channel: z.string(),
-    ts: z.string(),
-  }),
+    type: z.literal('reaction_added'),
+    user: z.string(),
+    reaction: z.string(),
+    item: z.object({
+        type: z.string(),
+        channel: z.string(),
+        ts: z.string(),
+    }),
 });
 
 const innerEventSchema = z.discriminatedUnion('type', [
-  messageEventSchema,
-  reactionAddedEventSchema,
+    messageEventSchema,
+    reactionAddedEventSchema,
 ]);
 
 // --- トップレベルスキーマ ---
 
 const urlVerificationSchema = z.object({
-  type: z.literal('url_verification'),
-  challenge: z.string(),
-  token: z.string(),
+    type: z.literal('url_verification'),
+    challenge: z.string(),
+    token: z.string(),
 });
 
 const eventCallbackSchema = z.object({
-  type: z.literal('event_callback'),
-  event_id: z.string(),
-  team_id: z.string(),
-  event: innerEventSchema,
+    type: z.literal('event_callback'),
+    event_id: z.string(),
+    team_id: z.string(),
+    event: innerEventSchema,
 });
 
 export const slackEventSchema = z.discriminatedUnion('type', [
-  urlVerificationSchema,
-  eventCallbackSchema,
+    urlVerificationSchema,
+    eventCallbackSchema,
 ]);
 
 export type SlackEvent = z.infer<typeof slackEventSchema>;

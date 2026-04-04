@@ -2,17 +2,17 @@
 export { verifySignature, type VerifySignatureParams } from './lib/verify-signature';
 
 export {
-  slackEventSchema,
-  type SlackEvent,
-  type UrlVerification,
-  type EventCallback,
-  type MessageEvent,
-  type ReactionAddedEvent,
+    slackEventSchema,
+    type SlackEvent,
+    type UrlVerification,
+    type EventCallback,
+    type MessageEvent,
+    type ReactionAddedEvent,
 } from './lib/slack-event-schema';
 
 export {
-  oauthCallbackParamsSchema,
-  oauthUserInfoResponseSchema,
-  type OAuthCallbackParams,
-  type OAuthUserInfoResponse,
+    oauthCallbackParamsSchema,
+    oauthUserInfoResponseSchema,
+    type OAuthCallbackParams,
+    type OAuthUserInfoResponse,
 } from './lib/slack-oauth-schema';

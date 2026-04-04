@@ -10,11 +10,11 @@ Next.js App RouterのRoute Handlersでサーバーサイド（API Route）を実
 
 本プロジェクトのAPIルートは以下の3系統のみ:
 
-| ルート | メソッド | 用途 |
-|--------|----------|------|
-| `/api/slack/events` | POST | Slack Webhookイベント受信・処理 |
-| `/api/auth/slack` + `callback` | GET | Slack OAuth認証フロー |
-| `/api/auth/logout` | GET | セッション破棄 |
+| ルート                         | メソッド | 用途                            |
+| ------------------------------ | -------- | ------------------------------- |
+| `/api/slack/events`            | POST     | Slack Webhookイベント受信・処理 |
+| `/api/auth/slack` + `callback` | GET      | Slack OAuth認証フロー           |
+| `/api/auth/logout`             | GET      | セッション破棄                  |
 
 共通的な処理として、Slack署名検証・Zodバリデーション・セッション管理が存在するが、FSD設計によりRoute Handlersはエントリーポイントに徹し、ロジックはfeatures層に委譲する方針である。
 
@@ -23,12 +23,14 @@ Next.js App RouterのRoute Handlersでサーバーサイド（API Route）を実
 ### 選択肢A: Hono導入
 
 **メリット:**
+
 - ミドルウェアの連鎖が宣言的に書ける（`app.post('/slack/events', verify, handle)`）
 - `app.request()` によるRoute Handler単位のユニットテストが容易
 - Zod Validatorミドルウェアでリクエストパース→型付きContextが一気通貫
 - 将来API層を別サービスに分離する際、Hono部分をそのまま持ち出せる
 
 **デメリット:**
+
 - 依存の増加（学習コストを含む）
 - Next.jsのファイルベースルーティングとHonoのルーティングが二重化し、認知負荷が増す
 - SSoTドキュメント（`docs/`配下）がNext.js Route Handlers前提で書かれており、乖離が生じる
@@ -37,6 +39,7 @@ Next.js App RouterのRoute Handlersでサーバーサイド（API Route）を実
 ### 選択肢B: Next.js Route Handlers + ヘルパー関数 ✅ 採用
 
 **メリット:**
+
 - 追加依存ゼロ。Next.jsの標準機能のみで完結
 - FSD設計と自然に整合（Route Handlersが薄いエントリーポイント、ロジックはfeatures層）
 - SSoTドキュメントとの一貫性を維持
@@ -44,6 +47,7 @@ Next.js App RouterのRoute Handlersでサーバーサイド（API Route）を実
 - ロジック本体がfeatures層の純粋関数のため、Route Handlerを経由せずテスト可能
 
 **デメリット:**
+
 - ミドルウェアパターンがHonoほど整備されていない（3ルートでは問題にならない）
 
 ## 決定

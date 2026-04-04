@@ -10,13 +10,14 @@
 
 本プロジェクトのフロントエンドにおけるデータ取得パターンは以下の通り:
 
-| ページ | 取得方法 | 内容 |
-|--------|----------|------|
-| `/garden` | SSR + Realtime | 全bonsai + users |
-| `/bonsai/[userId]` | SSR + Realtime | 単一bonsai + user |
-| `/stats` | CSR | action_log集計（日付フィルタ） |
+| ページ             | 取得方法       | 内容                           |
+| ------------------ | -------------- | ------------------------------ |
+| `/garden`          | SSR + Realtime | 全bonsai + users               |
+| `/bonsai/[userId]` | SSR + Realtime | 単一bonsai + user              |
+| `/stats`           | CSR            | action_log集計（日付フィルタ） |
 
 特徴として:
+
 - **フロントエンドからのミューテーション（書き込み）がほぼ存在しない** — bonsaiの更新はSlack Events → API Route → DB → Supabase Realtimeの流れで行われ、クライアントはリードオンリー
 - **クエリパターンが3種類と少ない** — 全bonsai取得、単一bonsai取得、action_log集計のみ
 - **Supabase Realtimeが主要な更新メカニズム** — WebSocket経由のプッシュ型更新であり、ポーリングやリフェッチは不要
@@ -27,6 +28,7 @@
 ### 選択肢A: TanStack Query (React Query)
 
 **メリット:**
+
 - `useMutation`による体系的なミューテーション管理
 - `queryClient.setQueryData`による型安全なキャッシュ更新
 - `HydrationBoundary`によるSSR → クライアントのデータ引き渡し
@@ -34,6 +36,7 @@
 - `enabled`オプションによる依存クエリ制御
 
 **デメリット:**
+
 - バンドルサイズ: ~39KB (gzip ~12KB)
 - 学習コスト: 概念が多い（QueryClient, QueryClientProvider, HydrationBoundary, useMutation等）
 - 本プロジェクトでは活かしにくい高度な機能が多い
@@ -41,6 +44,7 @@
 ### 選択肢B: SWR ✅ 採用
 
 **メリット:**
+
 - バンドルサイズ: ~12KB (gzip ~4KB) — TanStack Queryの約1/3
 - APIがシンプルで学習コストが低い
 - Vercel製でNext.jsとの親和性が高い
@@ -49,6 +53,7 @@
 - リードオンリーのユースケースに最適化されている
 
 **デメリット:**
+
 - ミューテーション専用APIがない（本プロジェクトでは不要）
 - Devtoolsが公式提供されていない
 - 複雑な依存クエリの制御がTanStack Queryほど整っていない

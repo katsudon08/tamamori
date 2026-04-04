@@ -44,6 +44,7 @@ allowed-tools: Bash(npm run lint:*), Bash(npm run test:*), Bash(git checkout:*),
 - **description**: kebab-case で簡潔に記述
 
 例:
+
 - `feat/28-realtime-sync`
 - `fix/15-oauth-redirect`
 - `docs/update-api-spec`
@@ -111,12 +112,15 @@ Conventional Commits形式（日本語）:
 
 ```markdown
 ## 概要
+
 <変更の要約を1-3行で記述>
 
 ## 変更内容
+
 <具体的な変更点を箇条書きで記述>
 
 ## テスト計画
+
 <テスト手順をチェックリスト形式で記述>
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
