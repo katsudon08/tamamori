@@ -160,11 +160,9 @@ tamamori/
 │       │   │   └── types.ts                 #   Supabase 自動生成型（supabase gen types）
 │       │   └── slack/
 │       │       └── client.ts                #   Slack API クライアント初期化
-│       ├── config/                          # 設定
-│       │   ├── index.ts                     #   Public API
-│       │   └── env.ts                       #   環境変数の Zod バリデーション・エクスポート
-│       └── types/                           # 共通型定義
-│           └── index.ts                     #   Public API（型の再エクスポート）
+│       └── config/                          # 設定
+│           ├── index.ts                     #   Public API
+│           └── env.ts                       #   環境変数の Zod バリデーション・エクスポート
 │
 ├── .env.local                               # 環境変数（Git管理外）
 ├── .gitignore
@@ -209,7 +207,7 @@ export async function POST(request: Request) {
 
 ### Public API (index.ts)
 
-各スライスは `index.ts` でパブリックAPIを定義する。外部からのインポートは必ず `index.ts` 経由とする。shared 層も同様に、各セグメント（`ui/`, `lib/`, `config/`, `types/`）が `index.ts` を持ち、Public API として機能する。
+各スライスは `index.ts` でパブリックAPIを定義する。外部からのインポートは必ず `index.ts` 経由とする。shared 層も同様に、各セグメント（`ui/`, `lib/`, `config/`）が `index.ts` を持ち、Public API として機能する。
 
 ```tsx
 // OK: index.ts 経由
