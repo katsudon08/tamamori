@@ -16,3 +16,12 @@ export {
     type OAuthCallbackParams,
     type OAuthUserInfoResponse,
 } from './lib/slack-oauth-schema';
+
+export {
+    getSession,
+    getServerSession,
+    sessionOptions,
+    defaultSession,
+    type SessionData,
+    type ReadonlySession,
+} from './model/session';
