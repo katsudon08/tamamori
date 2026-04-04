@@ -78,5 +78,5 @@ TDD (Red-Green-Refactor) で開発。Jest (単体) / Storybook + RTL (コンポ�
 - `main` — 本番 (Vercel自動デプロイ)
 - `develop` — 開発統合
 - 作業ブランチは `develop` から分岐。命名は Conventional Commit の type に従う:
-  - `<type>/<description>` — 例: `feat/garden-view`, `fix/slack-signature`
-  - イシュー番号付き: `<type>/<issue番号>-<description>` — 例: `feat/28-realtime-sync`, `fix/15-oauth-redirect`
+    - `<type>/<description>` — 例: `feat/garden-view`, `fix/slack-signature`
+    - イシュー番号付き: `<type>/<issue番号>-<description>` — 例: `feat/28-realtime-sync`, `fix/15-oauth-redirect`

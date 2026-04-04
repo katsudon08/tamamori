@@ -19,6 +19,7 @@ Slack Events API のイベントを受信するエンドポイント。
 Slackから送信されるリクエスト。ヘッダーに署名情報が含まれる。
 
 **Headers:**
+
 ```
 Content-Type: application/json
 X-Slack-Signature: v0=xxxx
@@ -30,18 +31,20 @@ X-Slack-Request-Timestamp: 1234567890
 Slack App のイベントURL設定時に送信されるチャレンジリクエスト。
 
 **Request Body:**
+
 ```json
 {
-  "type": "url_verification",
-  "challenge": "xxxx",
-  "token": "xxxx"
+    "type": "url_verification",
+    "challenge": "xxxx",
+    "token": "xxxx"
 }
 ```
 
 **Response:**
+
 ```json
 {
-  "challenge": "xxxx"
+    "challenge": "xxxx"
 }
 ```
 
@@ -50,23 +53,25 @@ Slack App のイベントURL設定時に送信されるチャレンジリクエ�
 チャンネルにメッセージが投稿された時。
 
 **Request Body:**
+
 ```json
 {
-  "type": "event_callback",
-  "event_id": "Ev01XXXX",
-  "team_id": "T01XXXX",
-  "event": {
-    "type": "message",
-    "subtype": null,
-    "user": "U01XXXX",
-    "text": "今日もがんばりましょう！",
-    "channel": "C01XXXX",
-    "ts": "1234567890.123456"
-  }
+    "type": "event_callback",
+    "event_id": "Ev01XXXX",
+    "team_id": "T01XXXX",
+    "event": {
+        "type": "message",
+        "subtype": null,
+        "user": "U01XXXX",
+        "text": "今日もがんばりましょう！",
+        "channel": "C01XXXX",
+        "ts": "1234567890.123456"
+    }
 }
 ```
 
 **処理内容:**
+
 1. `X-Slack-Signature` で署名検証
 2. リクエストボディを Zod スキーマでバリデーション（`slack-event-schema.ts`）
 3. `event_id` で冪等性チェック（`action_log.slack_event_id` と照合）
@@ -86,25 +91,27 @@ Slack App のイベントURL設定時に送信されるチャレンジリクエ�
 メッセージにリアクションが追加された時。
 
 **Request Body:**
+
 ```json
 {
-  "type": "event_callback",
-  "event_id": "Ev02XXXX",
-  "team_id": "T01XXXX",
-  "event": {
-    "type": "reaction_added",
-    "user": "U01XXXX",
-    "reaction": "thumbsup",
-    "item": {
-      "type": "message",
-      "channel": "C01XXXX",
-      "ts": "1234567890.123456"
+    "type": "event_callback",
+    "event_id": "Ev02XXXX",
+    "team_id": "T01XXXX",
+    "event": {
+        "type": "reaction_added",
+        "user": "U01XXXX",
+        "reaction": "thumbsup",
+        "item": {
+            "type": "message",
+            "channel": "C01XXXX",
+            "ts": "1234567890.123456"
+        }
     }
-  }
 }
 ```
 
 **処理内容:**
+
 1. 署名検証
 2. 冪等性チェック
 3. チャンネルフィルタリング
@@ -118,12 +125,12 @@ Slack App のイベントURL設定時に送信されるチャレンジリクエ�
 
 #### エラーハンドリング
 
-| ケース | 対応 |
-|-------|------|
-| 署名検証失敗 | `401 Unauthorized` を返却 |
-| 重複イベント（冪等性違反） | 処理をスキップし `200 OK` を返却 |
-| 監視対象外チャンネル | 処理をスキップし `200 OK` を返却 |
-| DB書き込みエラー | ログ出力。`200 OK` を返却（Slackのリトライに委ねる） |
+| ケース                     | 対応                                                 |
+| -------------------------- | ---------------------------------------------------- |
+| 署名検証失敗               | `401 Unauthorized` を返却                            |
+| 重複イベント（冪等性違反） | 処理をスキップし `200 OK` を返却                     |
+| 監視対象外チャンネル       | 処理をスキップし `200 OK` を返却                     |
+| DB書き込みエラー           | ログ出力。`200 OK` を返却（Slackのリトライに委ねる） |
 
 #### 感謝キーワード検出
 
@@ -140,11 +147,12 @@ Slack App のイベントURL設定時に送信されるチャレンジリクエ�
 Slack OAuth フローを開始するエンドポイント。
 
 **処理内容:**
+
 1. Slack OAuth 認可URLを構築
-   - `client_id`: `SLACK_CLIENT_ID`
-   - `scope`: `openid,profile`
-   - `redirect_uri`: `{ORIGIN}/api/auth/slack/callback`
-   - `state`: CSRF対策用ランダムトークン（セッションに保存）
+    - `client_id`: `SLACK_CLIENT_ID`
+    - `scope`: `openid,profile`
+    - `redirect_uri`: `{ORIGIN}/api/auth/slack/callback`
+    - `state`: CSRF対策用ランダムトークン（セッションに保存）
 2. Slack認可URLにリダイレクト
 
 **Response:** `302 Redirect` → Slack認可ページ
@@ -154,10 +162,12 @@ Slack OAuth フローを開始するエンドポイント。
 Slack OAuth コールバックエンドポイント。
 
 **Query Parameters:**
+
 - `code` — 認可コード
 - `state` — CSRF検証用トークン
 
 **処理内容:**
+
 1. クエリパラメータを Zod スキーマでバリデーション（`slack-oauth-schema.ts`）
 2. `state` パラメータをセッション保存値と照合（CSRF対策）
 3. `code` を使って Slack の `openid.connect.token` API でトークン交換
@@ -168,12 +178,13 @@ Slack OAuth コールバックエンドポイント。
 8. iron-session でセッションCookieを設定
 
 **セッションデータ:**
+
 ```typescript
 interface SessionData {
-  userId: string;       // users テーブルの UUID
-  slackUserId: string;  // Slack user ID
-  displayName: string;
-  avatarUrl: string;
+    userId: string; // users テーブルの UUID
+    slackUserId: string; // Slack user ID
+    displayName: string;
+    avatarUrl: string;
 }
 ```
 
@@ -186,6 +197,7 @@ interface SessionData {
 セッション破棄。
 
 **処理内容:**
+
 1. iron-session のセッションを破棄
 
 **Response:** `302 Redirect` → `/`
@@ -207,39 +219,37 @@ const supabase = createClient();
 
 // 単一ユーザーの盆栽
 export function useBonsai(userId: string | undefined) {
-  return useSWR(
-    userId ? ['bonsai', userId] : null,
-    async ([, id]) => {
-      const { data, error } = await supabase
-        .from('bonsai')
-        .select(`
+    return useSWR(userId ? ['bonsai', userId] : null, async ([, id]) => {
+        const { data, error } = await supabase
+            .from('bonsai')
+            .select(
+                `
           *,
           users!inner (display_name, avatar_url)
-        `)
-        .eq('user_id', id)
-        .single();
-      if (error) throw error;
-      return data;
-    }
-  );
+        `,
+            )
+            .eq('user_id', id)
+            .single();
+        if (error) throw error;
+        return data;
+    });
 }
 
 // 全ユーザーの盆栽（花壇ビュー）
 export function useAllBonsai() {
-  return useSWR(
-    'all-bonsai',
-    async () => {
-      const { data, error } = await supabase
-        .from('bonsai')
-        .select(`
+    return useSWR('all-bonsai', async () => {
+        const { data, error } = await supabase
+            .from('bonsai')
+            .select(
+                `
           *,
           users!inner (display_name, avatar_url)
-        `)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data;
-    }
-  );
+        `,
+            )
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+        return data;
+    });
 }
 ```
 
@@ -252,19 +262,16 @@ const supabase = createClient();
 
 // 日別アクション集計（統計ページ）
 export function useActionLogs(userId: string | undefined, startDate: string) {
-  return useSWR(
-    userId ? ['action-logs', userId, startDate] : null,
-    async ([, id, start]) => {
-      const { data, error } = await supabase
-        .from('action_log')
-        .select('action_type, created_at')
-        .eq('user_id', id)
-        .gte('created_at', start)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data;
-    }
-  );
+    return useSWR(userId ? ['action-logs', userId, startDate] : null, async ([, id, start]) => {
+        const { data, error } = await supabase
+            .from('action_log')
+            .select('action_type, created_at')
+            .eq('user_id', id)
+            .gte('created_at', start)
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+        return data;
+    });
 }
 ```
 
@@ -306,34 +313,34 @@ import { createClient } from '@/shared/lib/supabase/client';
 const supabase = createClient();
 
 export function useBonsaiRealtime(userId?: string) {
-  const { mutate } = useSWRConfig();
+    const { mutate } = useSWRConfig();
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('bonsai-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'bonsai',
-          filter: userId ? `user_id=eq.${userId}` : undefined,
-        },
-        (payload) => {
-          // 特定盆栽のキャッシュを更新
-          if (payload.new.user_id) {
-            mutate(['bonsai', payload.new.user_id]);
-          }
-          // 全盆栽リストのキャッシュも更新
-          mutate('all-bonsai');
-        }
-      )
-      .subscribe();
+    useEffect(() => {
+        const channel = supabase
+            .channel('bonsai-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'bonsai',
+                    filter: userId ? `user_id=eq.${userId}` : undefined,
+                },
+                (payload) => {
+                    // 特定盆栽のキャッシュを更新
+                    if (payload.new.user_id) {
+                        mutate(['bonsai', payload.new.user_id]);
+                    }
+                    // 全盆栽リストのキャッシュも更新
+                    mutate('all-bonsai');
+                },
+            )
+            .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, mutate]);
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [userId, mutate]);
 }
 ```
 
@@ -341,11 +348,11 @@ export function useBonsaiRealtime(userId?: string) {
 
 ### ポリシー方針
 
-| テーブル | SELECT | INSERT | UPDATE |
-|---------|--------|--------|--------|
-| users | 認証済みユーザー: 全行読み取り可 | サービスロールのみ | サービスロールのみ |
-| bonsai | 認証済みユーザー: 全行読み取り可 | サービスロールのみ | サービスロールのみ |
-| action_log | 認証済みユーザー: 自分のログのみ | サービスロールのみ | なし（追記専用） |
+| テーブル     | SELECT                           | INSERT             | UPDATE             |
+| ------------ | -------------------------------- | ------------------ | ------------------ |
+| users        | 認証済みユーザー: 全行読み取り可 | サービスロールのみ | サービスロールのみ |
+| bonsai       | 認証済みユーザー: 全行読み取り可 | サービスロールのみ | サービスロールのみ |
+| action_log   | 認証済みユーザー: 自分のログのみ | サービスロールのみ | なし（追記専用）   |
 | growth_rules | 認証済みユーザー: 全行読み取り可 | サービスロールのみ | サービスロールのみ |
 
 - フロントエンドからの読み取りは `anon key` + RLS で制御
@@ -353,10 +360,10 @@ export function useBonsaiRealtime(userId?: string) {
 
 ## 5. ページ一覧とデータフロー
 
-| ページ | パス | データ取得方法 | Realtime |
-|-------|------|-------------|----------|
-| ランディング | `/` | なし | なし |
-| 花壇 | `/garden` | `useAllBonsai()` (SSR fallback + SWR + Realtime) | 全bonsaiのUPDATE購読 |
-| 個別盆栽 | `/bonsai/[userId]` | `useBonsai(userId)` (SSR fallback + SWR + Realtime) | 該当bonsaiのUPDATE購読 |
-| 自分の盆栽 | `/bonsai/me` | セッションからuserId取得 → リダイレクト | なし |
-| 統計 | `/stats` | `useActionLogs(userId, startDate)` (SWR CSR) | なし |
+| ページ       | パス               | データ取得方法                                      | Realtime               |
+| ------------ | ------------------ | --------------------------------------------------- | ---------------------- |
+| ランディング | `/`                | なし                                                | なし                   |
+| 花壇         | `/garden`          | `useAllBonsai()` (SSR fallback + SWR + Realtime)    | 全bonsaiのUPDATE購読   |
+| 個別盆栽     | `/bonsai/[userId]` | `useBonsai(userId)` (SSR fallback + SWR + Realtime) | 該当bonsaiのUPDATE購読 |
+| 自分の盆栽   | `/bonsai/me`       | セッションからuserId取得 → リダイレクト             | なし                   |
+| 統計         | `/stats`           | `useActionLogs(userId, startDate)` (SWR CSR)        | なし                   |

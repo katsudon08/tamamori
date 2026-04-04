@@ -186,7 +186,7 @@ Next.js の `app/` ディレクトリは FSD の app 層に対応する。ペー
 import { GardenViewer } from '@/widgets/garden-viewer';
 
 export default function GardenPage() {
-  return <GardenViewer />;
+    return <GardenViewer />;
 }
 ```
 
@@ -200,8 +200,8 @@ import { processSlackEvent } from '@/features/slack-auth';
 import { verifySignature } from '@/features/slack-auth';
 
 export async function POST(request: Request) {
-  // 署名検証 → features 層に委譲
-  // イベント処理 → features 層に委譲
+    // 署名検証 → features 層に委譲
+    // イベント処理 → features 層に委譲
 }
 ```
 
@@ -226,21 +226,19 @@ import { Header } from '@/shared/ui/Header';
 
 ### 主要ルール
 
-| ルール | 内容 |
-|-------|------|
-| `fsd/forbidden-imports` | レイヤー階層の違反を防止（上位→下位のみ許可） |
-| `fsd/no-public-api-sidestep` | Public API（index.ts）を迂回した内部モジュールへの直接インポートを禁止 |
-| `fsd/no-cross-slice-dependency` | 同一レイヤー内の他スライスへの直接依存を禁止 |
-| `fsd/no-relative-imports` | クロスレイヤー/スライスではエイリアスベースのインポートを強制 |
+| ルール                          | 内容                                                                   |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| `fsd/forbidden-imports`         | レイヤー階層の違反を防止（上位→下位のみ許可）                          |
+| `fsd/no-public-api-sidestep`    | Public API（index.ts）を迂回した内部モジュールへの直接インポートを禁止 |
+| `fsd/no-cross-slice-dependency` | 同一レイヤー内の他スライスへの直接依存を禁止                           |
+| `fsd/no-relative-imports`       | クロスレイヤー/スライスではエイリアスベースのインポートを強制          |
 
 ### 設定例（Flat Config）
 
 ```javascript
 import fsdPlugin from 'eslint-plugin-fsd-lint';
 
-export default [
-  fsdPlugin.configs.recommended,
-];
+export default [fsdPlugin.configs.recommended];
 ```
 
 ## パスエイリアス
@@ -249,15 +247,16 @@ export default [
 
 ```json
 {
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
+    "compilerOptions": {
+        "paths": {
+            "@/*": ["./src/*"]
+        }
     }
-  }
 }
 ```
 
 使用例:
+
 - `@/shared/lib/supabase/server`
 - `@/entities/bonsai`
 - `@/features/bonsai-growth`

@@ -69,15 +69,15 @@ CREATE TABLE users (
 CREATE INDEX idx_users_slack_user_id ON users(slack_user_id);
 ```
 
-| カラム | 型 | 制約 | 説明 |
-|-------|------|------|------|
-| id | UUID | PK, DEFAULT gen_random_uuid() | 内部ID |
-| slack_user_id | TEXT | UNIQUE, NOT NULL | Slack ユーザーID (例: U01XXXX) |
-| slack_team_id | TEXT | NOT NULL | Slack チームID (例: T01XXXX) |
-| display_name | TEXT | NOT NULL | 表示名（Slackプロフィールから取得） |
-| avatar_url | TEXT | | アバター画像URL |
-| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | レコード作成日時 |
-| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | レコード更新日時 |
+| カラム        | 型          | 制約                          | 説明                                |
+| ------------- | ----------- | ----------------------------- | ----------------------------------- |
+| id            | UUID        | PK, DEFAULT gen_random_uuid() | 内部ID                              |
+| slack_user_id | TEXT        | UNIQUE, NOT NULL              | Slack ユーザーID (例: U01XXXX)      |
+| slack_team_id | TEXT        | NOT NULL                      | Slack チームID (例: T01XXXX)        |
+| display_name  | TEXT        | NOT NULL                      | 表示名（Slackプロフィールから取得） |
+| avatar_url    | TEXT        |                               | アバター画像URL                     |
+| created_at    | TIMESTAMPTZ | NOT NULL, DEFAULT now()       | レコード作成日時                    |
+| updated_at    | TIMESTAMPTZ | NOT NULL, DEFAULT now()       | レコード更新日時                    |
 
 ### bonsai
 
@@ -112,17 +112,17 @@ CREATE TABLE bonsai (
 CREATE INDEX idx_bonsai_user_id ON bonsai(user_id);
 ```
 
-| カラム | 型 | 制約 | 説明 |
-|-------|------|------|------|
-| id | UUID | PK | 内部ID |
-| user_id | UUID | FK → users(id), UNIQUE, NOT NULL | 所有ユーザー |
-| total_messages | INT | NOT NULL, DEFAULT 0 | メッセージ投稿の累計数 |
-| total_reactions | INT | NOT NULL, DEFAULT 0 | リアクション追加の累計数 |
-| total_thanks | INT | NOT NULL, DEFAULT 0 | 感謝メッセージの累計数 |
-| growth_stage | TEXT | NOT NULL, CHECK制約 | 現在の成長ステージ |
-| visual_state | JSONB | NOT NULL | Three.js描画用パラメータ |
-| created_at | TIMESTAMPTZ | NOT NULL | レコード作成日時 |
-| updated_at | TIMESTAMPTZ | NOT NULL | レコード更新日時 |
+| カラム          | 型          | 制約                             | 説明                     |
+| --------------- | ----------- | -------------------------------- | ------------------------ |
+| id              | UUID        | PK                               | 内部ID                   |
+| user_id         | UUID        | FK → users(id), UNIQUE, NOT NULL | 所有ユーザー             |
+| total_messages  | INT         | NOT NULL, DEFAULT 0              | メッセージ投稿の累計数   |
+| total_reactions | INT         | NOT NULL, DEFAULT 0              | リアクション追加の累計数 |
+| total_thanks    | INT         | NOT NULL, DEFAULT 0              | 感謝メッセージの累計数   |
+| growth_stage    | TEXT        | NOT NULL, CHECK制約              | 現在の成長ステージ       |
+| visual_state    | JSONB       | NOT NULL                         | Three.js描画用パラメータ |
+| created_at      | TIMESTAMPTZ | NOT NULL                         | レコード作成日時         |
+| updated_at      | TIMESTAMPTZ | NOT NULL                         | レコード更新日時         |
 
 ### action_log
 
@@ -144,15 +144,15 @@ CREATE INDEX idx_action_log_event_id ON action_log(slack_event_id);
 CREATE INDEX idx_action_log_type ON action_log(action_type, created_at DESC);
 ```
 
-| カラム | 型 | 制約 | 説明 |
-|-------|------|------|------|
-| id | UUID | PK | 内部ID |
-| user_id | UUID | FK → users(id), NOT NULL | アクション実行ユーザー |
-| action_type | TEXT | NOT NULL, CHECK制約 | アクション種別: message / reaction / thanks |
-| slack_event_id | TEXT | UNIQUE | Slack event_id（冪等性キー） |
-| slack_channel | TEXT | | イベント発生チャンネルID |
-| metadata | JSONB | NOT NULL, DEFAULT '{}' | 付加情報 |
-| created_at | TIMESTAMPTZ | NOT NULL | イベント発生日時 |
+| カラム         | 型          | 制約                     | 説明                                        |
+| -------------- | ----------- | ------------------------ | ------------------------------------------- |
+| id             | UUID        | PK                       | 内部ID                                      |
+| user_id        | UUID        | FK → users(id), NOT NULL | アクション実行ユーザー                      |
+| action_type    | TEXT        | NOT NULL, CHECK制約      | アクション種別: message / reaction / thanks |
+| slack_event_id | TEXT        | UNIQUE                   | Slack event_id（冪等性キー）                |
+| slack_channel  | TEXT        |                          | イベント発生チャンネルID                    |
+| metadata       | JSONB       | NOT NULL, DEFAULT '{}'   | 付加情報                                    |
+| created_at     | TIMESTAMPTZ | NOT NULL                 | イベント発生日時                            |
 
 #### metadata の例
 
@@ -193,14 +193,14 @@ INSERT INTO growth_rules (stage, min_messages, min_reactions, min_thanks, sort_o
   ('full_bloom', 250, 120,  60,  7);
 ```
 
-| カラム | 型 | 制約 | 説明 |
-|-------|------|------|------|
-| id | UUID | PK | 内部ID |
-| stage | TEXT | UNIQUE, NOT NULL | ステージ名 |
-| min_messages | INT | NOT NULL | 必要最低メッセージ数 |
-| min_reactions | INT | NOT NULL | 必要最低リアクション数 |
-| min_thanks | INT | NOT NULL | 必要最低感謝数 |
-| sort_order | INT | NOT NULL | ステージの順序（昇順） |
+| カラム        | 型   | 制約             | 説明                   |
+| ------------- | ---- | ---------------- | ---------------------- |
+| id            | UUID | PK               | 内部ID                 |
+| stage         | TEXT | UNIQUE, NOT NULL | ステージ名             |
+| min_messages  | INT  | NOT NULL         | 必要最低メッセージ数   |
+| min_reactions | INT  | NOT NULL         | 必要最低リアクション数 |
+| min_thanks    | INT  | NOT NULL         | 必要最低感謝数         |
+| sort_order    | INT  | NOT NULL         | ステージの順序（昇順） |
 
 #### ステージ判定ロジック
 
@@ -214,21 +214,21 @@ INSERT INTO growth_rules (stage, min_messages, min_reactions, min_thanks, sort_o
 
 ```typescript
 interface BonsaiVisualState {
-  trunkHeight: number;      // 幹の高さ (0.3 ~ 2.0)
-  trunkThickness: number;   // 幹の太さ (0.05 ~ 0.25)
-  branches: Branch[];       // 枝の配列
-  leaves: number;           // 葉の総数 (0 ~ 80)
-  leafColor: string;        // 葉の色 (hex)
-  flowers: number;          // 花の総数 (0 ~ 30)
-  flowerColor: string;      // 花の色 (hex)
-  potColor: string;         // 鉢の色 (hex)
+    trunkHeight: number; // 幹の高さ (0.3 ~ 2.0)
+    trunkThickness: number; // 幹の太さ (0.05 ~ 0.25)
+    branches: Branch[]; // 枝の配列
+    leaves: number; // 葉の総数 (0 ~ 80)
+    leafColor: string; // 葉の色 (hex)
+    flowers: number; // 花の総数 (0 ~ 30)
+    flowerColor: string; // 花の色 (hex)
+    potColor: string; // 鉢の色 (hex)
 }
 
 interface Branch {
-  angle: number;            // 枝の角度 (度数法)
-  length: number;           // 枝の長さ
-  depth: number;            // 枝の階層 (1 = 幹から直接, 2 = 枝から分岐)
-  seed: number;             // 決定的乱数シード (描画の再現性確保)
+    angle: number; // 枝の角度 (度数法)
+    length: number; // 枝の長さ
+    depth: number; // 枝の階層 (1 = 幹から直接, 2 = 枝から分岐)
+    seed: number; // 決定的乱数シード (描画の再現性確保)
 }
 ```
 
@@ -245,6 +245,7 @@ flowers        = min(30,   floor(totalThanks / 3))
 ### 枝の決定的生成
 
 各枝の `angle` と `seed` は `hash(userId + branchIndex)` から決定的に生成する。これにより:
+
 - 同じユーザーの盆栽は常に同じ形状になる
 - 新しい枝が追加されても、既存の枝の位置は変わらない
 - 異なるクライアントで同じ見た目が保証される
@@ -285,10 +286,10 @@ CREATE TRIGGER trigger_bonsai_updated_at
 
 ## マイグレーションファイル一覧
 
-| ファイル | 内容 |
-|---------|------|
-| `001_create_users.sql` | users テーブル + インデックス + updated_at トリガー |
-| `002_create_bonsai.sql` | bonsai テーブル + インデックス + updated_at トリガー |
-| `003_create_action_log.sql` | action_log テーブル + インデックス |
-| `004_create_growth_rules.sql` | growth_rules テーブル + 初期データ |
-| `005_enable_realtime.sql` | bonsai テーブルの Realtime 有効化 |
+| ファイル                      | 内容                                                 |
+| ----------------------------- | ---------------------------------------------------- |
+| `001_create_users.sql`        | users テーブル + インデックス + updated_at トリガー  |
+| `002_create_bonsai.sql`       | bonsai テーブル + インデックス + updated_at トリガー |
+| `003_create_action_log.sql`   | action_log テーブル + インデックス                   |
+| `004_create_growth_rules.sql` | growth_rules テーブル + 初期データ                   |
+| `005_enable_realtime.sql`     | bonsai テーブルの Realtime 有効化                    |
