@@ -13,6 +13,7 @@
 | データ取得 | SWR | 最新安定版 |
 | バリデーション | Zod | 最新安定版 |
 | CSS | Tailwind CSS | 最新安定版 |
+| CI | GitHub Actions | - |
 | デプロイ | Vercel | - |
 | パッケージマネージャ | npm | - |
 
@@ -135,6 +136,24 @@
 | 単体テスト | 成長ポイント計算、アクション判定ロジック | Jest |
 | コンポーネントテスト | 盆栽表示、ダッシュボードUI | Storybook + React Testing Library |
 | E2Eテスト | ログイン → 盆栽閲覧 → 水やりフロー | Playwright |
+
+## CI（継続的インテグレーション）
+
+### GitHub Actions
+
+- **役割**: PR・pushごとにコード品質を自動検証
+- **ワークフロー**: `.github/workflows/ci.yml`
+- **トリガー**: `main` / `develop` ブランチへのpush・PR
+- **実行ジョブ**（4ジョブ並列実行）:
+
+| ジョブ | コマンド | 検証内容 |
+|-------|---------|---------|
+| Lint | `npm run lint` | ESLint + FSDアーキテクチャルール |
+| Format | `npx prettier --check .` | コードフォーマット統一 |
+| Type Check | `npx tsc --noEmit` | TypeScript型エラー |
+| Test | `npm test` | Jest単体テスト |
+
+- **ブランチ保護**: `main` / `develop` にRulesetを設定し、全ジョブ通過をマージ条件とする
 
 ## 開発ツール
 
