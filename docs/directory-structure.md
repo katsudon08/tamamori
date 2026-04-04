@@ -6,16 +6,15 @@
 
 ## FSD レイヤー概要
 
-```
-app        ← 最上位。ルーティング・レイアウト・プロバイダー（Next.js App Router）
- ↓
-widgets    ← 大きなUI構成ブロック。複数 features/entities を組み合わせる
- ↓
-features   ← ユーザーインタラクション・ビジネスロジック
- ↓
-entities   ← ビジネスエンティティ（型・API・UIパーツ）
- ↓
-shared     ← ビジネスロジックを持たない共有コード
+```mermaid
+graph TD
+    app["app\n最上位\nルーティング・レイアウト・プロバイダー（Next.js App Router）"]
+    widgets["widgets\n大きなUI構成ブロック\n複数 features/entities を組み合わせる"]
+    features["features\nユーザーインタラクション・ビジネスロジック"]
+    entities["entities\nビジネスエンティティ（型・API・UIパーツ）"]
+    shared["shared\nビジネスロジックを持たない共有コード"]
+
+    app --> widgets --> features --> entities --> shared
 ```
 
 **依存ルール**: 上位レイヤーは下位レイヤーのみをインポートできる。同一レイヤー内の他スライスへの直接インポートは禁止。
