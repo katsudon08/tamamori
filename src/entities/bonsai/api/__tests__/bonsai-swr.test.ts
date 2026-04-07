@@ -56,19 +56,15 @@ describe('bonsai SWR フック', () => {
 
         test('fetcher が bonsai + users!inner JOIN クエリを構築する', async () => {
             mockSingle.mockResolvedValue({ data: { id: 'bonsai-1' }, error: null });
-            mockUseSWR.mockImplementation(
-                (_key: unknown, fetcher: unknown) => {
-                    (fetcher as (...args: unknown[]) => unknown)(['bonsai', 'uuid-user-1']);
-                    return { data: null, error: null };
-                },
-            );
+            mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
+                (fetcher as (...args: unknown[]) => unknown)(['bonsai', 'uuid-user-1']);
+                return { data: null, error: null };
+            });
 
             useBonsai('uuid-user-1');
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
-            expect(mockSelect).toHaveBeenCalledWith(
-                expect.stringContaining('users!inner'),
-            );
+            expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('users!inner'));
             expect(mockEq).toHaveBeenCalledWith('user_id', 'uuid-user-1');
         });
 
@@ -77,18 +73,14 @@ describe('bonsai SWR フック', () => {
             mockSingle.mockResolvedValue({ data: null, error: dbError });
 
             let capturedFetcher: (...args: unknown[]) => unknown = () => {};
-            mockUseSWR.mockImplementation(
-                (_key: unknown, fetcher: unknown) => {
-                    capturedFetcher = fetcher as (...args: unknown[]) => unknown;
-                    return { data: null, error: null };
-                },
-            );
+            mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
+                capturedFetcher = fetcher as (...args: unknown[]) => unknown;
+                return { data: null, error: null };
+            });
 
             useBonsai('uuid-user-1');
 
-            await expect(capturedFetcher(['bonsai', 'uuid-user-1'])).rejects.toEqual(
-                dbError,
-            );
+            await expect(capturedFetcher(['bonsai', 'uuid-user-1'])).rejects.toEqual(dbError);
         });
     });
 
@@ -98,27 +90,20 @@ describe('bonsai SWR フック', () => {
 
             useAllBonsai();
 
-            expect(mockUseSWR).toHaveBeenCalledWith(
-                'all-bonsai',
-                expect.any(Function),
-            );
+            expect(mockUseSWR).toHaveBeenCalledWith('all-bonsai', expect.any(Function));
         });
 
         test('fetcher が users!inner JOIN + created_at 昇順のクエリを構築する', async () => {
             mockOrder.mockResolvedValue({ data: [], error: null });
-            mockUseSWR.mockImplementation(
-                (_key: unknown, fetcher: unknown) => {
-                    (fetcher as (...args: unknown[]) => unknown)('all-bonsai');
-                    return { data: null, error: null };
-                },
-            );
+            mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
+                (fetcher as (...args: unknown[]) => unknown)('all-bonsai');
+                return { data: null, error: null };
+            });
 
             useAllBonsai();
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
-            expect(mockSelect).toHaveBeenCalledWith(
-                expect.stringContaining('users!inner'),
-            );
+            expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('users!inner'));
             expect(mockOrder).toHaveBeenCalledWith('created_at', {
                 ascending: true,
             });
@@ -129,12 +114,10 @@ describe('bonsai SWR フック', () => {
             mockOrder.mockResolvedValue({ data: null, error: dbError });
 
             let capturedFetcher: (...args: unknown[]) => unknown = () => {};
-            mockUseSWR.mockImplementation(
-                (_key: unknown, fetcher: unknown) => {
-                    capturedFetcher = fetcher as (...args: unknown[]) => unknown;
-                    return { data: null, error: null };
-                },
-            );
+            mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
+                capturedFetcher = fetcher as (...args: unknown[]) => unknown;
+                return { data: null, error: null };
+            });
 
             useAllBonsai();
 

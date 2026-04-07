@@ -34,11 +34,7 @@ export async function createBonsai(userId: string) {
 
 export async function updateBonsai(id: string, updateData: UpdateBonsaiData) {
     const supabase = createServerClient();
-    const { data, error } = await supabase
-        .from('bonsai')
-        .update(updateData)
-        .eq('id', id)
-        .single();
+    const { data, error } = await supabase.from('bonsai').update(updateData).eq('id', id).single();
     if (error) throw error;
     return data;
 }

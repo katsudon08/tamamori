@@ -51,12 +51,14 @@ describe('action SWR フック', () => {
 
         test('fetcherが日付範囲フィルタリングを含むクエリを構築する', async () => {
             mockOrder.mockResolvedValue({ data: [], error: null });
-            mockUseSWR.mockImplementation(
-                (_key: unknown, fetcher: unknown) => {
-                    (fetcher as (...args: unknown[]) => unknown)(['action-logs', 'uuid-user-1', '2025-01-01']);
-                    return { data: null, error: null };
-                },
-            );
+            mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
+                (fetcher as (...args: unknown[]) => unknown)([
+                    'action-logs',
+                    'uuid-user-1',
+                    '2025-01-01',
+                ]);
+                return { data: null, error: null };
+            });
 
             useActionLogs('uuid-user-1', '2025-01-01');
 
@@ -74,12 +76,10 @@ describe('action SWR フック', () => {
             mockOrder.mockResolvedValue({ data: null, error: dbError });
 
             let capturedFetcher: (...args: unknown[]) => unknown = () => {};
-            mockUseSWR.mockImplementation(
-                (_key: unknown, fetcher: unknown) => {
-                    capturedFetcher = fetcher as (...args: unknown[]) => unknown;
-                    return { data: null, error: null };
-                },
-            );
+            mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
+                capturedFetcher = fetcher as (...args: unknown[]) => unknown;
+                return { data: null, error: null };
+            });
 
             useActionLogs('uuid-user-1', '2025-01-01');
 
