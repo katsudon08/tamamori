@@ -139,6 +139,38 @@ describe('getServerSession', () => {
     });
 });
 
+describe('oauthState', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockCookies.mockResolvedValue(mockCookieStore);
+    });
+
+    test('oauthStateをセッションに保存・読み取りできる', async () => {
+        const sessionData: SessionData = {
+            userId: '',
+            slackUserId: '',
+            displayName: '',
+            avatarUrl: '',
+            oauthState: 'test-csrf-state',
+        };
+        const mockSession = createMockSession(sessionData);
+        mockGetIronSession.mockResolvedValue(mockSession);
+
+        const session = await getSession();
+
+        expect(session.oauthState).toBe('test-csrf-state');
+    });
+
+    test('oauthState未設定時はundefinedである', async () => {
+        const mockSession = createMockSession();
+        mockGetIronSession.mockResolvedValue(mockSession);
+
+        const session = await getSession();
+
+        expect(session.oauthState).toBeUndefined();
+    });
+});
+
 describe('セッション破棄', () => {
     beforeEach(() => {
         jest.clearAllMocks();

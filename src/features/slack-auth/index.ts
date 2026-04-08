@@ -10,12 +10,13 @@ export {
     type ReactionAddedEvent,
 } from './lib/slack-event-schema';
 
+export { oauthCallbackParamsSchema, type OAuthCallbackParams } from './lib/slack-oauth-schema';
+
 export {
-    oauthCallbackParamsSchema,
-    oauthUserInfoResponseSchema,
-    type OAuthCallbackParams,
-    type OAuthUserInfoResponse,
-} from './lib/slack-oauth-schema';
+    buildAuthorizationUrl,
+    exchangeCodeForToken,
+    fetchUserIdentity,
+} from './api/slack-oauth';
 
 export {
     getSession,
