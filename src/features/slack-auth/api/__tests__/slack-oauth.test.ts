@@ -14,7 +14,11 @@ const mockExchangeOAuthCode = jest
     .mockResolvedValue({ accessToken: 'xoxp-token', idToken: 'id-token' });
 
 const mockGetUserInfo = jest
-    .fn<(token: string) => Promise<{ userId: string; teamId: string; name: string; picture: string }>>()
+    .fn<
+        (
+            token: string,
+        ) => Promise<{ userId: string; teamId: string; name: string; picture: string }>
+    >()
     .mockResolvedValue({
         userId: 'U12345',
         teamId: 'T12345',
@@ -40,9 +44,7 @@ describe('buildAuthorizationUrl', () => {
         const url = buildAuthorizationUrl('test-state', 'https://example.com');
         const parsed = new URL(url);
 
-        expect(parsed.origin + parsed.pathname).toBe(
-            'https://slack.com/openid/connect/authorize',
-        );
+        expect(parsed.origin + parsed.pathname).toBe('https://slack.com/openid/connect/authorize');
     });
 
     test('必要なクエリパラメータがすべて含まれる', async () => {

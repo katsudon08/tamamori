@@ -7,9 +7,9 @@ const mockSession: Record<string, unknown> = {};
 
 jest.mock('@/features/slack-auth', () => ({
     getSession: jest.fn<() => Promise<typeof mockSession>>().mockResolvedValue(mockSession),
-    buildAuthorizationUrl: jest.fn<(state: string, origin: string) => string>().mockReturnValue(
-        'https://slack.com/openid/connect/authorize?test=1',
-    ),
+    buildAuthorizationUrl: jest
+        .fn<(state: string, origin: string) => string>()
+        .mockReturnValue('https://slack.com/openid/connect/authorize?test=1'),
 }));
 
 beforeEach(() => {

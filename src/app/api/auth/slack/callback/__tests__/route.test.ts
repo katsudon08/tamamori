@@ -11,9 +11,7 @@ const mockExchangeCodeForToken = jest
     .mockResolvedValue({ accessToken: 'xoxp-token', idToken: 'id-token' });
 
 const mockFetchUserIdentity = jest
-    .fn<
-        () => Promise<{ userId: string; teamId: string; name: string; picture: string }>
-    >()
+    .fn<() => Promise<{ userId: string; teamId: string; name: string; picture: string }>>()
     .mockResolvedValue({
         userId: 'U12345',
         teamId: 'T12345',
@@ -140,9 +138,7 @@ describe('GET /api/auth/slack/callback', () => {
         const response = await GET(new Request(url));
 
         expect(response.status).toBe(302);
-        expect(response.headers.get('Location')).toBe(
-            'http://localhost:3000/?error=auth_failed',
-        );
+        expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
     });
 
     test('state不一致で /?error=auth_failed リダイレクト', async () => {
@@ -151,9 +147,7 @@ describe('GET /api/auth/slack/callback', () => {
         const response = await GET(new Request(callbackUrl({ state: 'wrong-state' })));
 
         expect(response.status).toBe(302);
-        expect(response.headers.get('Location')).toBe(
-            'http://localhost:3000/?error=auth_failed',
-        );
+        expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
     });
 
     test('ユーザー情報取得失敗で /?error=auth_failed リダイレクト', async () => {
@@ -163,9 +157,7 @@ describe('GET /api/auth/slack/callback', () => {
         const response = await GET(new Request(callbackUrl()));
 
         expect(response.status).toBe(302);
-        expect(response.headers.get('Location')).toBe(
-            'http://localhost:3000/?error=auth_failed',
-        );
+        expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
     });
 
     test('ユーザーupsert失敗で /?error=auth_failed リダイレクト', async () => {
@@ -175,9 +167,7 @@ describe('GET /api/auth/slack/callback', () => {
         const response = await GET(new Request(callbackUrl()));
 
         expect(response.status).toBe(302);
-        expect(response.headers.get('Location')).toBe(
-            'http://localhost:3000/?error=auth_failed',
-        );
+        expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
     });
 
     test('トークン交換失敗で /?error=auth_failed リダイレクト', async () => {
@@ -187,8 +177,6 @@ describe('GET /api/auth/slack/callback', () => {
         const response = await GET(new Request(callbackUrl()));
 
         expect(response.status).toBe(302);
-        expect(response.headers.get('Location')).toBe(
-            'http://localhost:3000/?error=auth_failed',
-        );
+        expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
     });
 });

@@ -12,11 +12,7 @@ export {
 
 export { oauthCallbackParamsSchema, type OAuthCallbackParams } from './lib/slack-oauth-schema';
 
-export {
-    buildAuthorizationUrl,
-    exchangeCodeForToken,
-    fetchUserIdentity,
-} from './api/slack-oauth';
+export { buildAuthorizationUrl, exchangeCodeForToken, fetchUserIdentity } from './api/slack-oauth';
 
 export {
     getSession,
