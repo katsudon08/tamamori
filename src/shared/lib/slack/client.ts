@@ -1,4 +1,5 @@
 import { env } from '../../config';
+import { oauthTokenResponseSchema, oauthUserInfoResponseSchema } from './schema';
 
 const SLACK_API = 'https://slack.com/api';
 
@@ -30,10 +31,10 @@ export async function exchangeOAuthCode(code: string): Promise<OAuthTokenResult>
         body: body.toString(),
     });
 
-    const data = await res.json();
+    const data = oauthTokenResponseSchema.parse(await res.json());
 
     if (!data.ok) {
-        throw new Error(data.error ?? 'exchangeOAuthCode failed');
+        throw new Error('exchangeOAuthCode failed');
     }
 
     return {
@@ -51,10 +52,10 @@ export async function getUserInfo(token: string): Promise<SlackUserInfo> {
         headers: { Authorization: `Bearer ${token}` },
     });
 
-    const data = await res.json();
+    const data = oauthUserInfoResponseSchema.parse(await res.json());
 
     if (!data.ok) {
-        throw new Error(data.error ?? 'getUserInfo failed');
+        throw new Error('getUserInfo failed');
     }
 
     return {

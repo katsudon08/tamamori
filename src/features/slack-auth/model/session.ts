@@ -9,6 +9,7 @@ export interface SessionData {
     slackUserId: string; // Slack user ID
     displayName: string;
     avatarUrl: string;
+    oauthState?: string; // CSRF対策用 state (OAuth開始時にセット、コールバック後にクリア)
 }
 
 /** Server Component 用の読み取り専用セッション型 */

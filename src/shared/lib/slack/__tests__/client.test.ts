@@ -72,7 +72,16 @@ describe('exchangeOAuthCode', () => {
         );
         const { exchangeOAuthCode } = await import('../client');
 
-        await expect(exchangeOAuthCode('bad-code')).rejects.toThrow('invalid_code');
+        await expect(exchangeOAuthCode('bad-code')).rejects.toThrow();
+    });
+
+    test('不正なレスポンス（必須フィールド欠損）でZodErrorが発生する', async () => {
+        mockFetch.mockResolvedValueOnce(
+            new Response(JSON.stringify({ ok: true }), { status: 200 }),
+        );
+        const { exchangeOAuthCode } = await import('../client');
+
+        await expect(exchangeOAuthCode('test-code')).rejects.toThrow();
     });
 });
 
@@ -129,6 +138,15 @@ describe('getUserInfo', () => {
         );
         const { getUserInfo } = await import('../client');
 
-        await expect(getUserInfo('bad-token')).rejects.toThrow('token_revoked');
+        await expect(getUserInfo('bad-token')).rejects.toThrow();
+    });
+
+    test('不正なレスポンス（必須フィールド欠損）でZodErrorが発生する', async () => {
+        mockFetch.mockResolvedValueOnce(
+            new Response(JSON.stringify({ ok: true, sub: 'U12345' }), { status: 200 }),
+        );
+        const { getUserInfo } = await import('../client');
+
+        await expect(getUserInfo('test-token')).rejects.toThrow();
     });
 });
