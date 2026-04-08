@@ -74,17 +74,15 @@ export function computeVisualState(counters: Counters, userId: string): BonsaiVi
         Math.floor(counters.totalMessages / BRANCH_PER_MESSAGES),
     );
     const leaves = Math.min(LEAVES_MAX, Math.floor(counters.totalReactions / LEAVES_PER_REACTIONS));
-    const flowers = Math.min(
-        FLOWERS_MAX,
-        Math.floor(counters.totalThanks / FLOWERS_PER_THANKS),
-    );
+    const flowers = Math.min(FLOWERS_MAX, Math.floor(counters.totalThanks / FLOWERS_PER_THANKS));
 
     const branches: Branch[] = [];
     for (let i = 0; i < branchCount; i++) {
         const { angle, seed } = hashForBranch(userId, i);
         branches.push({
             angle,
-            length: BRANCH_LENGTH_BASE + (seed % BRANCH_LENGTH_SEED_MOD) / BRANCH_LENGTH_SEED_DIVISOR,
+            length:
+                BRANCH_LENGTH_BASE + (seed % BRANCH_LENGTH_SEED_MOD) / BRANCH_LENGTH_SEED_DIVISOR,
             depth: (i % BRANCH_DEPTH_LEVELS) + 1,
             seed,
         });

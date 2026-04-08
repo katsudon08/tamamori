@@ -21,8 +21,22 @@ describe('fetchGrowthRules', () => {
 
     test('growth_rulesテーブルからsort_order昇順でルールを取得する', async () => {
         const rules = [
-            { id: '1', stage: 'seed', min_messages: 0, min_reactions: 0, min_thanks: 0, sort_order: 0 },
-            { id: '2', stage: 'sprout', min_messages: 5, min_reactions: 0, min_thanks: 0, sort_order: 1 },
+            {
+                id: '1',
+                stage: 'seed',
+                min_messages: 0,
+                min_reactions: 0,
+                min_thanks: 0,
+                sort_order: 0,
+            },
+            {
+                id: '2',
+                stage: 'sprout',
+                min_messages: 5,
+                min_reactions: 0,
+                min_thanks: 0,
+                sort_order: 1,
+            },
         ];
         mockOrder.mockResolvedValue({ data: rules, error: null });
 
