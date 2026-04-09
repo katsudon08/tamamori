@@ -17,8 +17,9 @@ const eslintConfig = defineConfig([
         'out/**',
         'build/**',
         'next-env.d.ts',
-        // Storybook config is outside FSD structure
+        // Storybook config and build output are outside FSD structure
         '.storybook/**',
+        'storybook-static/**',
     ]),
     ...storybook.configs['flat/recommended'],
 ]);
