@@ -17,7 +17,7 @@ export function classifyEvent(event: SlackInnerEvent): ActionType[] {
             return [];
         }
         const actions: ActionType[] = ['message'];
-        if (containsThanks(event.text)) {
+        if (findThanksKeyword(event.text) !== null) {
             actions.push('thanks');
         }
         return actions;
@@ -30,6 +30,10 @@ export function classifyEvent(event: SlackInnerEvent): ActionType[] {
     return [];
 }
 
-function containsThanks(text: string): boolean {
-    return THANKS_KEYWORDS.some((keyword) => text.includes(keyword));
+/**
+ * テキストに含まれる最初の感謝キーワードを返す。
+ * 見つからない場合は null。
+ */
+export function findThanksKeyword(text: string): string | null {
+    return THANKS_KEYWORDS.find((keyword) => text.includes(keyword)) ?? null;
 }

@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
-import { classifyEvent, type SlackInnerEvent } from '../classify-event';
+import { classifyEvent, findThanksKeyword, type SlackInnerEvent } from '../classify-event';
 
 describe('classifyEvent', () => {
     test('通常メッセージ → ["message"]', () => {
@@ -78,5 +78,23 @@ describe('classifyEvent', () => {
     test('未知のイベントタイプ → []', () => {
         // @ts-expect-error 未知のイベントタイプに対するランタイム防御をテスト
         expect(classifyEvent({ type: 'app_mention' })).toEqual([]);
+    });
+});
+
+describe('findThanksKeyword', () => {
+    test('"ありがとう" を含むテキスト → "ありがとう"', () => {
+        expect(findThanksKeyword('レビューありがとうございます！')).toBe('ありがとう');
+    });
+
+    test('"感謝" を含むテキスト → "感謝"', () => {
+        expect(findThanksKeyword('皆さんに感謝します')).toBe('感謝');
+    });
+
+    test('キーワードなしのテキスト → null', () => {
+        expect(findThanksKeyword('今日もがんばりましょう！')).toBeNull();
+    });
+
+    test('複数キーワードを含む場合、最初にマッチしたものを返す', () => {
+        expect(findThanksKeyword('ありがとう、感謝します')).toBe('ありがとう');
     });
 });
