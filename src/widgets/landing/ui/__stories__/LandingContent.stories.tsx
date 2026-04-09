@@ -34,8 +34,6 @@ export const WithError: Story = {
         const alert = canvas.getByRole('alert');
         await expect(alert).toBeInTheDocument();
         await expect(alert).toHaveTextContent('認証に失敗しました');
-        await expect(
-            canvas.getByRole('link', { name: /sign in with slack/i }),
-        ).toBeInTheDocument();
+        await expect(canvas.getByRole('link', { name: /sign in with slack/i })).toBeInTheDocument();
     },
 };

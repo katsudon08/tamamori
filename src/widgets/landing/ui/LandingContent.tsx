@@ -6,9 +6,7 @@ export function LandingContent({ error }: LandingContentProps) {
     return (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
             <h1 className="font-brush text-6xl text-main">たま森</h1>
-            <p className="text-lg text-sub">
-                Slack連携の盆栽育成Webアプリ
-            </p>
+            <p className="text-lg text-sub">Slack連携の盆栽育成Webアプリ</p>
 
             <a
                 href="/api/auth/slack"
