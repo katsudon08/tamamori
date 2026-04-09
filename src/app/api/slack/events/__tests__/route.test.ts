@@ -22,8 +22,7 @@ const mockProcessSlackEvent = jest
     .mockResolvedValue(undefined);
 
 jest.mock('@/features/bonsai-growth', () => ({
-    processSlackEvent: (...args: unknown[]) =>
-        mockProcessSlackEvent(...(args as [unknown])),
+    processSlackEvent: (...args: unknown[]) => mockProcessSlackEvent(...(args as [unknown])),
 }));
 
 jest.mock('@/shared/config', () => ({
