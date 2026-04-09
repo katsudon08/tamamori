@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Hina_Mincho } from 'next/font/google';
+import { SWRProvider } from './providers/SWRProvider';
 import './globals.css';
 
 const geistSans = Geist({
@@ -33,7 +34,9 @@ export default function RootLayout({
             lang="ja"
             className={`${geistSans.variable} ${geistMono.variable} ${hinaMincho.variable} h-full antialiased`}
         >
-            <body className="min-h-full flex flex-col">{children}</body>
+            <body className="min-h-full flex flex-col">
+                <SWRProvider>{children}</SWRProvider>
+            </body>
         </html>
     );
 }
