@@ -20,7 +20,9 @@ export function StageIndicator({ stage }: StageIndicatorProps) {
 
     return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-main-light text-main text-sm">
-            <span role="img" aria-hidden="true">{icon}</span>
+            <span role="img" aria-hidden="true">
+                {icon}
+            </span>
             <span>{label}</span>
         </span>
     );

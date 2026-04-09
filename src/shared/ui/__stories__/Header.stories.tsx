@@ -17,7 +17,11 @@ export const Default: Story = {
         <Header
             rightSlot={
                 <div className="flex items-center gap-2">
-                    <img src="https://via.placeholder.com/32" alt="avatar" className="w-8 h-8 rounded-full" />
+                    <img
+                        src="https://via.placeholder.com/32"
+                        alt="avatar"
+                        className="w-8 h-8 rounded-full"
+                    />
                     <span className="text-sm text-sub">テストユーザー</span>
                 </div>
             }
@@ -74,4 +78,3 @@ export const Dark: Story = {
         </div>
     ),
 };
-

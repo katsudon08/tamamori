@@ -64,8 +64,20 @@ function Sprout() {
 function LeafBranch({ direction }: { direction: 1 | -1 }) {
     const flip = direction === -1;
     return (
-        <svg width="20" height="22" viewBox="0 0 20 22" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
-            <path d="M10 22 L10 12 Q10 7 14 5" stroke="#8b6f4e" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+        <svg
+            width="20"
+            height="22"
+            viewBox="0 0 20 22"
+            fill="none"
+            style={flip ? { transform: 'scaleX(-1)' } : undefined}
+        >
+            <path
+                d="M10 22 L10 12 Q10 7 14 5"
+                stroke="#8b6f4e"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                fill="none"
+            />
             <ellipse cx="16" cy="4" rx="2.5" ry="4.5" fill="#5b7a5e" transform="rotate(-30 16 4)" />
             <ellipse cx="9" cy="10" rx="2" ry="3.5" fill="#7a9e7e" transform="rotate(20 9 10)" />
         </svg>
@@ -75,8 +87,20 @@ function LeafBranch({ direction }: { direction: 1 | -1 }) {
 function FlowerBranch({ direction }: { direction: 1 | -1 }) {
     const flip = direction === -1;
     return (
-        <svg width="20" height="24" viewBox="0 0 20 24" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
-            <path d="M10 24 L10 14 Q10 9 14 6" stroke="#8b6f4e" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+        <svg
+            width="20"
+            height="24"
+            viewBox="0 0 20 24"
+            fill="none"
+            style={flip ? { transform: 'scaleX(-1)' } : undefined}
+        >
+            <path
+                d="M10 24 L10 14 Q10 9 14 6"
+                stroke="#8b6f4e"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                fill="none"
+            />
             <ellipse cx="9" cy="12" rx="2" ry="3.5" fill="#5b7a5e" transform="rotate(20 9 12)" />
             <circle cx="16" cy="4" r="1.6" fill="#c97c7c" />
             <circle cx="14" cy="3" r="1.4" fill="#c97c7c" opacity="0.8" />
@@ -91,9 +115,27 @@ function FlowerBranch({ direction }: { direction: 1 | -1 }) {
 function FullBloomBranch({ direction }: { direction: 1 | -1 }) {
     const flip = direction === -1;
     return (
-        <svg width="24" height="28" viewBox="0 0 24 28" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
-            <path d="M12 28 L12 16 Q12 10 16 7" stroke="#8b6f4e" strokeWidth="2" strokeLinecap="round" fill="none" />
-            <path d="M12 20 Q8 17 6 13" stroke="#8b6f4e" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+        <svg
+            width="24"
+            height="28"
+            viewBox="0 0 24 28"
+            fill="none"
+            style={flip ? { transform: 'scaleX(-1)' } : undefined}
+        >
+            <path
+                d="M12 28 L12 16 Q12 10 16 7"
+                stroke="#8b6f4e"
+                strokeWidth="2"
+                strokeLinecap="round"
+                fill="none"
+            />
+            <path
+                d="M12 20 Q8 17 6 13"
+                stroke="#8b6f4e"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                fill="none"
+            />
             <ellipse cx="10" cy="14" rx="2" ry="3.5" fill="#5b7a5e" transform="rotate(15 10 14)" />
             <ellipse cx="5" cy="11" rx="1.8" ry="3.5" fill="#7a9e7e" transform="rotate(-10 5 11)" />
             {[0, 72, 144, 216, 288].map((angle) => (
@@ -138,14 +180,15 @@ export function BonsaiProgressBar({ current, target, className }: BonsaiProgress
     const rounded = Math.round(percent);
     const branches = getBranches(rounded);
 
-    const maxHeight = branches.length > 0
-        ? Math.max(...branches.map((b) => BRANCH_HEIGHTS[b.type]))
-        : 0;
+    const maxHeight =
+        branches.length > 0 ? Math.max(...branches.map((b) => BRANCH_HEIGHTS[b.type])) : 0;
 
     return (
         <div className={className}>
             <div className="flex items-center justify-between text-sm mb-3 text-sub">
-                <span>{current} / {target}</span>
+                <span>
+                    {current} / {target}
+                </span>
                 <span>{rounded}%</span>
             </div>
             <div className="relative" style={{ marginTop: maxHeight }}>
@@ -168,7 +211,11 @@ export function BonsaiProgressBar({ current, target, className }: BonsaiProgress
                         </div>
                     );
                 })}
-                <ProgressBar current={current} target={target} className="[&>div:first-child]:hidden" />
+                <ProgressBar
+                    current={current}
+                    target={target}
+                    className="[&>div:first-child]:hidden"
+                />
             </div>
         </div>
     );

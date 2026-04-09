@@ -48,5 +48,11 @@ export const Light: Story = {
 
 export const Dark: Story = {
     args: { current: 60, target: 100, variant: 'dark' },
-    decorators: [(Story) => <div className="bg-gray-900 p-4 rounded"><Story /></div>],
+    decorators: [
+        (Story) => (
+            <div className="bg-gray-900 p-4 rounded">
+                <Story />
+            </div>
+        ),
+    ],
 };
