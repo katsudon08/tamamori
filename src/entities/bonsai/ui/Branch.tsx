@@ -56,8 +56,14 @@ function useTipPosition(length: number, seed: number) {
 }
 
 function SubBranch({
-    sub, parentLength, parentBaseThickness, parentSeed,
-    leafCount, flowerCount, leafColor, flowerColor,
+    sub,
+    parentLength,
+    parentBaseThickness,
+    parentSeed,
+    leafCount,
+    flowerCount,
+    leafColor,
+    flowerColor,
     parentWorldQuat,
 }: {
     sub: SubBranchData;
@@ -152,10 +158,18 @@ function SubBranch({
 // ─── 主枝 ───
 
 export const Branch = memo(function Branch({
-    angle, length, depth, seed,
-    trunkHeight, trunkThickness, index, totalBranches,
-    leafCount = 0, flowerCount = 0,
-    leafColor = '#228B22', flowerColor = '#FFB7C5',
+    angle,
+    length,
+    depth,
+    seed,
+    trunkHeight,
+    trunkThickness,
+    index,
+    totalBranches,
+    leafCount = 0,
+    flowerCount = 0,
+    leafColor = '#228B22',
+    flowerColor = '#FFB7C5',
 }: BranchProps) {
     const branch = useMemo(() => ({ angle, length, depth, seed }), [angle, length, depth, seed]);
 

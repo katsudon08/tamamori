@@ -109,12 +109,17 @@ export const FoliagePad = memo(function FoliagePad({
         const layerGap = padRadius * 0.22;
         placeLeafLayer(leafDarkRef, layerCounts.dark, 0, -layerGap);
         placeLeafLayer(leafMidRef, layerCounts.mid, layerCounts.dark, 0);
-        placeLeafLayer(leafLightRef, layerCounts.light, layerCounts.dark + layerCounts.mid, layerGap);
+        placeLeafLayer(
+            leafLightRef,
+            layerCounts.light,
+            layerCounts.dark + layerCounts.mid,
+            layerGap,
+        );
 
         // 花もワールド XZ 水平面に配置
         if (flowerRef.current && flowerCount > 0) {
             for (let i = 0; i < flowerCount; i++) {
-                const theta = (i * GOLDEN_ANGLE * 1.3) + rng() * 0.5;
+                const theta = i * GOLDEN_ANGLE * 1.3 + rng() * 0.5;
                 const frac = (i + 0.5) / flowerCount;
                 const r = padRadius * 0.8 * Math.sqrt(frac);
 
@@ -152,9 +157,7 @@ export const FoliagePad = memo(function FoliagePad({
         const base = new THREE.Quaternion().setFromEuler(
             new THREE.Euler(counterRotation[0], counterRotation[1], counterRotation[2]),
         );
-        const tilt = new THREE.Quaternion().setFromEuler(
-            new THREE.Euler(tiltX, 0, tiltZ),
-        );
+        const tilt = new THREE.Quaternion().setFromEuler(new THREE.Euler(tiltX, 0, tiltZ));
         base.multiply(tilt);
         const e = new THREE.Euler().setFromQuaternion(base);
         return [e.x, e.y, e.z] as [number, number, number];

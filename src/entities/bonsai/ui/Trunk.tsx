@@ -62,11 +62,17 @@ function createTrunkGeometry(height: number, thickness: number): THREE.BufferGeo
     const idxArr = Array.from(tube.index!.array);
 
     const centerIdx = verts.length / 3;
-    let avgX = 0, avgY = 0, avgZ = 0;
+    let avgX = 0,
+        avgY = 0,
+        avgZ = 0;
     for (let j = 0; j < RADIAL_SEGMENTS; j++) {
-        avgX += verts[j * 3]; avgY += verts[j * 3 + 1]; avgZ += verts[j * 3 + 2];
+        avgX += verts[j * 3];
+        avgY += verts[j * 3 + 1];
+        avgZ += verts[j * 3 + 2];
     }
-    avgX /= RADIAL_SEGMENTS; avgY /= RADIAL_SEGMENTS; avgZ /= RADIAL_SEGMENTS;
+    avgX /= RADIAL_SEGMENTS;
+    avgY /= RADIAL_SEGMENTS;
+    avgZ /= RADIAL_SEGMENTS;
     verts.push(avgX, avgY, avgZ);
     norms.push(0, -1, 0);
     uvArr.push(0.5, 0.5);
@@ -203,9 +209,12 @@ function TipBranch({
 }
 
 export const Trunk = memo(function Trunk({
-    height, thickness,
-    leafCount = 0, flowerCount = 0,
-    leafColor = '#228B22', flowerColor = '#FFB7C5',
+    height,
+    thickness,
+    leafCount = 0,
+    flowerCount = 0,
+    leafColor = '#228B22',
+    flowerColor = '#FFB7C5',
     showTipBranches = false,
 }: TrunkProps) {
     const geometry = useMemo(() => createTrunkGeometry(height, thickness), [height, thickness]);
@@ -215,9 +224,7 @@ export const Trunk = memo(function Trunk({
         const curve = createTrunkCurve(height);
         const tipPoint = curve.getPointAt(1);
         const tangent = curve.getTangentAt(1).normalize();
-        const quat = new THREE.Quaternion().setFromUnitVectors(
-            new THREE.Vector3(0, 1, 0), tangent,
-        );
+        const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
         quat.invert();
         const euler = new THREE.Euler().setFromQuaternion(quat);
         return {

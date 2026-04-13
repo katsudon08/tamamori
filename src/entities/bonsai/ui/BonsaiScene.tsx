@@ -13,11 +13,7 @@ type BonsaiSceneProps = {
 
 export function BonsaiScene({ visualState, previousVisualState, className }: BonsaiSceneProps) {
     return (
-        <Canvas
-            className={className}
-            camera={{ position: [0, 1.5, 4], fov: 45 }}
-            dpr={[1, 2]}
-        >
+        <Canvas className={className} camera={{ position: [0, 1.5, 4], fov: 45 }} dpr={[1, 2]}>
             <ambientLight intensity={0.5} />
             <directionalLight position={[5, 5, 5]} intensity={0.8} />
             <Bonsai visualState={visualState} previousVisualState={previousVisualState} />

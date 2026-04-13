@@ -30,8 +30,8 @@ export function createTrunkCurve(height: number): THREE.CatmullRomCurve3 {
     const rise = height * 0.08;
     return new THREE.CatmullRomCurve3(
         [
-            new THREE.Vector3(0, 0, 0),              // 鉢上面 (水平)
-            new THREE.Vector3(0, rise, 0),            // 垂直に立ち上がり → 底面リングが水平になる
+            new THREE.Vector3(0, 0, 0), // 鉢上面 (水平)
+            new THREE.Vector3(0, rise, 0), // 垂直に立ち上がり → 底面リングが水平になる
             new THREE.Vector3(s, height * 0.3, s * 0.3),
             new THREE.Vector3(-s * 0.7, height * 0.55, -s * 0.2),
             new THREE.Vector3(s * 0.4, height * 0.8, s * 0.15),
@@ -84,10 +84,10 @@ export function createBranchCurve(length: number, seed: number): THREE.CatmullRo
     return new THREE.CatmullRomCurve3(
         [
             new THREE.Vector3(0, 0, 0),
-            new THREE.Vector3(0, stem, 0),                                    // 外向きステム
-            new THREE.Vector3(swayX, length * 0.5, swayZ),                    // 中間カーブ
-            new THREE.Vector3(swayX * 0.3, length * 0.85, swayZ * 0.2),      // 先端手前
-            new THREE.Vector3(swayX * 0.15, length + tipLift, swayZ * 0.1),  // 先端 (軽く上に反る)
+            new THREE.Vector3(0, stem, 0), // 外向きステム
+            new THREE.Vector3(swayX, length * 0.5, swayZ), // 中間カーブ
+            new THREE.Vector3(swayX * 0.3, length * 0.85, swayZ * 0.2), // 先端手前
+            new THREE.Vector3(swayX * 0.15, length + tipLift, swayZ * 0.1), // 先端 (軽く上に反る)
         ],
         false,
         'catmullrom',
@@ -205,12 +205,12 @@ export function computeBranchTransform(
     const wrappedIndex = index % count;
     // 幹カーブ上のパラメータ t: 20%〜85% の範囲に広く均等分布
     // count+1 で割り、枝同士の間隔を十分に確保する
-    const t = 0.20 + (wrappedIndex / (count + 1)) * 0.65;
+    const t = 0.2 + (wrappedIndex / (count + 1)) * 0.65;
 
     const point = curve.getPointAt(t);
 
     // Y 軸回転: 黄金角 × index + seed 揺らぎ (±15°)
-    const yAngle = (GOLDEN_ANGLE * index) * DEG_TO_RAD + (rng() - 0.5) * 30 * DEG_TO_RAD;
+    const yAngle = GOLDEN_ANGLE * index * DEG_TO_RAD + (rng() - 0.5) * 30 * DEG_TO_RAD;
 
     // 主枝 (depth 1) は横方向に大きく伸ばす: 60〜80°
     let branchAngle: number;
@@ -328,15 +328,15 @@ export function computeSubBranches(
     const subs: SubBranch[] = [];
     for (let i = 0; i < count; i++) {
         // 分岐位置: 枝の 30%〜75% (幹寄りにも配置)
-        const attachT = 0.30 + (i / Math.max(count, 1)) * 0.45 + rng() * 0.05;
+        const attachT = 0.3 + (i / Math.max(count, 1)) * 0.45 + rng() * 0.05;
 
         // 角度: 左右交互に 20〜40° (自然な分岐角)
         const sign = i % 2 === 0 ? 1 : -1;
         const angle = sign * (20 + rng() * 20);
 
         // 長さ: 中枝は主枝の 30〜40%, 小枝は中枝の 25〜35% (補助的)
-        const minRatio = parentDepth === 1 ? 0.30 : 0.25;
-        const rangeRatio = 0.10;
+        const minRatio = parentDepth === 1 ? 0.3 : 0.25;
+        const rangeRatio = 0.1;
         const length = parentLength * (minRatio + rng() * rangeRatio);
 
         // Y 軸回転: 左右に広がるよう ±30〜90° の範囲 (真後ろを避ける)
@@ -354,4 +354,3 @@ export function computeSubBranches(
 
     return subs;
 }
-

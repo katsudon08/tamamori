@@ -97,9 +97,7 @@ describe('computeBranchTransform', () => {
             depth: 1,
             seed: 1000 + i,
         }));
-        const ys = branches.map((b, i) =>
-            computeBranchTransform(b, 2.0, i, count).position[1],
-        );
+        const ys = branches.map((b, i) => computeBranchTransform(b, 2.0, i, count).position[1]);
         // ソートして隣接差を確認: 同じ高さに集中していないこと
         const sorted = [...ys].sort((a, b) => a - b);
         for (let i = 1; i < sorted.length; i++) {
@@ -172,4 +170,3 @@ describe('MAX_MAIN_BRANCHES', () => {
         expect(MAX_MAIN_BRANCHES).toBe(4);
     });
 });
-

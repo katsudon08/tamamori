@@ -39,4 +39,3 @@ export const LeafyStage: Story = {
 export const FullBloomStage: Story = {
     args: { visualState: FULL_BLOOM_STATE },
 };
-
