@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, useRef, useEffect } from 'react';
+import { memo, useMemo } from 'react';
 import * as THREE from 'three';
 import {
     createTrunkCurve,
@@ -8,6 +8,7 @@ import {
     createBranchCurve,
     seededRandom,
 } from '../lib/bonsai-geometry';
+import { FoliagePad } from './FoliagePad';
 
 type TrunkProps = {
     height: number;
@@ -23,117 +24,6 @@ type TrunkProps = {
 const TRUNK_COLOR = '#8b6f4e';
 const TUBE_SEGMENTS = 32;
 const RADIAL_SEGMENTS = 10;
-
-// パッド構成要素
-const leafGeo = new THREE.SphereGeometry(0.16, 6, 4);
-const flowerGeo = new THREE.SphereGeometry(0.09, 6, 4);
-const dummyObj = new THREE.Object3D();
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-
-/** 幹先端の FoliagePad (Branch.tsx と同じパッド構造) */
-function TrunkFoliagePad({
-    leafCount,
-    flowerCount,
-    leafColor,
-    flowerColor,
-    seed,
-    direction,
-    counterRotation,
-}: {
-    leafCount: number;
-    flowerCount: number;
-    leafColor: string;
-    flowerColor: string;
-    seed: number;
-    direction: THREE.Vector3;
-    counterRotation?: [number, number, number];
-}) {
-    const leafRef = useRef<THREE.InstancedMesh>(null);
-    const flowerRef = useRef<THREE.InstancedMesh>(null);
-
-    useEffect(() => {
-        const rng = seededRandom(seed);
-        const dir = direction.clone().normalize();
-        const ref = Math.abs(dir.y) < 0.99
-            ? new THREE.Vector3(0, 1, 0)
-            : new THREE.Vector3(1, 0, 0);
-        const perp1 = new THREE.Vector3().crossVectors(dir, ref).normalize();
-        const perp2 = new THREE.Vector3().crossVectors(dir, perp1).normalize();
-        const padNormal = new THREE.Vector3(dir.x * 0.2, 1, dir.z * 0.2).normalize();
-        const up = new THREE.Vector3(0, 1, 0);
-        const padRadius = 0.28;
-
-        if (leafRef.current && leafCount > 0) {
-            for (let i = 0; i < leafCount; i++) {
-                const theta = i * GOLDEN_ANGLE;
-                const frac = (i + 0.5) / leafCount;
-                const r = padRadius * Math.sqrt(frac);
-                const lx = perp1.x * r * Math.cos(theta) + perp2.x * r * Math.sin(theta);
-                const ly = perp1.y * r * Math.cos(theta) + perp2.y * r * Math.sin(theta);
-                const lz = perp1.z * r * Math.cos(theta) + perp2.z * r * Math.sin(theta);
-                const dome = (1 - frac) * padRadius * 0.7;
-                dummyObj.position.set(
-                    lx + padNormal.x * dome,
-                    ly + padNormal.y * dome,
-                    lz + padNormal.z * dome,
-                );
-                const normal = padNormal.clone();
-                normal.x += (rng() - 0.5) * 0.1;
-                normal.z += (rng() - 0.5) * 0.1;
-                normal.normalize();
-                dummyObj.quaternion.setFromUnitVectors(up, normal);
-                const s = (1.5 - frac * 0.6) * (0.85 + rng() * 0.3);
-                dummyObj.scale.set(s, s * 0.55, s);
-                dummyObj.updateMatrix();
-                leafRef.current.setMatrixAt(i, dummyObj.matrix);
-            }
-            leafRef.current.instanceMatrix.needsUpdate = true;
-        }
-
-        if (flowerRef.current && flowerCount > 0) {
-            for (let i = 0; i < flowerCount; i++) {
-                const theta = (i * GOLDEN_ANGLE * 1.3) + rng() * 0.5;
-                const frac = (i + 0.5) / flowerCount;
-                const r = padRadius * 0.85 * Math.sqrt(frac);
-                const lx = perp1.x * r * Math.cos(theta) + perp2.x * r * Math.sin(theta);
-                const ly = perp1.y * r * Math.cos(theta) + perp2.y * r * Math.sin(theta);
-                const lz = perp1.z * r * Math.cos(theta) + perp2.z * r * Math.sin(theta);
-                const dome = (1 - frac) * padRadius * 0.7;
-                const lift = dome + padRadius * 0.15;
-                dummyObj.position.set(
-                    lx + padNormal.x * lift,
-                    ly + padNormal.y * lift,
-                    lz + padNormal.z * lift,
-                );
-                const normal = padNormal.clone();
-                normal.x += (rng() - 0.5) * 0.2;
-                normal.z += (rng() - 0.5) * 0.2;
-                normal.normalize();
-                dummyObj.quaternion.setFromUnitVectors(up, normal);
-                const s = (1.0 - frac * 0.3) * (0.7 + rng() * 0.5);
-                dummyObj.scale.set(s, s * 0.55, s);
-                dummyObj.updateMatrix();
-                flowerRef.current.setMatrixAt(i, dummyObj.matrix);
-            }
-            flowerRef.current.instanceMatrix.needsUpdate = true;
-        }
-    }, [leafCount, flowerCount, seed, direction]);
-
-    return (
-        <group rotation={counterRotation}>
-            {leafCount > 0 && (
-                <instancedMesh ref={leafRef} args={[leafGeo, undefined, leafCount]}>
-                    <meshStandardMaterial color={leafColor} roughness={0.7} />
-                </instancedMesh>
-            )}
-            {flowerCount > 0 && (
-                <instancedMesh ref={flowerRef} args={[flowerGeo, undefined, flowerCount]}>
-                    <meshStandardMaterial color={flowerColor} roughness={0.4} emissive={flowerColor} emissiveIntensity={0.15} />
-                </instancedMesh>
-            )}
-        </group>
-    );
-}
 
 function createTrunkGeometry(height: number, thickness: number): THREE.BufferGeometry {
     if (height <= 0) return new THREE.BufferGeometry();
@@ -292,33 +182,20 @@ function TipBranch({
         return [e.x, e.y, e.z] as [number, number, number];
     }, [transform.rotation]);
 
-    const tiltedRotation = useMemo(() => {
-        const rng = seededRandom(transform.seed + 55555);
-        const tiltX = (rng() - 0.5) * 0.5;
-        const tiltZ = (rng() - 0.5) * 0.5;
-        const base = new THREE.Quaternion().setFromEuler(
-            new THREE.Euler(counterRotation[0], counterRotation[1], counterRotation[2]),
-        );
-        const tilt = new THREE.Quaternion().setFromEuler(new THREE.Euler(tiltX, 0, tiltZ));
-        base.multiply(tilt);
-        const e = new THREE.Euler().setFromQuaternion(base);
-        return [e.x, e.y, e.z] as [number, number, number];
-    }, [counterRotation, transform.seed]);
-
     return (
         <group position={transform.position} rotation={transform.rotation}>
             <mesh geometry={geo}>
                 <meshStandardMaterial color={BRANCH_COLOR} roughness={0.9} />
             </mesh>
             <group position={tipPos}>
-                <TrunkFoliagePad
+                <FoliagePad
                     leafCount={leafCount}
                     flowerCount={flowerCount}
                     leafColor={leafColor}
                     flowerColor={flowerColor}
                     seed={transform.seed + 20000}
-                    direction={new THREE.Vector3(0, 1, 0)}
-                    counterRotation={tiltedRotation}
+                    padRadius={0.28}
+                    counterRotation={counterRotation}
                 />
             </group>
         </group>
@@ -336,9 +213,16 @@ export const Trunk = memo(function Trunk({
     const tipTransform = useMemo(() => {
         if (height <= 0) return null;
         const curve = createTrunkCurve(height);
+        const tipPoint = curve.getPointAt(1);
+        const tangent = curve.getTangentAt(1).normalize();
+        const quat = new THREE.Quaternion().setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0), tangent,
+        );
+        quat.invert();
+        const euler = new THREE.Euler().setFromQuaternion(quat);
         return {
-            position: [curve.getPointAt(1).x, curve.getPointAt(1).y, curve.getPointAt(1).z] as [number, number, number],
-            direction: curve.getTangentAt(1).normalize(),
+            position: [tipPoint.x, tipPoint.y, tipPoint.z] as [number, number, number],
+            counterRotation: [euler.x, euler.y, euler.z] as [number, number, number],
         };
     }, [height]);
 
@@ -359,13 +243,14 @@ export const Trunk = memo(function Trunk({
                 <group position={tipTransform.position}>
                     {/* 幹先端のメインパッド */}
                     {(mainLeaves > 0 || mainFlowers > 0) && (
-                        <TrunkFoliagePad
+                        <FoliagePad
                             leafCount={mainLeaves}
                             flowerCount={mainFlowers}
                             leafColor={leafColor}
                             flowerColor={flowerColor}
                             seed={42000}
-                            direction={tipTransform.direction}
+                            padRadius={0.28}
+                            counterRotation={tipTransform.counterRotation}
                         />
                     )}
                 </group>

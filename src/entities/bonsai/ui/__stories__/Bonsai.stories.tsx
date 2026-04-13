@@ -40,10 +40,3 @@ export const FullBloomStage: Story = {
     args: { visualState: FULL_BLOOM_STATE },
 };
 
-/** seed → full_bloom への遷移アニメーション確認用 */
-export const Transition: Story = {
-    args: {
-        visualState: FULL_BLOOM_STATE,
-        previousVisualState: SEED_STATE,
-    },
-};

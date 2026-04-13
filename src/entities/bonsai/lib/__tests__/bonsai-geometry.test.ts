@@ -5,8 +5,6 @@ import {
     computeBranchTransform,
     branchLengthScale,
     computeSubBranches,
-    computeLeafPositions,
-    computeFlowerPositions,
     MAX_MAIN_BRANCHES,
 } from '../bonsai-geometry';
 import type { Branch } from '../../model/types';
@@ -175,61 +173,3 @@ describe('MAX_MAIN_BRANCHES', () => {
     });
 });
 
-describe('computeLeafPositions', () => {
-    const branches: Branch[] = [
-        { angle: 45, length: 0.8, depth: 1, seed: 100 },
-        { angle: -30, length: 0.6, depth: 1, seed: 200 },
-    ];
-
-    test('指定したcount分の位置を返す', () => {
-        const positions = computeLeafPositions(20, branches, 1.5);
-        expect(positions).toHaveLength(20);
-    });
-
-    test('count=0のとき空配列を返す', () => {
-        expect(computeLeafPositions(0, branches, 1.5)).toHaveLength(0);
-    });
-
-    test('枝がないとき幹の頂点付近に配置する', () => {
-        const positions = computeLeafPositions(5, [], 1.0);
-        expect(positions).toHaveLength(5);
-        for (const pos of positions) {
-            expect(pos[1]).toBeGreaterThan(0);
-        }
-    });
-
-    test('各位置が[x, y, z]の3要素配列である', () => {
-        const positions = computeLeafPositions(10, branches, 1.5);
-        for (const pos of positions) {
-            expect(pos).toHaveLength(3);
-            expect(typeof pos[0]).toBe('number');
-        }
-    });
-
-    test('同じ入力に対して決定的な結果を返す', () => {
-        const p1 = computeLeafPositions(10, branches, 1.5);
-        const p2 = computeLeafPositions(10, branches, 1.5);
-        expect(p1).toEqual(p2);
-    });
-});
-
-describe('computeFlowerPositions', () => {
-    const branches: Branch[] = [
-        { angle: 45, length: 0.8, depth: 1, seed: 100 },
-        { angle: -30, length: 0.6, depth: 1, seed: 200 },
-    ];
-
-    test('指定したcount分の位置を返す', () => {
-        expect(computeFlowerPositions(10, branches, 1.5)).toHaveLength(10);
-    });
-
-    test('count=0のとき空配列を返す', () => {
-        expect(computeFlowerPositions(0, branches, 1.5)).toHaveLength(0);
-    });
-
-    test('同じ入力に対して決定的な結果を返す', () => {
-        const p1 = computeFlowerPositions(10, branches, 1.5);
-        const p2 = computeFlowerPositions(10, branches, 1.5);
-        expect(p1).toEqual(p2);
-    });
-});
