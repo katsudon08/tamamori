@@ -24,11 +24,25 @@ const SPROUT_STATE: BonsaiVisualState = {
     potColor: '#8B4513',
 };
 
+/**
+ * young 以降の全ステージは full_bloom の形をベースに
+ * 枝の角度・seed を統一し、サイズ・葉・花を段階的にスケールダウンする。
+ *
+ * full_bloom 基準枝:
+ *   { angle: 50, length: 1.4, depth: 1, seed: 1001 }
+ *   { angle: -45, length: 1.2, depth: 1, seed: 2002 }
+ *   { angle: 40, length: 1.1, depth: 1, seed: 3003 }
+ *   { angle: -35, length: 1.0, depth: 1, seed: 4004 }
+ */
+
 const YOUNG_STATE: BonsaiVisualState = {
     trunkHeight: 0.7,
     trunkThickness: 0.09,
-    branches: [{ angle: 35, length: 0.5, depth: 1, seed: 1001 }],
-    leaves: 2,
+    branches: [
+        { angle: 50, length: 0.7, depth: 1, seed: 1001 },
+        { angle: -45, length: 0.6, depth: 1, seed: 2002 },
+    ],
+    leaves: 15,
     leafColor: '#228B22',
     flowers: 0,
     flowerColor: '#FFB7C5',
@@ -39,9 +53,9 @@ const BRANCHING_STATE: BonsaiVisualState = {
     trunkHeight: 1.0,
     trunkThickness: 0.12,
     branches: [
-        { angle: 40, length: 0.7, depth: 1, seed: 1001 },
-        { angle: -35, length: 0.6, depth: 1, seed: 2002 },
-        { angle: 30, length: 0.5, depth: 1, seed: 3003 },
+        { angle: 50, length: 0.8, depth: 1, seed: 1001 },
+        { angle: -45, length: 0.7, depth: 1, seed: 2002 },
+        { angle: 40, length: 0.6, depth: 1, seed: 3003 },
     ],
     leaves: 50,
     leafColor: '#228B22',
@@ -54,12 +68,12 @@ const LEAFY_STATE: BonsaiVisualState = {
     trunkHeight: 1.4,
     trunkThickness: 0.16,
     branches: [
-        { angle: 45, length: 1.0, depth: 1, seed: 1001 },
-        { angle: -40, length: 0.9, depth: 1, seed: 2002 },
-        { angle: 35, length: 0.8, depth: 1, seed: 3003 },
-        { angle: -30, length: 0.7, depth: 1, seed: 4004 },
+        { angle: 50, length: 1.0, depth: 1, seed: 1001 },
+        { angle: -45, length: 0.9, depth: 1, seed: 2002 },
+        { angle: 40, length: 0.8, depth: 1, seed: 3003 },
+        { angle: -35, length: 0.7, depth: 1, seed: 4004 },
     ],
-    leaves: 180,
+    leaves: 200,
     leafColor: '#228B22',
     flowers: 0,
     flowerColor: '#FFB7C5',
@@ -70,15 +84,14 @@ const BUDDING_STATE: BonsaiVisualState = {
     trunkHeight: 1.6,
     trunkThickness: 0.18,
     branches: [
-        { angle: 45, length: 1.0, depth: 1, seed: 1001 },
-        { angle: -40, length: 0.9, depth: 1, seed: 2002 },
-        { angle: 35, length: 0.8, depth: 2, seed: 3003 },
-        { angle: -30, length: 0.7, depth: 2, seed: 4004 },
-        { angle: 25, length: 0.6, depth: 1, seed: 5005 },
+        { angle: 50, length: 1.1, depth: 1, seed: 1001 },
+        { angle: -45, length: 1.0, depth: 1, seed: 2002 },
+        { angle: 40, length: 0.9, depth: 1, seed: 3003 },
+        { angle: -35, length: 0.8, depth: 1, seed: 4004 },
     ],
-    leaves: 25,
+    leaves: 240,
     leafColor: '#228B22',
-    flowers: 6,
+    flowers: 15,
     flowerColor: '#FFB7C5',
     potColor: '#8B4513',
 };
@@ -87,16 +100,14 @@ const FLOWERING_STATE: BonsaiVisualState = {
     trunkHeight: 1.8,
     trunkThickness: 0.22,
     branches: [
-        { angle: 50, length: 1.2, depth: 1, seed: 1001 },
+        { angle: 50, length: 1.3, depth: 1, seed: 1001 },
         { angle: -45, length: 1.1, depth: 1, seed: 2002 },
-        { angle: 40, length: 1.0, depth: 2, seed: 3003 },
-        { angle: -35, length: 0.9, depth: 2, seed: 4004 },
-        { angle: 30, length: 0.8, depth: 1, seed: 5005 },
-        { angle: -25, length: 0.7, depth: 3, seed: 6006 },
+        { angle: 40, length: 1.0, depth: 1, seed: 3003 },
+        { angle: -35, length: 0.9, depth: 1, seed: 4004 },
     ],
-    leaves: 40,
+    leaves: 260,
     leafColor: '#228B22',
-    flowers: 11,
+    flowers: 45,
     flowerColor: '#FFB7C5',
     potColor: '#8B4513',
 };

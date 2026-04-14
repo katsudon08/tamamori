@@ -31,11 +31,11 @@ export const Bonsai = memo(function Bonsai({ visualState, previousVisualState }:
             <Trunk
                 height={visualState.trunkHeight}
                 thickness={visualState.trunkThickness}
-                leafCount={Math.round(visualState.leaves * 0.15)}
-                flowerCount={Math.round(visualState.flowers * 0.1)}
+                leafCount={visualState.trunkHeight >= 1.0 ? Math.round(visualState.leaves * 0.15) : 0}
+                flowerCount={visualState.trunkHeight >= 1.0 ? Math.round(visualState.flowers * 0.1) : 0}
                 leafColor={visualState.leafColor}
                 flowerColor={visualState.flowerColor}
-                showTipBranches={branchCount > 0}
+                showTipBranches={branchCount > 0 && visualState.trunkHeight >= 1.0}
             />
             {visualState.branches.slice(0, MAX_MAIN_BRANCHES).map((branch, i) => (
                 <Branch

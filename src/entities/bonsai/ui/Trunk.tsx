@@ -90,13 +90,16 @@ function createTrunkGeometry(height: number, thickness: number): THREE.BufferGeo
 
 const BRANCH_COLOR = '#a08060';
 const DEG_TO_RAD = Math.PI / 180;
-/** 幹上の分岐位置 (先端より手前) */
-const TIP_BRANCH_T = 0.8;
+/** 幹上の分岐位置を height に応じて算出（短い幹では手前に配置） */
+function tipBranchT(height: number): number {
+    return Math.min(0.8, 0.55 + height * 0.125);
+}
 
 type TipBranchTransform = {
     position: [number, number, number];
     rotation: [number, number, number];
     length: number;
+    thickness: number;
     seed: number;
 };
 
@@ -112,8 +115,9 @@ function useTipBranchTransform(height: number, thickness: number): TipBranchTran
         const TRUNK_SEGMENTS = 32;
         const frames = curve.computeFrenetFrames(TRUNK_SEGMENTS, false);
 
-        const point = curve.getPointAt(TIP_BRANCH_T);
-        const segIdx = Math.round(TIP_BRANCH_T * TRUNK_SEGMENTS);
+        const t = tipBranchT(height);
+        const point = curve.getPointAt(t);
+        const segIdx = Math.round(t * TRUNK_SEGMENTS);
         const N = frames.normals[segIdx];
         const B = frames.binormals[segIdx];
         const T = frames.tangents[segIdx];
@@ -138,7 +142,7 @@ function useTipBranchTransform(height: number, thickness: number): TipBranchTran
 
         // 幹表面にオフセット
         const topRadius = thickness * 0.01;
-        const smooth = TIP_BRANCH_T * TIP_BRANCH_T * (3 - 2 * TIP_BRANCH_T);
+        const smooth = t * t * (3 - 2 * t);
         const trunkR = thickness + (topRadius - thickness) * smooth;
 
         return {
@@ -149,6 +153,7 @@ function useTipBranchTransform(height: number, thickness: number): TipBranchTran
             ],
             rotation: [euler.x, euler.y, euler.z],
             length: height * (0.15 + rng() * 0.05),
+            thickness: Math.min(0.04, trunkR * 0.7),
             seed: 44000,
         };
     }, [height, thickness]);
@@ -168,8 +173,8 @@ function TipBranch({
     flowerColor: string;
 }) {
     const geo = useMemo(
-        () => createBranchGeometry(transform.length, 0.04, transform.seed),
-        [transform.length, transform.seed],
+        () => createBranchGeometry(transform.length, transform.thickness, transform.seed),
+        [transform.length, transform.thickness, transform.seed],
     );
 
     const tipPos = useMemo(() => {
@@ -200,7 +205,7 @@ function TipBranch({
                     leafColor={leafColor}
                     flowerColor={flowerColor}
                     seed={transform.seed + 20000}
-                    padRadius={0.28}
+                    padRadius={Math.min(0.28, transform.length * 0.8)}
                     counterRotation={counterRotation}
                 />
             </group>
@@ -222,8 +227,9 @@ export const Trunk = memo(function Trunk({
     const tipTransform = useMemo(() => {
         if (height <= 0) return null;
         const curve = createTrunkCurve(height);
-        const tipPoint = curve.getPointAt(1);
-        const tangent = curve.getTangentAt(1).normalize();
+        const tipT = Math.min(1.0, 0.75 + height * 0.125);
+        const tipPoint = curve.getPointAt(tipT);
+        const tangent = curve.getTangentAt(tipT).normalize();
         const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
         quat.invert();
         const euler = new THREE.Euler().setFromQuaternion(quat);
@@ -256,7 +262,7 @@ export const Trunk = memo(function Trunk({
                             leafColor={leafColor}
                             flowerColor={flowerColor}
                             seed={42000}
-                            padRadius={0.28}
+                            padRadius={Math.min(0.28, height * 0.2)}
                             counterRotation={tipTransform.counterRotation}
                         />
                     )}

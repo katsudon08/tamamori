@@ -68,6 +68,9 @@ export const FoliagePad = memo(function FoliagePad({
         // パッドはワールド水平面 (XZ) に広がる
         const up = new THREE.Vector3(0, 1, 0);
 
+        // padRadius に応じてインスタンスのサイズをスケール (基準: 0.18)
+        const sizeScale = Math.min(1, padRadius / 0.18);
+
         const placeLeafLayer = (
             meshRef: React.RefObject<THREE.InstancedMesh | null>,
             count: number,
@@ -97,7 +100,7 @@ export const FoliagePad = memo(function FoliagePad({
                 normal.normalize();
                 dummyObj.quaternion.setFromUnitVectors(up, normal);
 
-                const baseScale = (1.5 - frac * 0.6) * (0.85 + rng() * 0.3);
+                const baseScale = (1.5 - frac * 0.6) * (0.85 + rng() * 0.3) * sizeScale;
                 dummyObj.scale.set(baseScale, baseScale * 0.55, baseScale);
 
                 dummyObj.updateMatrix();
@@ -137,7 +140,7 @@ export const FoliagePad = memo(function FoliagePad({
                 normal.normalize();
                 dummyObj.quaternion.setFromUnitVectors(up, normal);
 
-                const s = (1.0 - frac * 0.3) * (0.7 + rng() * 0.5);
+                const s = (1.0 - frac * 0.3) * (0.7 + rng() * 0.5) * sizeScale;
                 dummyObj.scale.set(s, s * 0.4, s);
 
                 dummyObj.updateMatrix();
