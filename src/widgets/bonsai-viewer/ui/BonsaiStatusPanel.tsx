@@ -1,3 +1,4 @@
+import { MessageSquare, ThumbsUp, Heart } from 'lucide-react';
 import Image from 'next/image';
 
 import type { GrowthStage } from '@/entities/bonsai';
@@ -46,9 +47,9 @@ function Avatar({ user }: { user: BonsaiViewerUser }) {
 }
 
 const COUNTER_CONFIG = [
-    { key: 'messages', label: 'メッセージ', icon: '💬' },
-    { key: 'reactions', label: 'リアクション', icon: '👍' },
-    { key: 'thanks', label: '感謝', icon: '🙏' },
+    { key: 'messages', label: 'メッセージ', Icon: MessageSquare },
+    { key: 'reactions', label: 'リアクション', Icon: ThumbsUp },
+    { key: 'thanks', label: '感謝', Icon: Heart },
 ] as const;
 
 export function BonsaiStatusPanel({
@@ -88,12 +89,12 @@ export function BonsaiStatusPanel({
 
             {/* カウンター */}
             <div className="grid grid-cols-3 gap-3">
-                {COUNTER_CONFIG.map(({ key, label, icon }, i) => (
+                {COUNTER_CONFIG.map(({ key, label, Icon }, i) => (
                     <div
                         key={key}
                         className="flex flex-col items-center gap-1 rounded-lg bg-base-light p-3"
                     >
-                        <span aria-hidden="true">{icon}</span>
+                        <Icon size={18} className="text-sub" aria-hidden="true" />
                         <span className="text-xl font-bold text-main">{counters[i]}</span>
                         <span className="text-xs text-sub">{label}</span>
                     </div>
