@@ -130,7 +130,7 @@ function SubBranch({
                             leafColor={leafColor}
                             flowerColor={flowerColor}
                             seed={sub.seed + 20000}
-                            padRadius={0.25}
+                            padRadius={Math.min(0.25, sub.length * 0.4)}
                             counterRotation={counterRotation}
                         />
                     </group>
@@ -231,7 +231,7 @@ export const Branch = memo(function Branch({
                     leafColor={leafColor}
                     flowerColor={flowerColor}
                     seed={seed + 20000}
-                    padRadius={0.35}
+                    padRadius={Math.min(0.35, scaledLength * 0.25)}
                     counterRotation={counterRotation}
                 />
             </group>

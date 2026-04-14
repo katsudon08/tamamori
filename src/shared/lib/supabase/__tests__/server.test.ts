@@ -2,10 +2,10 @@ import { describe, test, expect, jest } from '@jest/globals';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 jest.mock('../../../config', () => ({
-    env: {
+    getEnv: () => ({
         SUPABASE_URL: 'https://example.supabase.co',
         SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
-    },
+    }),
 }));
 
 jest.mock('@supabase/supabase-js', () => ({

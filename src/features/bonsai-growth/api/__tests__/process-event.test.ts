@@ -47,9 +47,9 @@ jest.mock('@/entities/bonsai', () => ({
 }));
 
 jest.mock('@/shared/config', () => ({
-    env: {
+    getEnv: () => ({
         SLACK_WATCHED_CHANNELS: ['C01XXXX', 'C02XXXX'],
-    },
+    }),
 }));
 
 // fetchGrowthRules は DB を呼ぶためモック

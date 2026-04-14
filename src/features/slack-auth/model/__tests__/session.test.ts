@@ -17,7 +17,7 @@ jest.mock('next/headers', () => ({
 }));
 
 jest.mock('@/shared/config', () => ({
-    env: { SESSION_SECRET: 'test-secret-must-be-at-least-32-chars!!' },
+    getEnv: () => ({ SESSION_SECRET: 'test-secret-must-be-at-least-32-chars!!' }),
 }));
 
 // --- Import after mocks ---

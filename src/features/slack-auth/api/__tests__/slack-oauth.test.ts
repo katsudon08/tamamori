@@ -3,10 +3,10 @@ import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 // --- mocks ---------------------------------------------------------------
 
 jest.mock('@/shared/config', () => ({
-    env: {
+    getEnv: () => ({
         SLACK_CLIENT_ID: 'test-client-id',
         SLACK_CLIENT_SECRET: 'test-client-secret',
-    },
+    }),
 }));
 
 const mockExchangeOAuthCode = jest

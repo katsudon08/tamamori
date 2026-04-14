@@ -1,3 +1,3 @@
 // Public API
-export { env } from './env';
+export { getEnv } from './env';
 export type { Env } from './env';

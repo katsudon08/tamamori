@@ -6,7 +6,7 @@ import type { ActionType } from '@/entities/action';
 import { checkEventExists, insertAction } from '@/entities/action';
 import { getUserBySlackId } from '@/entities/user';
 import { getBonsaiByUserId, updateBonsai } from '@/entities/bonsai';
-import { env } from '@/shared/config';
+import { getEnv } from '@/shared/config';
 
 // --- ペイロード型（FSD: features間の直接インポート禁止のためローカル定義）---
 
@@ -47,7 +47,7 @@ export async function processSlackEvent(payload: SlackEventPayload): Promise<voi
 
         // 1. チャンネルフィルタ
         const channel = extractChannel(event);
-        if (!env.SLACK_WATCHED_CHANNELS.includes(channel)) {
+        if (!getEnv().SLACK_WATCHED_CHANNELS.includes(channel)) {
             return;
         }
 

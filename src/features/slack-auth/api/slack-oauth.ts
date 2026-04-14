@@ -1,12 +1,12 @@
 import { exchangeOAuthCode, getUserInfo } from '@/shared/lib/slack';
-import { env } from '@/shared/config';
+import { getEnv } from '@/shared/config';
 
 /**
  * Slack OAuth 認可 URL を構築する
  */
 export function buildAuthorizationUrl(state: string, origin: string): string {
     const params = new URLSearchParams({
-        client_id: env.SLACK_CLIENT_ID,
+        client_id: getEnv().SLACK_CLIENT_ID,
         scope: 'openid,profile',
         redirect_uri: `${origin}/api/auth/slack/callback`,
         response_type: 'code',

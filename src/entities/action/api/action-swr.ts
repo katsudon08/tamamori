@@ -4,10 +4,9 @@ import useSWR from 'swr';
 
 import { createBrowserClient } from '@/shared/lib/supabase';
 
-const supabase = createBrowserClient();
-
 export function useActionLogs(userId: string | undefined, startDate: string) {
     return useSWR(userId ? ['action-logs', userId, startDate] : null, async ([, id, start]) => {
+        const supabase = createBrowserClient();
         const { data, error } = await supabase
             .from('action_log')
             .select('action_type, created_at')
