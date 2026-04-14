@@ -2,7 +2,7 @@
 name: commit-push-pr
 description: コミット、push、PR作成を一括で行う
 disable-model-invocation: true
-allowed-tools: Bash(npm run lint:*), Bash(npm run test:*), Bash(git checkout:*), Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git commit:*), Bash(git push:*), Bash(gh pr create:*)
+allowed-tools: Bash(npm run lint:*), Bash(npm run format:*), Bash(npm run test:*), Bash(git checkout:*), Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git commit:*), Bash(git push:*), Bash(gh pr create:*)
 ---
 
 # コミット・Push・PR作成
@@ -53,7 +53,16 @@ allowed-tools: Bash(npm run lint:*), Bash(npm run test:*), Bash(git checkout:*),
 
 未コミットの変更がある場合、以下を実行する:
 
-### 4a: 事前チェック
+### 4a: フォーマットチェック
+
+`npm run format:check` を実行し、フォーマット違反がないか確認する。
+
+**違反があった場合:**
+
+1. `npm run format` を実行して自動修正する
+2. 修正されたファイルをステージング対象に含める
+
+### 4b: 事前チェック
 
 以下を順に実行し、両方とも成功した場合のみ次へ進む:
 
@@ -62,7 +71,7 @@ allowed-tools: Bash(npm run lint:*), Bash(npm run test:*), Bash(git checkout:*),
 
 **いずれかが失敗した場合、エラー内容を表示して処理を中止すること。**
 
-### 4b: コミット作成
+### 4c: コミット作成
 
 以下のフォーマットでコミットメッセージを作成する:
 
