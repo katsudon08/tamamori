@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import Image from 'next/image';
 import { expect, within } from 'storybook/test';
 
 import { Header } from '../Header';
@@ -17,10 +18,13 @@ export const Default: Story = {
         <Header
             rightSlot={
                 <div className="flex items-center gap-2">
-                    <img
+                    <Image
                         src="https://via.placeholder.com/32"
                         alt="avatar"
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full"
+                        unoptimized
                     />
                     <span className="text-sm text-sub">テストユーザー</span>
                 </div>

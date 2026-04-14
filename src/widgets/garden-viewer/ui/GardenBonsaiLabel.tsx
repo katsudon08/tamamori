@@ -1,6 +1,7 @@
 'use client';
 
 import { Html } from '@react-three/drei';
+import Image from 'next/image';
 import Link from 'next/link';
 
 type GardenBonsaiLabelProps = {
@@ -19,7 +20,14 @@ export function GardenBonsaiLabelContent({
     return (
         <Link href={`/bonsai/${userId}`} className="flex items-center gap-1 no-underline">
             {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="h-4 w-4 rounded-full" />
+                <Image
+                    src={avatarUrl}
+                    alt={displayName}
+                    width={16}
+                    height={16}
+                    className="h-4 w-4 rounded-full"
+                    unoptimized
+                />
             ) : (
                 <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-300 text-[8px]">
                     {displayName.charAt(0)}
