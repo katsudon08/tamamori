@@ -21,7 +21,13 @@ const meta = {
     component: BonsaiStatusPanel,
     tags: ['autodocs'],
     parameters: { layout: 'centered' },
-    decorators: [(Story) => <div style={{ width: 384 }}><Story /></div>],
+    decorators: [
+        (Story) => (
+            <div style={{ width: 384 }}>
+                <Story />
+            </div>
+        ),
+    ],
 } satisfies Meta<typeof BonsaiStatusPanel>;
 
 export default meta;

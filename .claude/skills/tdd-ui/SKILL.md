@@ -39,8 +39,8 @@ UIコンポーネントの実装（新規作成・修正）を行う際、以下
 ```tsx
 // 例: src/widgets/bonsai-viewer/ui/BonsaiViewer.tsx の場合
 const meta = {
-  title: 'widgets/bonsai-viewer/BonsaiViewer',
-  component: BonsaiViewer,
+    title: 'widgets/bonsai-viewer/BonsaiViewer',
+    component: BonsaiViewer,
 } satisfies Meta<typeof BonsaiViewer>;
 
 export default meta;
@@ -70,11 +70,11 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 ```tsx
 export const Small: Story = {
-  args: { size: 'sm' },
+    args: { size: 'sm' },
 };
 
 export const Large: Story = {
-  args: { size: 'lg' },
+    args: { size: 'lg' },
 };
 ```
 
@@ -84,15 +84,15 @@ Loading / Error / Empty などの非同期状態がある場合はストーリ�
 
 ```tsx
 export const Loading: Story = {
-  args: { isLoading: true },
+    args: { isLoading: true },
 };
 
 export const Error: Story = {
-  args: { error: 'データの取得に失敗しました' },
+    args: { error: 'データの取得に失敗しました' },
 };
 
 export const Empty: Story = {
-  args: { items: [] },
+    args: { items: [] },
 };
 ```
 
@@ -104,11 +104,11 @@ export const Empty: Story = {
 import { within, userEvent, expect } from '@storybook/test';
 
 export const AfterClick: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('button'));
-    await expect(canvas.getByText('完了')).toBeInTheDocument();
-  },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await userEvent.click(canvas.getByRole('button'));
+        await expect(canvas.getByText('完了')).toBeInTheDocument();
+    },
 };
 ```
 
@@ -118,24 +118,24 @@ export const AfterClick: Story = {
 
 ```tsx
 export const Mobile: Story = {
-  parameters: {
-    viewport: { defaultViewport: 'mobile1' },
-  },
+    parameters: {
+        viewport: { defaultViewport: 'mobile1' },
+    },
 };
 
 export const Desktop: Story = {
-  parameters: {
-    viewport: { defaultViewport: 'responsive' },
-  },
+    parameters: {
+        viewport: { defaultViewport: 'responsive' },
+    },
 };
 ```
 
 ## モック方針
 
-| 対象 | 方針 |
-| --- | --- |
-| API 呼び出し・データフェッチ | モックする |
-| 他スライスの子コンポーネント | 実コンポーネントを使う |
+| 対象                             | 方針                   |
+| -------------------------------- | ---------------------- |
+| API 呼び出し・データフェッチ     | モックする             |
+| 他スライスの子コンポーネント     | 実コンポーネントを使う |
 | 同一スライス内の子コンポーネント | 実コンポーネントを使う |
 
 見た目を正確に確認するため、コンポーネントは実物を使い、データ層のみモックする。

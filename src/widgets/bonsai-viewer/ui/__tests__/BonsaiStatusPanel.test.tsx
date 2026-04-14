@@ -73,11 +73,7 @@ describe('BonsaiStatusPanel', () => {
 
     test('full_bloom（nextStageThresholds===null）時は満開メッセージ表示', () => {
         render(
-            <BonsaiStatusPanel
-                {...DEFAULT_PROPS}
-                stage="full_bloom"
-                nextStageThresholds={null}
-            />,
+            <BonsaiStatusPanel {...DEFAULT_PROPS} stage="full_bloom" nextStageThresholds={null} />,
         );
 
         expect(screen.getByText('満開')).toBeInTheDocument();

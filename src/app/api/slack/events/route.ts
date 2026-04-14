@@ -10,7 +10,14 @@ export async function POST(request: Request) {
     // 2. 署名検証 → 失敗で 401
     const timestamp = request.headers.get('x-slack-request-timestamp') ?? '';
     const signature = request.headers.get('x-slack-signature') ?? '';
-    if (!verifySignature({ body, timestamp, signature, signingSecret: getEnv().SLACK_SIGNING_SECRET })) {
+    if (
+        !verifySignature({
+            body,
+            timestamp,
+            signature,
+            signingSecret: getEnv().SLACK_SIGNING_SECRET,
+        })
+    ) {
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
