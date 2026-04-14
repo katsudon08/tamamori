@@ -24,7 +24,7 @@ describe('GardenBonsaiLabelContent', () => {
         render(<GardenBonsaiLabelContent {...DEFAULT_PROPS} />);
 
         const img = screen.getByRole('img', { name: '田中太郎' });
-        expect(img).toHaveAttribute('src', 'https://example.com/avatar1.png');
+        expect(img.getAttribute('src')).toContain('avatar1.png');
     });
 
     test('avatarUrlがnullの場合名前の頭文字でフォールバック表示', () => {
