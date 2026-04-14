@@ -1,6 +1,6 @@
 import { describe, test, expect } from '@jest/globals';
 import { NextRequest } from 'next/server';
-import { middleware, config } from '../middleware';
+import { proxy, config } from '../proxy';
 
 // --- helpers ----------------------------------------------------------------
 
@@ -15,10 +15,10 @@ function createRequest(pathname: string, hasCookie: boolean): NextRequest {
 
 // --- tests ------------------------------------------------------------------
 
-describe('middleware', () => {
+describe('proxy', () => {
     test('未認証で /garden にアクセスすると / にリダイレクトされる', () => {
         const req = createRequest('/garden', false);
-        const res = middleware(req);
+        const res = proxy(req);
 
         expect(res.status).toBe(307);
         expect(new URL(res.headers.get('Location')!).pathname).toBe('/');
@@ -26,7 +26,7 @@ describe('middleware', () => {
 
     test('認証済みで /garden にアクセスするとパススルーされる', () => {
         const req = createRequest('/garden', true);
-        const res = middleware(req);
+        const res = proxy(req);
 
         expect(res.headers.get('Location')).toBeNull();
     });
