@@ -2,7 +2,7 @@
 name: commit
 description: プロジェクト規約に従ったgitコミットを作成する
 disable-model-invocation: true
-allowed-tools: Bash(npm run lint:*), Bash(npm run test:*), Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git commit:*)
+allowed-tools: Bash(npm run lint:*), Bash(npm run format:*), Bash(npm run test:*), Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git commit:*)
 ---
 
 # Git コミット作成
@@ -29,7 +29,16 @@ allowed-tools: Bash(npm run lint:*), Bash(npm run test:*), Bash(git add:*), Bash
 
 **該当ファイルが含まれていた場合、警告を表示してコミットを中止すること。**
 
-## Step 3: 事前チェック
+## Step 3: フォーマットチェック
+
+`npm run format:check` を実行し、フォーマット違反がないか確認する。
+
+**違反があった場合:**
+
+1. `npm run format` を実行して自動修正する
+2. 修正されたファイルをステージング対象に含める
+
+## Step 4: 事前チェック
 
 以下を順に実行し、両方とも成功した場合のみ次へ進む:
 
@@ -38,7 +47,7 @@ allowed-tools: Bash(npm run lint:*), Bash(npm run test:*), Bash(git add:*), Bash
 
 **いずれかが失敗した場合、エラー内容を表示してコミットを中止すること。**
 
-## Step 4: コミット作成
+## Step 5: コミット作成
 
 変更内容を分析し、以下のフォーマットでコミットメッセージを作成する。
 

@@ -19,6 +19,8 @@ Next.js (App Router) / TypeScript / React Three Fiber (Three.js) / Supabase (Pos
 npm run dev              # 開発サーバー起動
 npm run build            # ビルド
 npm run lint             # ESLint (FSDルール含む)
+npm run format           # Prettier フォーマット修正
+npm run format:check     # Prettier フォーマットチェック
 npm run test             # Jest 単体テスト
 npm run test:watch       # Jest ウォッチモード
 npm run test:e2e         # Playwright E2Eテスト
