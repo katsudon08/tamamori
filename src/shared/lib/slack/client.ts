@@ -1,4 +1,4 @@
-import { env } from '../../config';
+import { getEnv } from '../../config';
 import { oauthTokenResponseSchema, oauthUserInfoResponseSchema } from './schema';
 
 const SLACK_API = 'https://slack.com/api';
@@ -21,8 +21,8 @@ export interface SlackUserInfo {
 export async function exchangeOAuthCode(code: string): Promise<OAuthTokenResult> {
     const body = new URLSearchParams({
         code,
-        client_id: env.SLACK_CLIENT_ID,
-        client_secret: env.SLACK_CLIENT_SECRET,
+        client_id: getEnv().SLACK_CLIENT_ID,
+        client_secret: getEnv().SLACK_CLIENT_SECRET,
     });
 
     const res = await fetch(`${SLACK_API}/openid.connect.token`, {

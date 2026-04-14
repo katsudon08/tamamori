@@ -1,15 +1,9 @@
 /**
  * @jest-environment jsdom
  */
-import { describe, test, expect, jest } from '@jest/globals';
+import { describe, test, expect } from '@jest/globals';
 import '@testing-library/jest-dom/jest-globals';
 import { render, screen } from '@testing-library/react';
-
-jest.mock('@/shared/config', () => ({ env: {} }));
-jest.mock('@/shared/lib/supabase', () => ({
-    createServerClient: () => ({}),
-    createBrowserClient: () => ({}),
-}));
 
 import { BonsaiStatusPanel } from '../BonsaiStatusPanel';
 

@@ -1,4 +1,4 @@
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { ZodError } from 'zod';
 import { parseEnv } from '../env-schema';
 
@@ -38,5 +38,32 @@ describe('parseEnv', () => {
     test('SLACK_WATCHED_CHANNELS がカンマ区切り文字列から配列に変換される', () => {
         const env = parseEnv(VALID_ENV);
         expect(env.SLACK_WATCHED_CHANNELS).toEqual(['C01', 'C02', 'C03']);
+    });
+});
+
+describe('getEnv', () => {
+    beforeEach(() => {
+        jest.resetModules();
+    });
+
+    test('インポート時にはparseEnvが実行されない（遅延評価）', async () => {
+        const mod = await import('../env');
+        // getEnv を呼ばなければ parseEnv は走らない → エラーにならない
+        expect(typeof mod.getEnv).toBe('function');
+    });
+
+    test('呼び出し時にparseEnvが実行され結果がキャッシュされる', async () => {
+        const originalEnv = process.env;
+        process.env = { ...originalEnv, ...VALID_ENV };
+
+        try {
+            const { getEnv: freshGetEnv } = await import('../env');
+            const first = freshGetEnv();
+            const second = freshGetEnv();
+            expect(first).toBe(second);
+            expect(first.SUPABASE_URL).toBe('https://example.supabase.co');
+        } finally {
+            process.env = originalEnv;
+        }
     });
 });

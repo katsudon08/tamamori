@@ -1,7 +1,7 @@
 import type { IronSession, SessionOptions } from 'iron-session';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
-import { env } from '@/shared/config';
+import { getEnv } from '@/shared/config';
 
 /** セッションに保存するユーザー情報 */
 export interface SessionData {
@@ -25,7 +25,7 @@ export const defaultSession: SessionData = {
 
 /** iron-session 設定 */
 export const sessionOptions: SessionOptions = {
-    password: env.SESSION_SECRET,
+    password: getEnv().SESSION_SECRET,
     cookieName: 'tamamori_session',
     ttl: 60 * 60 * 24 * 7, // 7日間
     cookieOptions: {

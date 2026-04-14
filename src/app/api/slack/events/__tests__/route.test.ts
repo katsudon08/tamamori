@@ -26,9 +26,9 @@ jest.mock('@/features/bonsai-growth', () => ({
 }));
 
 jest.mock('@/shared/config', () => ({
-    env: {
+    getEnv: () => ({
         SLACK_SIGNING_SECRET: 'test-signing-secret',
-    },
+    }),
 }));
 
 const mockAfter = jest.fn();

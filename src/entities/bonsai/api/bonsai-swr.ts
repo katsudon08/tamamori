@@ -4,10 +4,9 @@ import useSWR from 'swr';
 
 import { createBrowserClient } from '@/shared/lib/supabase';
 
-const supabase = createBrowserClient();
-
 export function useBonsai(userId: string | undefined) {
     return useSWR(userId ? ['bonsai', userId] : null, async ([, id]) => {
+        const supabase = createBrowserClient();
         const { data, error } = await supabase
             .from('bonsai')
             .select(
@@ -25,6 +24,7 @@ export function useBonsai(userId: string | undefined) {
 
 export function useAllBonsai() {
     return useSWR('all-bonsai', async () => {
+        const supabase = createBrowserClient();
         const { data, error } = await supabase
             .from('bonsai')
             .select(

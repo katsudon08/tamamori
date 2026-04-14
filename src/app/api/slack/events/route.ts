@@ -1,7 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import { verifySignature, slackEventSchema } from '@/features/slack-auth';
 import { processSlackEvent } from '@/features/bonsai-growth';
-import { env } from '@/shared/config';
+import { getEnv } from '@/shared/config';
 
 export async function POST(request: Request) {
     // 1. body 取得
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     // 2. 署名検証 → 失敗で 401
     const timestamp = request.headers.get('x-slack-request-timestamp') ?? '';
     const signature = request.headers.get('x-slack-signature') ?? '';
-    if (!verifySignature({ body, timestamp, signature, signingSecret: env.SLACK_SIGNING_SECRET })) {
+    if (!verifySignature({ body, timestamp, signature, signingSecret: getEnv().SLACK_SIGNING_SECRET })) {
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 

@@ -5,10 +5,10 @@ import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 const mockFetch = jest.fn<typeof global.fetch>();
 
 jest.mock('../../../config', () => ({
-    env: {
+    getEnv: () => ({
         SLACK_CLIENT_ID: 'test-client-id',
         SLACK_CLIENT_SECRET: 'test-client-secret',
-    },
+    }),
 }));
 
 beforeEach(() => {
