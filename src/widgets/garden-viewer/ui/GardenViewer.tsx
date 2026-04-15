@@ -2,12 +2,11 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 
 import { GardenBonsaiLabel } from './GardenBonsaiLabel';
 import { computeGridPositions, GARDEN_BONSAI_SCALE } from '../lib/garden-layout';
-
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
 
 import type { Bonsai } from '@/entities/bonsai';
 import { Bonsai3D } from '@/entities/bonsai';
