@@ -7,7 +7,7 @@ import { render, screen } from '@testing-library/react';
 
 // --- mocks ---------------------------------------------------------------
 
-const mockUseAllBonsai = jest.fn<() => { data: unknown; error: unknown }>();
+const mockUseAllBonsai = jest.fn<() => { data: unknown; error: unknown; isLoading: boolean }>();
 const mockUseAllBonsaiRealtime = jest.fn();
 
 jest.mock('@/entities/bonsai', () => ({
@@ -35,7 +35,7 @@ const MOCK_DATA = [
 
 beforeEach(() => {
     jest.clearAllMocks();
-    mockUseAllBonsai.mockReturnValue({ data: MOCK_DATA, error: null });
+    mockUseAllBonsai.mockReturnValue({ data: MOCK_DATA, error: null, isLoading: false });
 });
 
 // --- tests ---------------------------------------------------------------
@@ -61,7 +61,7 @@ describe('GardenContent', () => {
     });
 
     test('data が undefined の場合は空配列を渡す', () => {
-        mockUseAllBonsai.mockReturnValue({ data: undefined, error: null });
+        mockUseAllBonsai.mockReturnValue({ data: undefined, error: null, isLoading: false });
 
         render(<GardenContent />);
 
@@ -69,8 +69,21 @@ describe('GardenContent', () => {
         expect(viewer).toHaveAttribute('data-count', '0');
     });
 
+    test('isLoading 中はローディング表示される', () => {
+        mockUseAllBonsai.mockReturnValue({ data: undefined, error: null, isLoading: true });
+
+        render(<GardenContent />);
+
+        expect(screen.getByTestId('loading')).toBeInTheDocument();
+        expect(screen.queryByTestId('garden-viewer')).not.toBeInTheDocument();
+    });
+
     test('データなし + エラー時にエラーメッセージが表示される', () => {
-        mockUseAllBonsai.mockReturnValue({ data: undefined, error: new Error('fetch failed') });
+        mockUseAllBonsai.mockReturnValue({
+            data: undefined,
+            error: new Error('fetch failed'),
+            isLoading: false,
+        });
 
         render(<GardenContent />);
 
@@ -82,6 +95,7 @@ describe('GardenContent', () => {
         mockUseAllBonsai.mockReturnValue({
             data: MOCK_DATA,
             error: new Error('revalidation failed'),
+            isLoading: false,
         });
 
         render(<GardenContent />);

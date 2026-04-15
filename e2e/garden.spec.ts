@@ -17,10 +17,13 @@ test.describe('花壇ページ (/garden)', () => {
         await expect(page.locator('canvas')).toBeVisible();
     });
 
-    test('SSR フォールバックにより初期ロード時にローディング表示がない', async ({ page }) => {
+    test('SSR フォールバックにより初期データが即座にレンダリングされる', async ({ page }) => {
         await page.goto('/garden');
 
-        // SSR fallback でデータ即座取得 → Canvas が即座に表示される
+        // ローディング表示が一度も表示されないこと (SSR fallback でデータ即座取得)
+        await expect(page.getByTestId('loading')).not.toBeVisible();
+
+        // Canvas が即座に表示されること
         await expect(page.locator('canvas')).toBeVisible();
     });
 });
