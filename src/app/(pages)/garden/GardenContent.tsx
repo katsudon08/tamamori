@@ -6,8 +6,16 @@ import { useAllBonsaiRealtime } from '@/features/realtime-sync';
 import { useAllBonsai } from '@/entities/bonsai';
 
 export function GardenContent() {
-    const { data, error } = useAllBonsai();
+    const { data, error, isLoading } = useAllBonsai();
     useAllBonsaiRealtime();
+
+    if (isLoading) {
+        return (
+            <div data-testid="loading" className="flex h-full items-center justify-center">
+                読み込み中...
+            </div>
+        );
+    }
 
     if (error && !data) {
         return (
