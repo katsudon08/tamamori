@@ -23,7 +23,7 @@ const mockOn = jest.fn((_type: string, _filter: Record<string, unknown>, cb: OnC
     capturedOnCallback = cb;
     return { subscribe: mockSubscribe };
 });
-const mockChannel = jest.fn(() => ({ on: mockOn }));
+const mockChannel = jest.fn<(...args: unknown[]) => { on: typeof mockOn }>(() => ({ on: mockOn }));
 const mockRemoveChannel = jest.fn();
 
 jest.mock('@/shared/lib/supabase', () => ({
