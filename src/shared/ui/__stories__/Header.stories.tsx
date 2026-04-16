@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import Image from 'next/image';
+import Link from 'next/link';
 import { expect, within } from 'storybook/test';
 
 import { Header } from '../Header';
@@ -31,7 +32,7 @@ export const Default: Story = {
             }
         >
             <a href="/garden">花壇</a>
-            <a href="/bonsai/me">自分の盆栽</a>
+            <Link href="/bonsai/me">自分の盆栽</Link>
             <a href="/stats">統計</a>
         </Header>
     ),
@@ -50,7 +51,7 @@ export const NavOnly: Story = {
     render: () => (
         <Header>
             <a href="/garden">花壇</a>
-            <a href="/bonsai/me">自分の盆栽</a>
+            <Link href="/bonsai/me">自分の盆栽</Link>
         </Header>
     ),
     play: async ({ canvasElement }) => {
@@ -65,7 +66,7 @@ export const Light: Story = {
     render: () => (
         <Header variant="light">
             <a href="/garden">花壇</a>
-            <a href="/bonsai/me">自分の盆栽</a>
+            <Link href="/bonsai/me">自分の盆栽</Link>
             <a href="/stats">統計</a>
         </Header>
     ),
@@ -76,7 +77,7 @@ export const Dark: Story = {
         <div className="bg-gray-900">
             <Header variant="dark">
                 <a href="/garden">花壇</a>
-                <a href="/bonsai/me">自分の盆栽</a>
+                <Link href="/bonsai/me">自分の盆栽</Link>
                 <a href="/stats">統計</a>
             </Header>
         </div>
