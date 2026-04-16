@@ -35,3 +35,36 @@ export const headerStyles: Record<Variant, { header: string; title: string; nav:
         nav: 'text-base text-gray-400',
     },
 };
+
+export const skeletonStyles: Record<Variant, { base: string }> = {
+    tamamori: { base: 'bg-main-light' },
+    light: { base: 'bg-gray-200' },
+    dark: { base: 'bg-gray-700' },
+};
+
+export const emptyStateStyles: Record<Variant, { title: string; description: string }> = {
+    tamamori: { title: 'text-main', description: 'text-foreground/50' },
+    light: { title: 'text-gray-900', description: 'text-gray-500' },
+    dark: { title: 'text-gray-100', description: 'text-gray-400' },
+};
+
+export const errorFallbackStyles: Record<
+    Variant,
+    { title: string; message: string; button: string }
+> = {
+    tamamori: {
+        title: 'text-accent',
+        message: 'text-foreground/70',
+        button: 'bg-main text-white hover:bg-main/90',
+    },
+    light: {
+        title: 'text-red-600',
+        message: 'text-gray-600',
+        button: 'bg-blue-500 text-white',
+    },
+    dark: {
+        title: 'text-red-400',
+        message: 'text-gray-300',
+        button: 'bg-indigo-500 text-white',
+    },
+};
