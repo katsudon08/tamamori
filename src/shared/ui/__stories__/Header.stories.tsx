@@ -31,9 +31,9 @@ export const Default: Story = {
                 </div>
             }
         >
-            <a href="/garden">花壇</a>
+            <Link href="/garden">花壇</Link>
             <Link href="/bonsai/me">自分の盆栽</Link>
-            <a href="/stats">統計</a>
+            <Link href="/stats">統計</Link>
         </Header>
     ),
     play: async ({ canvasElement }) => {
@@ -50,7 +50,7 @@ export const Default: Story = {
 export const NavOnly: Story = {
     render: () => (
         <Header>
-            <a href="/garden">花壇</a>
+            <Link href="/garden">花壇</Link>
             <Link href="/bonsai/me">自分の盆栽</Link>
         </Header>
     ),
@@ -65,9 +65,9 @@ export const NavOnly: Story = {
 export const Light: Story = {
     render: () => (
         <Header variant="light">
-            <a href="/garden">花壇</a>
+            <Link href="/garden">花壇</Link>
             <Link href="/bonsai/me">自分の盆栽</Link>
-            <a href="/stats">統計</a>
+            <Link href="/stats">統計</Link>
         </Header>
     ),
 };
@@ -76,9 +76,9 @@ export const Dark: Story = {
     render: () => (
         <div className="bg-gray-900">
             <Header variant="dark">
-                <a href="/garden">花壇</a>
+                <Link href="/garden">花壇</Link>
                 <Link href="/bonsai/me">自分の盆栽</Link>
-                <a href="/stats">統計</a>
+                <Link href="/stats">統計</Link>
             </Header>
         </div>
     ),
