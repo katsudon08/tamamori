@@ -37,8 +37,8 @@ export const bonsaiSchema = z.object({
     total_thanks: z.number().int(),
     growth_stage: growthStageSchema,
     visual_state: visualStateSchema,
-    created_at: z.iso.datetime(),
-    updated_at: z.iso.datetime(),
+    created_at: z.iso.datetime({ offset: true }),
+    updated_at: z.iso.datetime({ offset: true }),
 });
 
 export type GrowthStage = z.infer<typeof growthStageSchema>;
