@@ -7,7 +7,11 @@ import { render, screen } from '@testing-library/react';
 
 // --- mocks ---------------------------------------------------------------
 
-const mockUseBonsai = jest.fn<() => { data: unknown; error: unknown; isLoading: boolean }>();
+const mockMutate = jest.fn();
+const mockUseBonsai =
+    jest.fn<
+        () => { data: unknown; error: unknown; isLoading: boolean; mutate: typeof mockMutate }
+    >();
 const mockUseBonsaiWithArgs = jest.fn<(userId: string) => void>();
 const mockUseBonsaiRealtime = jest.fn();
 
@@ -69,7 +73,12 @@ const MOCK_THRESHOLDS = { min_messages: 60, min_reactions: 30, min_thanks: 10 };
 beforeEach(() => {
     jest.clearAllMocks();
     capturedBonsaiViewerProps = {};
-    mockUseBonsai.mockReturnValue({ data: MOCK_DATA, error: null, isLoading: false });
+    mockUseBonsai.mockReturnValue({
+        data: MOCK_DATA,
+        error: null,
+        isLoading: false,
+        mutate: mockMutate,
+    });
 });
 
 // --- tests ---------------------------------------------------------------
@@ -121,7 +130,12 @@ describe('BonsaiPageContent', () => {
     });
 
     test('isLoading 中はローディング表示される', () => {
-        mockUseBonsai.mockReturnValue({ data: undefined, error: null, isLoading: true });
+        mockUseBonsai.mockReturnValue({
+            data: undefined,
+            error: null,
+            isLoading: true,
+            mutate: mockMutate,
+        });
 
         render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
 
@@ -134,6 +148,7 @@ describe('BonsaiPageContent', () => {
             data: undefined,
             error: new Error('fetch failed'),
             isLoading: false,
+            mutate: mockMutate,
         });
 
         render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
@@ -147,6 +162,7 @@ describe('BonsaiPageContent', () => {
             data: MOCK_DATA,
             error: new Error('revalidation failed'),
             isLoading: false,
+            mutate: mockMutate,
         });
 
         render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);

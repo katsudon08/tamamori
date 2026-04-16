@@ -4,25 +4,24 @@ import { GardenViewer } from '@/widgets/garden-viewer';
 import type { GardenBonsaiItem } from '@/widgets/garden-viewer';
 import { useAllBonsaiRealtime } from '@/features/realtime-sync';
 import { useAllBonsai } from '@/entities/bonsai';
+import { Skeleton, ErrorFallback } from '@/shared/ui';
 
 export function GardenContent() {
-    const { data, error, isLoading } = useAllBonsai();
+    const { data, error, isLoading, mutate } = useAllBonsai();
     useAllBonsaiRealtime();
 
     if (isLoading) {
         return (
-            <div data-testid="loading" className="flex h-full items-center justify-center">
-                読み込み中...
+            <div data-testid="loading" className="grid grid-cols-2 md:grid-cols-3 gap-4 p-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-48 w-full rounded-lg" />
+                ))}
             </div>
         );
     }
 
     if (error && !data) {
-        return (
-            <div className="flex h-full items-center justify-center text-red-500">
-                データの取得に失敗しました
-            </div>
-        );
+        return <ErrorFallback onRetry={() => mutate()} />;
     }
 
     const bonsaiList = (data ?? []) as GardenBonsaiItem[];

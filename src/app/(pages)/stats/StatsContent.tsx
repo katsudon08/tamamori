@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 
 import { GrowthTimeline, ActionBreakdown } from '@/widgets/stats-panel';
 import { useActionLogs, type ActionLog } from '@/entities/action';
+import { Skeleton, ErrorFallback } from '@/shared/ui';
 
 type DateRange = '7d' | '30d' | 'all';
 
@@ -28,22 +29,30 @@ type StatsContentProps = {
 export function StatsContent({ userId }: StatsContentProps) {
     const [range, setRange] = useState<DateRange>('7d');
     const startDate = useMemo(() => computeStartDate(range), [range]);
-    const { data, error, isLoading } = useActionLogs(userId, startDate);
+    const { data, error, isLoading, mutate } = useActionLogs(userId, startDate);
 
     if (isLoading) {
         return (
-            <div data-testid="loading" className="flex h-full items-center justify-center">
-                読み込み中...
+            <div data-testid="loading" className="mx-auto max-w-3xl px-6 py-8">
+                <div className="mb-6 flex items-center gap-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-8 w-20 rounded-full" />
+                    ))}
+                </div>
+                <section className="mb-8">
+                    <Skeleton className="h-5 w-40 mb-4" />
+                    <Skeleton className="h-[300px] w-full rounded-lg" />
+                </section>
+                <section>
+                    <Skeleton className="h-5 w-36 mb-4" />
+                    <Skeleton className="h-[160px] w-full rounded-lg" />
+                </section>
             </div>
         );
     }
 
     if (error && !data) {
-        return (
-            <div className="flex h-full items-center justify-center text-red-500">
-                データの取得に失敗しました
-            </div>
-        );
+        return <ErrorFallback onRetry={() => mutate()} />;
     }
 
     const actions = (data ?? []) as ActionLog[];

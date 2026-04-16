@@ -3,6 +3,7 @@
 import { BonsaiViewer } from '@/widgets/bonsai-viewer';
 import { useBonsaiRealtime } from '@/features/realtime-sync';
 import { useBonsai, bonsaiSchema } from '@/entities/bonsai';
+import { Skeleton, ErrorFallback } from '@/shared/ui';
 
 type BonsaiPageContentProps = {
     userId: string;
@@ -14,23 +15,32 @@ type BonsaiPageContentProps = {
 };
 
 export function BonsaiPageContent({ userId, nextStageThresholds }: BonsaiPageContentProps) {
-    const { data, error, isLoading } = useBonsai(userId);
+    const { data, error, isLoading, mutate } = useBonsai(userId);
     useBonsaiRealtime(userId);
 
     if (isLoading) {
         return (
-            <div data-testid="loading" className="flex h-full items-center justify-center">
-                読み込み中...
+            <div data-testid="loading" className="flex flex-col gap-6 md:flex-row">
+                <Skeleton className="min-h-[50vh] flex-1 md:min-h-0 rounded-lg" />
+                <div className="md:w-80 lg:w-96 flex flex-col gap-5">
+                    <div className="flex items-center gap-3">
+                        <Skeleton shape="circle" className="h-12 w-12" />
+                        <Skeleton className="h-5 w-32" />
+                    </div>
+                    <Skeleton className="h-8 w-24 rounded-full" />
+                    <div className="grid grid-cols-3 gap-3">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <Skeleton key={i} className="h-20 rounded-lg" />
+                        ))}
+                    </div>
+                    <Skeleton className="h-3 w-full rounded-md" />
+                </div>
             </div>
         );
     }
 
     if (error && !data) {
-        return (
-            <div className="flex h-full items-center justify-center text-red-500">
-                データの取得に失敗しました
-            </div>
-        );
+        return <ErrorFallback onRetry={() => mutate()} />;
     }
 
     if (!data) return null;

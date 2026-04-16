@@ -7,7 +7,11 @@ import { render, screen } from '@testing-library/react';
 
 // --- mocks ---------------------------------------------------------------
 
-const mockUseAllBonsai = jest.fn<() => { data: unknown; error: unknown; isLoading: boolean }>();
+const mockMutate = jest.fn();
+const mockUseAllBonsai =
+    jest.fn<
+        () => { data: unknown; error: unknown; isLoading: boolean; mutate: typeof mockMutate }
+    >();
 const mockUseAllBonsaiRealtime = jest.fn();
 
 jest.mock('@/entities/bonsai', () => ({
@@ -35,7 +39,12 @@ const MOCK_DATA = [
 
 beforeEach(() => {
     jest.clearAllMocks();
-    mockUseAllBonsai.mockReturnValue({ data: MOCK_DATA, error: null, isLoading: false });
+    mockUseAllBonsai.mockReturnValue({
+        data: MOCK_DATA,
+        error: null,
+        isLoading: false,
+        mutate: mockMutate,
+    });
 });
 
 // --- tests ---------------------------------------------------------------
@@ -61,7 +70,12 @@ describe('GardenContent', () => {
     });
 
     test('data が undefined の場合は空配列を渡す', () => {
-        mockUseAllBonsai.mockReturnValue({ data: undefined, error: null, isLoading: false });
+        mockUseAllBonsai.mockReturnValue({
+            data: undefined,
+            error: null,
+            isLoading: false,
+            mutate: mockMutate,
+        });
 
         render(<GardenContent />);
 
@@ -70,7 +84,12 @@ describe('GardenContent', () => {
     });
 
     test('isLoading 中はローディング表示される', () => {
-        mockUseAllBonsai.mockReturnValue({ data: undefined, error: null, isLoading: true });
+        mockUseAllBonsai.mockReturnValue({
+            data: undefined,
+            error: null,
+            isLoading: true,
+            mutate: mockMutate,
+        });
 
         render(<GardenContent />);
 
@@ -83,6 +102,7 @@ describe('GardenContent', () => {
             data: undefined,
             error: new Error('fetch failed'),
             isLoading: false,
+            mutate: mockMutate,
         });
 
         render(<GardenContent />);
@@ -96,6 +116,7 @@ describe('GardenContent', () => {
             data: MOCK_DATA,
             error: new Error('revalidation failed'),
             isLoading: false,
+            mutate: mockMutate,
         });
 
         render(<GardenContent />);
