@@ -14,7 +14,7 @@ interface SessionOverrides {
  */
 export async function createSessionCookie(overrides?: SessionOverrides) {
     const sessionData = {
-        userId: '00000000-0000-0000-0000-000000000001',
+        userId: 'a0000000-0000-4000-a000-000000000001',
         slackUserId: 'U_E2E_TEST',
         displayName: 'E2E Test User',
         avatarUrl: '',

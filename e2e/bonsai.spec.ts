@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 import { addAuthCookies } from './helpers/auth';
 
-const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
+const TEST_USER_ID = 'a0000000-0000-4000-a000-000000000001';
 
 test.describe('盆栽個別ページ (/bonsai/[userId])', () => {
     test.beforeEach(async ({ context }) => {
@@ -48,7 +48,7 @@ test.describe('存在しないユーザー', () => {
     });
 
     test('存在しない userId で 404 が返る', async ({ page }) => {
-        const response = await page.goto('/bonsai/00000000-0000-0000-0000-999999999999');
+        const response = await page.goto('/bonsai/a0000000-0000-4000-a000-999999999999');
 
         expect(response?.status()).toBe(404);
     });
