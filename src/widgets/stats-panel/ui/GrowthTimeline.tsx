@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { aggregateDaily } from '../lib/aggregate-daily';
 import type { ActionLog } from '@/entities/action';
+import { EmptyState } from '@/shared/ui';
 
 type GrowthTimelineProps = {
     actions: ActionLog[];
@@ -34,11 +35,11 @@ export function GrowthTimeline({ actions, className }: GrowthTimelineProps) {
 
     if (data.length === 0) {
         return (
-            <div
-                className={`flex items-center justify-center py-12 text-foreground/50 ${className ?? ''}`}
-            >
-                データがありません
-            </div>
+            <EmptyState
+                title="データがありません"
+                description="選択した期間にアクティビティがありません"
+                className={className}
+            />
         );
     }
 

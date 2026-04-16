@@ -10,6 +10,7 @@ import { computeGridPositions, GARDEN_BONSAI_SCALE } from '../lib/garden-layout'
 
 import type { Bonsai } from '@/entities/bonsai';
 import { Bonsai3D } from '@/entities/bonsai';
+import { ErrorBoundary, ErrorFallback } from '@/shared/ui';
 
 export type GardenBonsaiItem = Bonsai & {
     users: { display_name: string; avatar_url: string | null };
@@ -73,23 +74,33 @@ export function GardenViewer({ bonsaiList, className }: GardenViewerProps) {
 
     return (
         <div className={`h-full w-full ${className ?? ''}`}>
-            <Canvas camera={{ position: [0, 8, 12], fov: 50 }} dpr={[1, 2]}>
-                <ambientLight intensity={0.5} />
-                <directionalLight position={[5, 5, 5]} intensity={0.8} />
-                {bonsaiList.map((item, i) => (
-                    <group key={item.id} position={positions[i]}>
-                        <GardenBonsaiSlot item={item} />
-                    </group>
-                ))}
-                <OrbitControls
-                    enablePan
-                    minDistance={5}
-                    maxDistance={25}
-                    minPolarAngle={Math.PI / 6}
-                    maxPolarAngle={Math.PI / 2.5}
-                    makeDefault
-                />
-            </Canvas>
+            <ErrorBoundary
+                fallbackRender={({ reset }) => (
+                    <ErrorFallback
+                        title="3D描画エラー"
+                        message="WebGLの描画に失敗しました。ブラウザを再読み込みしてください。"
+                        onRetry={reset}
+                    />
+                )}
+            >
+                <Canvas camera={{ position: [0, 8, 12], fov: 50 }} dpr={[1, 2]}>
+                    <ambientLight intensity={0.5} />
+                    <directionalLight position={[5, 5, 5]} intensity={0.8} />
+                    {bonsaiList.map((item, i) => (
+                        <group key={item.id} position={positions[i]}>
+                            <GardenBonsaiSlot item={item} />
+                        </group>
+                    ))}
+                    <OrbitControls
+                        enablePan
+                        minDistance={5}
+                        maxDistance={25}
+                        minPolarAngle={Math.PI / 6}
+                        maxPolarAngle={Math.PI / 2.5}
+                        makeDefault
+                    />
+                </Canvas>
+            </ErrorBoundary>
         </div>
     );
 }

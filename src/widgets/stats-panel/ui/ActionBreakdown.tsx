@@ -3,6 +3,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { aggregateByType } from '../lib/aggregate-by-type';
 import type { ActionLog } from '@/entities/action';
+import { EmptyState } from '@/shared/ui';
 
 type ActionBreakdownProps = {
     actions: ActionLog[];
@@ -22,11 +23,11 @@ export function ActionBreakdown({ actions, className }: ActionBreakdownProps) {
 
     if (total === 0) {
         return (
-            <div
-                className={`flex items-center justify-center py-12 text-foreground/50 ${className ?? ''}`}
-            >
-                まだアクションがありません
-            </div>
+            <EmptyState
+                title="まだアクションがありません"
+                description="Slackで活動するとここにアクション内訳が表示されます"
+                className={className}
+            />
         );
     }
 

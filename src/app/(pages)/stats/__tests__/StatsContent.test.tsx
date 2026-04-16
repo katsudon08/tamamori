@@ -8,7 +8,11 @@ import userEvent from '@testing-library/user-event';
 
 // --- mocks ---------------------------------------------------------------
 
-const mockUseActionLogs = jest.fn<() => { data: unknown; error: unknown; isLoading: boolean }>();
+const mockMutate = jest.fn();
+const mockUseActionLogs =
+    jest.fn<
+        () => { data: unknown; error: unknown; isLoading: boolean; mutate: typeof mockMutate }
+    >();
 const mockUseActionLogsWithArgs = jest.fn<(userId: string, startDate: string) => void>();
 
 jest.mock('@/entities/action', () => ({
@@ -54,7 +58,12 @@ beforeEach(() => {
     jest.clearAllMocks();
     capturedTimelineProps = {};
     capturedBreakdownProps = {};
-    mockUseActionLogs.mockReturnValue({ data: MOCK_DATA, error: null, isLoading: false });
+    mockUseActionLogs.mockReturnValue({
+        data: MOCK_DATA,
+        error: null,
+        isLoading: false,
+        mutate: mockMutate,
+    });
 });
 
 // --- tests ---------------------------------------------------------------
@@ -88,7 +97,12 @@ describe('StatsContent', () => {
     });
 
     test('isLoading 中はローディング表示される', () => {
-        mockUseActionLogs.mockReturnValue({ data: undefined, error: null, isLoading: true });
+        mockUseActionLogs.mockReturnValue({
+            data: undefined,
+            error: null,
+            isLoading: true,
+            mutate: mockMutate,
+        });
 
         render(<StatsContent userId={MOCK_USER_ID} />);
 
@@ -101,6 +115,7 @@ describe('StatsContent', () => {
             data: undefined,
             error: new Error('fetch failed'),
             isLoading: false,
+            mutate: mockMutate,
         });
 
         render(<StatsContent userId={MOCK_USER_ID} />);
@@ -114,6 +129,7 @@ describe('StatsContent', () => {
             data: MOCK_DATA,
             error: new Error('revalidation failed'),
             isLoading: false,
+            mutate: mockMutate,
         });
 
         render(<StatsContent userId={MOCK_USER_ID} />);
@@ -124,7 +140,12 @@ describe('StatsContent', () => {
     });
 
     test('空データ時にチャートコンポーネントに空配列を渡す', () => {
-        mockUseActionLogs.mockReturnValue({ data: [], error: null, isLoading: false });
+        mockUseActionLogs.mockReturnValue({
+            data: [],
+            error: null,
+            isLoading: false,
+            mutate: mockMutate,
+        });
 
         render(<StatsContent userId={MOCK_USER_ID} />);
 
