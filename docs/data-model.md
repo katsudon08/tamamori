@@ -293,3 +293,4 @@ CREATE TRIGGER trigger_bonsai_updated_at
 | `003_create_action_log.sql`   | action_log テーブル + インデックス                   |
 | `004_create_growth_rules.sql` | growth_rules テーブル + 初期データ                   |
 | `005_enable_realtime.sql`     | bonsai テーブルの Realtime 有効化                    |
+| `006_enable_rls.sql`          | 全テーブルの RLS 有効化 + anon SELECT ポリシー       |
