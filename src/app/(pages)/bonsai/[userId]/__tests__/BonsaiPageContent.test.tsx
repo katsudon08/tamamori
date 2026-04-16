@@ -12,7 +12,7 @@ const mockUseBonsaiWithArgs = jest.fn<(userId: string) => void>();
 const mockUseBonsaiRealtime = jest.fn();
 
 jest.mock('@/entities/bonsai', () => ({
-    ...jest.requireActual('@/entities/bonsai'),
+    ...(jest.requireActual('@/entities/bonsai') as Record<string, unknown>),
     useBonsai: (userId: string) => {
         mockUseBonsaiWithArgs(userId);
         return mockUseBonsai();
