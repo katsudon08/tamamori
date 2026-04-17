@@ -59,4 +59,22 @@ describe('GET /api/auth/slack', () => {
             'http://localhost:3000',
         );
     });
+
+    test('x-forwarded-host があれば proxy 経由の origin を使う', async () => {
+        const { buildAuthorizationUrl } = await import('@/features/slack-auth');
+        const { GET } = await import('../route');
+
+        const request = new Request('http://localhost:3000/api/auth/slack', {
+            headers: {
+                'x-forwarded-host': 'example.ngrok-free.dev',
+                'x-forwarded-proto': 'https',
+            },
+        });
+        await GET(request);
+
+        expect(buildAuthorizationUrl).toHaveBeenCalledWith(
+            mockSession.oauthState as string,
+            'https://example.ngrok-free.dev',
+        );
+    });
 });

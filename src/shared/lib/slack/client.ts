@@ -18,11 +18,16 @@ export interface SlackUserInfo {
 /**
  * 認可コードを Slack の openid.connect.token API でトークンに交換する
  */
-export async function exchangeOAuthCode(code: string): Promise<OAuthTokenResult> {
+export async function exchangeOAuthCode(
+    code: string,
+    redirectUri: string,
+): Promise<OAuthTokenResult> {
     const body = new URLSearchParams({
         code,
         client_id: getEnv().SLACK_CLIENT_ID,
         client_secret: getEnv().SLACK_CLIENT_SECRET,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
     });
 
     const res = await fetch(`${SLACK_API}/openid.connect.token`, {

@@ -31,11 +31,13 @@ describe('exchangeOAuthCode', () => {
         );
     }
 
+    const TEST_REDIRECT_URI = 'https://example.test/api/auth/slack/callback';
+
     test('正しいAPI URL・Content-Type・bodyで送信する', async () => {
         mockTokenSuccess();
         const { exchangeOAuthCode } = await import('../client');
 
-        await exchangeOAuthCode('test-code');
+        await exchangeOAuthCode('test-code', TEST_REDIRECT_URI);
 
         expect(mockFetch).toHaveBeenCalledTimes(1);
         const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
@@ -52,13 +54,15 @@ describe('exchangeOAuthCode', () => {
         expect(body.get('code')).toBe('test-code');
         expect(body.get('client_id')).toBe('test-client-id');
         expect(body.get('client_secret')).toBe('test-client-secret');
+        expect(body.get('redirect_uri')).toBe(TEST_REDIRECT_URI);
+        expect(body.get('grant_type')).toBe('authorization_code');
     });
 
     test('レスポンスのトークンが正しくパースされる', async () => {
         mockTokenSuccess();
         const { exchangeOAuthCode } = await import('../client');
 
-        const result = await exchangeOAuthCode('test-code');
+        const result = await exchangeOAuthCode('test-code', TEST_REDIRECT_URI);
 
         expect(result).toEqual({
             accessToken: 'xoxp-test-token',
@@ -72,7 +76,7 @@ describe('exchangeOAuthCode', () => {
         );
         const { exchangeOAuthCode } = await import('../client');
 
-        await expect(exchangeOAuthCode('bad-code')).rejects.toThrow();
+        await expect(exchangeOAuthCode('bad-code', TEST_REDIRECT_URI)).rejects.toThrow();
     });
 
     test('不正なレスポンス（必須フィールド欠損）でZodErrorが発生する', async () => {
@@ -81,7 +85,7 @@ describe('exchangeOAuthCode', () => {
         );
         const { exchangeOAuthCode } = await import('../client');
 
-        await expect(exchangeOAuthCode('test-code')).rejects.toThrow();
+        await expect(exchangeOAuthCode('test-code', TEST_REDIRECT_URI)).rejects.toThrow();
     });
 });
 
