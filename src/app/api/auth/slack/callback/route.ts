@@ -7,9 +7,10 @@ import {
 } from '@/features/slack-auth';
 import { upsertUser } from '@/entities/user';
 import { getBonsaiByUserId, createBonsai } from '@/entities/bonsai';
+import { getRequestOrigin } from '@/shared/lib/http';
 
 export async function GET(request: Request) {
-    const origin = new URL(request.url).origin;
+    const origin = getRequestOrigin(request);
 
     try {
         // 1. クエリパラメータを Zod でバリデーション
@@ -26,7 +27,8 @@ export async function GET(request: Request) {
         }
 
         // 3. 認可コードをトークンに交換
-        const { accessToken } = await exchangeCodeForToken(params.code);
+        const redirectUri = `${origin}/api/auth/slack/callback`;
+        const { accessToken } = await exchangeCodeForToken(params.code, redirectUri);
 
         // 4. ユーザー情報を取得
         const userInfo = await fetchUserIdentity(accessToken);

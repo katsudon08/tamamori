@@ -20,8 +20,9 @@ export function buildAuthorizationUrl(state: string, origin: string): string {
  */
 export async function exchangeCodeForToken(
     code: string,
+    redirectUri: string,
 ): Promise<{ accessToken: string; idToken: string }> {
-    return exchangeOAuthCode(code);
+    return exchangeOAuthCode(code, redirectUri);
 }
 
 /**

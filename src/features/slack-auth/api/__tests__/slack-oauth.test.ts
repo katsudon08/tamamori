@@ -10,7 +10,7 @@ jest.mock('@/shared/config', () => ({
 }));
 
 const mockExchangeOAuthCode = jest
-    .fn<(code: string) => Promise<{ accessToken: string; idToken: string }>>()
+    .fn<(code: string, redirectUri: string) => Promise<{ accessToken: string; idToken: string }>>()
     .mockResolvedValue({ accessToken: 'xoxp-token', idToken: 'id-token' });
 
 const mockGetUserInfo = jest
@@ -27,7 +27,8 @@ const mockGetUserInfo = jest
     });
 
 jest.mock('@/shared/lib/slack', () => ({
-    exchangeOAuthCode: (...args: unknown[]) => mockExchangeOAuthCode(...(args as [string])),
+    exchangeOAuthCode: (...args: unknown[]) =>
+        mockExchangeOAuthCode(...(args as [string, string])),
     getUserInfo: (...args: unknown[]) => mockGetUserInfo(...(args as [string])),
 }));
 
@@ -73,12 +74,18 @@ describe('buildAuthorizationUrl', () => {
 // --- exchangeCodeForToken -------------------------------------------------
 
 describe('exchangeCodeForToken', () => {
-    test('shared層のexchangeOAuthCodeに委譲する', async () => {
+    test('shared層のexchangeOAuthCodeにcodeとredirect_uriを委譲する', async () => {
         const { exchangeCodeForToken } = await import('../slack-oauth');
 
-        const result = await exchangeCodeForToken('test-code');
+        const result = await exchangeCodeForToken(
+            'test-code',
+            'https://example.test/api/auth/slack/callback',
+        );
 
-        expect(mockExchangeOAuthCode).toHaveBeenCalledWith('test-code');
+        expect(mockExchangeOAuthCode).toHaveBeenCalledWith(
+            'test-code',
+            'https://example.test/api/auth/slack/callback',
+        );
         expect(result).toEqual({ accessToken: 'xoxp-token', idToken: 'id-token' });
     });
 });
