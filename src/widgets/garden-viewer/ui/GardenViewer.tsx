@@ -6,7 +6,12 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 
 import { GardenBonsaiLabel } from './GardenBonsaiLabel';
-import { computeGridPositions, GARDEN_BONSAI_SCALE } from '../lib/garden-layout';
+import {
+    computeCameraPosition,
+    computeGridPositions,
+    GARDEN_BONSAI_SCALE,
+    GARDEN_CAMERA_FOV,
+} from '../lib/garden-layout';
 
 import type { Bonsai } from '@/entities/bonsai';
 import { Bonsai3D } from '@/entities/bonsai';
@@ -71,6 +76,7 @@ function GardenBonsaiSlot({ item }: { item: GardenBonsaiItem }) {
 
 export function GardenViewer({ bonsaiList, className }: GardenViewerProps) {
     const positions = computeGridPositions(bonsaiList.length);
+    const cameraPosition = computeCameraPosition(bonsaiList.length);
 
     return (
         <div className={`h-full w-full ${className ?? ''}`}>
@@ -83,7 +89,7 @@ export function GardenViewer({ bonsaiList, className }: GardenViewerProps) {
                     />
                 )}
             >
-                <Canvas camera={{ position: [0, 8, 12], fov: 50 }} dpr={[1, 2]}>
+                <Canvas camera={{ position: cameraPosition, fov: GARDEN_CAMERA_FOV }} dpr={[1, 2]}>
                     <ambientLight intensity={0.5} />
                     <directionalLight position={[5, 5, 5]} intensity={0.8} />
                     {bonsaiList.map((item, i) => (

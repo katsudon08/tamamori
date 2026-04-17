@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
-import { computeGridPositions, GARDEN_SPACING } from '../garden-layout';
+import { computeCameraPosition, computeGridPositions, GARDEN_SPACING } from '../garden-layout';
 
 describe('computeGridPositions', () => {
     test('1個のとき原点に配置する', () => {
@@ -85,5 +85,52 @@ describe('computeGridPositions', () => {
 
         const cols = new Set(positions.map(([x]) => x));
         expect(cols.size).toBe(3);
+    });
+});
+
+describe('computeCameraPosition', () => {
+    test('x 座標は常に 0 (原点を見下ろす)', () => {
+        for (const count of [1, 4, 6, 8, 12, 20]) {
+            const [x] = computeCameraPosition(count);
+            expect(x).toBe(0);
+        }
+    });
+
+    test('y と z は正で z > y (見下ろし角度を保つ)', () => {
+        for (const count of [1, 4, 6, 8, 12, 20]) {
+            const [, y, z] = computeCameraPosition(count);
+            expect(y).toBeGreaterThan(0);
+            expect(z).toBeGreaterThan(y);
+        }
+    });
+
+    test('盆栽数が増えると距離が大きくなる', () => {
+        const [, , z6] = computeCameraPosition(6);
+        const [, , z8] = computeCameraPosition(8);
+        const [, , z12] = computeCameraPosition(12);
+        const [, , z20] = computeCameraPosition(20);
+        expect(z8).toBeGreaterThan(z6);
+        expect(z12).toBeGreaterThan(z8);
+        expect(z20).toBeGreaterThan(z12);
+    });
+
+    test('6個で z ≈ 6.5 (3列×2行のケース)', () => {
+        const [, , z] = computeCameraPosition(6);
+        expect(z).toBeCloseTo(6.55, 1);
+    });
+
+    test('8個で z ≈ 8 (3列×3行のケース)', () => {
+        const [, , z] = computeCameraPosition(8);
+        expect(z).toBeCloseTo(8.06, 1);
+    });
+
+    test('1個のときも最低距離を確保する', () => {
+        const [, y, z] = computeCameraPosition(1);
+        expect(y).toBeGreaterThanOrEqual(2.5);
+        expect(z).toBeGreaterThanOrEqual(4);
+    });
+
+    test('0個でもエラーを投げない', () => {
+        expect(() => computeCameraPosition(0)).not.toThrow();
     });
 });
