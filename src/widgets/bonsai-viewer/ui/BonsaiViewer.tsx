@@ -1,5 +1,6 @@
 'use client';
 
+import { BonsaiOverlayPanel } from './BonsaiOverlayPanel';
 import { BonsaiStatusPanel } from './BonsaiStatusPanel';
 
 import type { Bonsai } from '@/entities/bonsai';
@@ -27,8 +28,8 @@ export function BonsaiViewer({ bonsai, user, nextStageThresholds, className }: B
         bonsai.total_thanks === 0;
 
     return (
-        <div className={`flex flex-col gap-6 md:flex-row ${className ?? ''}`}>
-            <div className="min-h-[50vh] flex-1 md:min-h-0">
+        <div className={`relative h-full w-full ${className ?? ''}`}>
+            <div className="absolute inset-0">
                 <ErrorBoundary
                     fallbackRender={({ reset }) => (
                         <ErrorFallback
@@ -41,25 +42,24 @@ export function BonsaiViewer({ bonsai, user, nextStageThresholds, className }: B
                     <BonsaiScene visualState={bonsai.visual_state} className="h-full w-full" />
                 </ErrorBoundary>
             </div>
-            {isBrandNew ? (
-                <div className="md:w-80 lg:w-96">
+            <BonsaiOverlayPanel>
+                {isBrandNew ? (
                     <EmptyState
                         icon={<span>🌱</span>}
                         title="ようこそ、たま森へ！"
                         description="Slackで活動すると、あなたの盆栽が育ちます。メッセージを送ったり、リアクションをつけてみましょう！"
                     />
-                </div>
-            ) : (
-                <BonsaiStatusPanel
-                    stage={bonsai.growth_stage}
-                    totalMessages={bonsai.total_messages}
-                    totalReactions={bonsai.total_reactions}
-                    totalThanks={bonsai.total_thanks}
-                    user={user}
-                    nextStageThresholds={nextStageThresholds}
-                    className="md:w-80 lg:w-96"
-                />
-            )}
+                ) : (
+                    <BonsaiStatusPanel
+                        stage={bonsai.growth_stage}
+                        totalMessages={bonsai.total_messages}
+                        totalReactions={bonsai.total_reactions}
+                        totalThanks={bonsai.total_thanks}
+                        user={user}
+                        nextStageThresholds={nextStageThresholds}
+                    />
+                )}
+            </BonsaiOverlayPanel>
         </div>
     );
 }
