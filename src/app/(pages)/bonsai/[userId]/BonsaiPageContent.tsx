@@ -20,9 +20,9 @@ export function BonsaiPageContent({ userId, nextStageThresholds }: BonsaiPageCon
 
     if (isLoading) {
         return (
-            <div data-testid="loading" className="flex flex-col gap-6 md:flex-row">
-                <Skeleton className="min-h-[50vh] flex-1 md:min-h-0 rounded-lg" />
-                <div className="md:w-80 lg:w-96 flex flex-col gap-5">
+            <div data-testid="loading" className="relative h-full w-full">
+                <Skeleton className="absolute inset-0 rounded-none" />
+                <div className="absolute bottom-4 right-4 hidden md:flex w-80 lg:w-96 max-w-[calc(100%-2rem)] flex-col gap-5 rounded-lg border border-main-light bg-background p-5 shadow-xl">
                     <div className="flex items-center gap-3">
                         <Skeleton shape="circle" className="h-12 w-12" />
                         <Skeleton className="h-5 w-32" />

@@ -18,7 +18,7 @@ const meta = {
     parameters: { layout: 'fullscreen' },
     decorators: [
         (Story) => (
-            <div style={{ height: '600px' }}>
+            <div style={{ height: '100vh', width: '100%' }}>
                 <Story />
             </div>
         ),

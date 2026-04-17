@@ -37,7 +37,7 @@ export default async function PagesLayout({ children }: { children: React.ReactN
                 <Link href="/bonsai/me">自分の盆栽</Link>
                 <Link href="/stats">統計</Link>
             </Header>
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 min-h-0">{children}</main>
         </>
     );
 }

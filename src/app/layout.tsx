@@ -34,7 +34,7 @@ export default function RootLayout({
             lang="ja"
             className={`${geistSans.variable} ${geistMono.variable} ${hinaMincho.variable} h-full antialiased`}
         >
-            <body className="min-h-full flex flex-col">
+            <body className="h-dvh flex flex-col overflow-hidden">
                 <SWRProvider>{children}</SWRProvider>
             </body>
         </html>

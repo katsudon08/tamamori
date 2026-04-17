@@ -12,7 +12,10 @@ export function GardenContent() {
 
     if (isLoading) {
         return (
-            <div data-testid="loading" className="grid grid-cols-2 md:grid-cols-3 gap-4 p-6">
+            <div
+                data-testid="loading"
+                className="grid h-full w-full grid-cols-2 gap-4 p-6 md:grid-cols-3"
+            >
                 {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton key={i} className="h-48 w-full rounded-lg" />
                 ))}
@@ -26,5 +29,9 @@ export function GardenContent() {
 
     const bonsaiList = (data ?? []) as GardenBonsaiItem[];
 
-    return <GardenViewer bonsaiList={bonsaiList} />;
+    return (
+        <div className="h-full w-full">
+            <GardenViewer bonsaiList={bonsaiList} />
+        </div>
+    );
 }
