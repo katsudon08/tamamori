@@ -33,4 +33,20 @@ describe('GET /api/auth/logout', () => {
         expect(response.status).toBe(302);
         expect(response.headers.get('Location')).toBe('http://localhost:3000/');
     });
+
+    test('x-forwarded-host があれば proxy 経由の origin へリダイレクトする', async () => {
+        const { GET } = await import('../route');
+
+        const response = await GET(
+            new Request('http://localhost:3000/api/auth/logout', {
+                headers: {
+                    'x-forwarded-host': 'example.ngrok-free.dev',
+                    'x-forwarded-proto': 'https',
+                },
+            }),
+        );
+
+        expect(response.status).toBe(302);
+        expect(response.headers.get('Location')).toBe('https://example.ngrok-free.dev/');
+    });
 });
