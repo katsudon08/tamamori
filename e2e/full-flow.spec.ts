@@ -59,8 +59,8 @@ test.describe('フルフロー統合テスト', () => {
         // カウンター値 "1" が表示されていること
         await expect(page.getByText('1').first()).toBeVisible();
 
-        // Step 7: 統計ページ (Header にナビリンクが未実装のため直接遷移)
-        await page.goto('/stats');
+        // Step 7: ヘッダーのナビ「統計」から統計ページへ遷移
+        await page.getByRole('navigation').getByRole('link', { name: '統計' }).click();
         await expect(page).toHaveURL(/\/stats/);
         await expect(page.getByTestId('loading')).not.toBeVisible({ timeout: 10_000 });
         await expect(page.getByRole('button', { name: '直近7日' })).toBeVisible();
@@ -69,8 +69,8 @@ test.describe('フルフロー統合テスト', () => {
         await expect(page.getByRole('heading', { name: 'アクティビティ推移' })).toBeVisible();
         await expect(page.getByRole('heading', { name: 'アクション内訳' })).toBeVisible();
 
-        // Step 8: ログアウト → ランディングページにリダイレクト
-        await page.goto('/api/auth/logout');
+        // Step 8: ヘッダーのログアウトリンクでランディングページにリダイレクト
+        await page.getByRole('link', { name: 'ログアウト' }).click();
         await expect(page).toHaveURL(/\/$/);
         await expect(page.getByRole('link', { name: 'Sign in with Slack' })).toBeVisible();
     });
