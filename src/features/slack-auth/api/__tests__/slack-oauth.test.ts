@@ -27,8 +27,7 @@ const mockGetUserInfo = jest
     });
 
 jest.mock('@/shared/lib/slack', () => ({
-    exchangeOAuthCode: (...args: unknown[]) =>
-        mockExchangeOAuthCode(...(args as [string, string])),
+    exchangeOAuthCode: (...args: unknown[]) => mockExchangeOAuthCode(...(args as [string, string])),
     getUserInfo: (...args: unknown[]) => mockGetUserInfo(...(args as [string])),
 }));
 

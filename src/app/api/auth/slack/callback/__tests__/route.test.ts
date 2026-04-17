@@ -7,9 +7,7 @@ const mockDestroy = jest.fn();
 let mockSession: Record<string, unknown> = {};
 
 const mockExchangeCodeForToken = jest
-    .fn<
-        (code: string, redirectUri: string) => Promise<{ accessToken: string; idToken: string }>
-    >()
+    .fn<(code: string, redirectUri: string) => Promise<{ accessToken: string; idToken: string }>>()
     .mockResolvedValue({ accessToken: 'xoxp-token', idToken: 'id-token' });
 
 const mockFetchUserIdentity = jest
