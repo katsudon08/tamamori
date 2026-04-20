@@ -3,8 +3,7 @@ import { unstable_serialize, SWRConfig } from 'swr';
 
 import { BonsaiPageContent } from './BonsaiPageContent';
 
-import { fetchGrowthRules, getNextStageThresholds } from '@/features/bonsai-growth';
-import { growthStageSchema } from '@/entities/bonsai';
+import { fetchGrowthRules } from '@/features/bonsai-growth';
 import { createServerClient } from '@/shared/lib/supabase';
 
 export default async function BonsaiPage({ params }: { params: Promise<{ userId: string }> }) {
@@ -21,13 +20,11 @@ export default async function BonsaiPage({ params }: { params: Promise<{ userId:
         notFound();
     }
 
-    const rules = await fetchGrowthRules();
-    const growthStage = growthStageSchema.parse(data.growth_stage);
-    const nextStageThresholds = getNextStageThresholds(growthStage, rules);
+    const growthRules = await fetchGrowthRules();
 
     return (
         <SWRConfig value={{ fallback: { [unstable_serialize(['bonsai', userId])]: data } }}>
-            <BonsaiPageContent userId={userId} nextStageThresholds={nextStageThresholds} />
+            <BonsaiPageContent userId={userId} growthRules={growthRules} />
         </SWRConfig>
     );
 }

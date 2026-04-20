@@ -2,19 +2,16 @@
 
 import { BonsaiViewer } from '@/widgets/bonsai-viewer';
 import { useBonsaiRealtime } from '@/features/realtime-sync';
+import { getNextStageThresholds, type GrowthRule } from '@/features/bonsai-growth';
 import { useBonsai, bonsaiSchema } from '@/entities/bonsai';
 import { Skeleton, ErrorFallback } from '@/shared/ui';
 
 type BonsaiPageContentProps = {
     userId: string;
-    nextStageThresholds: {
-        min_messages: number;
-        min_reactions: number;
-        min_thanks: number;
-    } | null;
+    growthRules: GrowthRule[];
 };
 
-export function BonsaiPageContent({ userId, nextStageThresholds }: BonsaiPageContentProps) {
+export function BonsaiPageContent({ userId, growthRules }: BonsaiPageContentProps) {
     const { data, error, isLoading, mutate } = useBonsai(userId);
     useBonsaiRealtime(userId);
 
@@ -46,6 +43,7 @@ export function BonsaiPageContent({ userId, nextStageThresholds }: BonsaiPageCon
     if (!data) return null;
 
     const bonsai = bonsaiSchema.parse(data);
+    const nextStageThresholds = getNextStageThresholds(bonsai.growth_stage, growthRules);
 
     return (
         <BonsaiViewer bonsai={bonsai} user={data.users} nextStageThresholds={nextStageThresholds} />
