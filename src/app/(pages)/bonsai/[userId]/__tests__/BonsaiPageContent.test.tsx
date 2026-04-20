@@ -41,6 +41,7 @@ jest.mock('@/widgets/bonsai-viewer', () => ({
 // --- helpers -------------------------------------------------------------
 
 import { BonsaiPageContent } from '../BonsaiPageContent';
+import type { GrowthRule } from '@/features/bonsai-growth';
 
 const MOCK_USER_ID = '12345678-1234-4123-8123-123456789abc';
 
@@ -68,7 +69,30 @@ const MOCK_DATA = {
     users: { display_name: 'Test User', avatar_url: 'https://example.com/avatar.png' },
 };
 
-const MOCK_THRESHOLDS = { min_messages: 60, min_reactions: 30, min_thanks: 10 };
+const MOCK_GROWTH_RULES: GrowthRule[] = [
+    {
+        id: '1',
+        stage: 'branching',
+        min_messages: 20,
+        min_reactions: 10,
+        min_thanks: 2,
+        sort_order: 4,
+    },
+    { id: '2', stage: 'leafy', min_messages: 60, min_reactions: 30, min_thanks: 10, sort_order: 5 },
+];
+
+const MOCK_GROWTH_RULES_AT_MAX: GrowthRule[] = [
+    {
+        id: '1',
+        stage: 'branching',
+        min_messages: 20,
+        min_reactions: 10,
+        min_thanks: 2,
+        sort_order: 4,
+    },
+];
+
+const EXPECTED_THRESHOLDS = { min_messages: 60, min_reactions: 30, min_thanks: 10 };
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -85,19 +109,19 @@ beforeEach(() => {
 
 describe('BonsaiPageContent', () => {
     test('useBonsai(userId) フックを呼び出す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
+        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
 
         expect(mockUseBonsaiWithArgs).toHaveBeenCalledWith(MOCK_USER_ID);
     });
 
     test('useBonsaiRealtime(userId) フックを呼び出す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
+        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
 
         expect(mockUseBonsaiRealtime).toHaveBeenCalledWith(MOCK_USER_ID);
     });
 
     test('SWR データを BonsaiViewer に渡す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
+        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
 
         expect(screen.getByTestId('bonsai-viewer')).toBeInTheDocument();
         expect(capturedBonsaiViewerProps.bonsai).toEqual({
@@ -117,14 +141,14 @@ describe('BonsaiPageContent', () => {
         });
     });
 
-    test('nextStageThresholds を BonsaiViewer に渡す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
+    test('現在ステージの次の閾値を算出して BonsaiViewer に渡す', () => {
+        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
 
-        expect(capturedBonsaiViewerProps.nextStageThresholds).toEqual(MOCK_THRESHOLDS);
+        expect(capturedBonsaiViewerProps.nextStageThresholds).toEqual(EXPECTED_THRESHOLDS);
     });
 
-    test('nextStageThresholds が null の場合も BonsaiViewer に渡す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={null} />);
+    test('最大ステージ (次がない) のときは null を BonsaiViewer に渡す', () => {
+        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES_AT_MAX} />);
 
         expect(capturedBonsaiViewerProps.nextStageThresholds).toBeNull();
     });
@@ -137,7 +161,7 @@ describe('BonsaiPageContent', () => {
             mutate: mockMutate,
         });
 
-        render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
+        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
 
         expect(screen.getByTestId('loading')).toBeInTheDocument();
         expect(screen.queryByTestId('bonsai-viewer')).not.toBeInTheDocument();
@@ -151,7 +175,7 @@ describe('BonsaiPageContent', () => {
             mutate: mockMutate,
         });
 
-        render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
+        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
 
         expect(screen.getByText('データの取得に失敗しました')).toBeInTheDocument();
         expect(screen.queryByTestId('bonsai-viewer')).not.toBeInTheDocument();
@@ -165,7 +189,7 @@ describe('BonsaiPageContent', () => {
             mutate: mockMutate,
         });
 
-        render(<BonsaiPageContent userId={MOCK_USER_ID} nextStageThresholds={MOCK_THRESHOLDS} />);
+        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
 
         expect(screen.getByTestId('bonsai-viewer')).toBeInTheDocument();
         expect(screen.queryByText('データの取得に失敗しました')).not.toBeInTheDocument();
