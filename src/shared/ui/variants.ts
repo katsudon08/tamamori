@@ -18,6 +18,21 @@ export const progressBarStyles: Record<Variant, { track: string; fill: string; t
     },
 };
 
+export const navLinkStyles: Record<Variant, { active: string; inactive: string }> = {
+    tamamori: {
+        active: 'text-main underline underline-offset-4 decoration-2',
+        inactive: 'hover:text-main transition-colors',
+    },
+    light: {
+        active: 'text-gray-900 font-semibold underline underline-offset-4 decoration-2',
+        inactive: 'hover:text-gray-900 transition-colors',
+    },
+    dark: {
+        active: 'text-gray-100 font-semibold underline underline-offset-4 decoration-2',
+        inactive: 'hover:text-gray-100 transition-colors',
+    },
+};
+
 export const headerStyles: Record<Variant, { header: string; title: string; nav: string }> = {
     tamamori: {
         header: 'border-b border-sub/30',
