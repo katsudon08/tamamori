@@ -38,7 +38,7 @@ export default async function PagesLayout({ children }: { children: React.ReactN
                 </NavLink>
                 <NavLink href="/stats">統計</NavLink>
             </Header>
-            <main className="flex-1 min-h-0">{children}</main>
+            <main className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">{children}</main>
         </>
     );
 }
