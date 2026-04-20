@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
 import { getServerSession } from '@/features/slack-auth';
-import { Header } from '@/shared/ui';
+import { Header, NavLink } from '@/shared/ui';
 
 export default async function PagesLayout({ children }: { children: React.ReactNode }) {
     const session = await getServerSession();
@@ -33,11 +32,13 @@ export default async function PagesLayout({ children }: { children: React.ReactN
                     </div>
                 }
             >
-                <Link href="/garden">花壇</Link>
-                <Link href="/bonsai/me">自分の盆栽</Link>
-                <Link href="/stats">統計</Link>
+                <NavLink href="/garden">花壇</NavLink>
+                <NavLink href="/bonsai/me" matchPaths={[`/bonsai/${session.userId}`]}>
+                    自分の盆栽
+                </NavLink>
+                <NavLink href="/stats">統計</NavLink>
             </Header>
-            <main className="flex-1 min-h-0">{children}</main>
+            <main className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">{children}</main>
         </>
     );
 }
