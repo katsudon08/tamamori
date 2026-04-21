@@ -11,7 +11,7 @@ const VALID_ENV: Record<string, string> = {
     SLACK_SIGNING_SECRET: 'slack-signing-secret',
     SLACK_BOT_TOKEN: 'xoxb-bot-token',
     SLACK_WATCHED_CHANNELS: 'C01,C02,C03',
-    SESSION_SECRET: 'session-secret-value',
+    SESSION_SECRET: 'session-secret-value-32-chars-long-ok',
     NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key-123',
 };
@@ -30,7 +30,7 @@ describe('parseEnv', () => {
         expect(env.SLACK_CLIENT_SECRET).toBe('slack-client-secret');
         expect(env.SLACK_SIGNING_SECRET).toBe('slack-signing-secret');
         expect(env.SLACK_BOT_TOKEN).toBe('xoxb-bot-token');
-        expect(env.SESSION_SECRET).toBe('session-secret-value');
+        expect(env.SESSION_SECRET).toBe('session-secret-value-32-chars-long-ok');
         expect(env.NEXT_PUBLIC_SUPABASE_URL).toBe('https://example.supabase.co');
         expect(env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBe('anon-key-123');
     });
@@ -38,6 +38,10 @@ describe('parseEnv', () => {
     test('SLACK_WATCHED_CHANNELS がカンマ区切り文字列から配列に変換される', () => {
         const env = parseEnv(VALID_ENV);
         expect(env.SLACK_WATCHED_CHANNELS).toEqual(['C01', 'C02', 'C03']);
+    });
+
+    test('SESSION_SECRET が32文字未満の場合にZodErrorをthrowする', () => {
+        expect(() => parseEnv({ ...VALID_ENV, SESSION_SECRET: 'too-short' })).toThrow(ZodError);
     });
 });
 

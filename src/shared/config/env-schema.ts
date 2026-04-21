@@ -14,7 +14,10 @@ const envSchema = z.object({
     SLACK_WATCHED_CHANNELS: z.string().transform((v) => v.split(',')),
 
     // Session
-    SESSION_SECRET: z.string(),
+    // iron-session は cookie の暗号化・署名に password (SESSION_SECRET) の強度を
+    // 信頼している。32 文字未満だと攻撃者による cookie 改竄の余地が生まれ、
+    // session.slackTeamId 起点のテナント認可全体が成立しなくなるため schema で強制する。
+    SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
 
     // Supabase (client)
     NEXT_PUBLIC_SUPABASE_URL: z.string(),
