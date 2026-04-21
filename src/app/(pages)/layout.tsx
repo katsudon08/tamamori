@@ -1,14 +1,9 @@
-import { redirect } from 'next/navigation';
 import Image from 'next/image';
-import { getServerSession } from '@/features/slack-auth';
+import { getAuthenticatedSession } from '@/features/slack-auth';
 import { Header, NavLink } from '@/shared/ui';
 
 export default async function PagesLayout({ children }: { children: React.ReactNode }) {
-    const session = await getServerSession();
-
-    if (!session.userId) {
-        redirect('/');
-    }
+    const session = await getAuthenticatedSession();
 
     return (
         <>
