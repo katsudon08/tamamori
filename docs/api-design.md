@@ -358,6 +358,19 @@ export function useBonsaiRealtime(userId?: string) {
 - フロントエンドからの読み取りは `anon key` + RLS で制御
 - Slack Webhook からの書き込みは `service_role key`（API Route 内のみ使用、フロントエンドに露出しない）
 
+### マルチテナント認可（アプリケーション層）
+
+DB層RLSの強化（#75 で対応予定）に先行して、アプリ層でテナント（Slackワークスペース）単位のアクセス制御を行う。
+
+- セッション (`iron-session`) に `slackTeamId` を保持し、OAuth callback (`/api/auth/slack/callback`) で Slack Identity から取得した値をセット
+- bonsai 取得クエリは `users!inner` JOIN + `.eq('users.slack_team_id', slackTeamId)` でテナントを絞り込む
+    - 対象: SSR (`src/app/(pages)/*/page.tsx`)・クライアント SWR (`src/entities/bonsai/api/bonsai-swr.ts`)・entities API (`getBonsaiByUserId`)
+- `/bonsai/[userId]` は他テナントの userId へのアクセスに対して `notFound()` で 404 を返す（存在情報を漏らさない）
+- Slack Event 処理 (`processSlackEvent`) は `payload.team_id !== user.slack_team_id` の場合は早期 return
+- ページ共通レイアウト (`src/app/(pages)/layout.tsx`) は `session.slackTeamId` が空のとき `/` にリダイレクト（旧セッション cookie のユーザーに再ログインを促す）
+
+**注意**: Supabase Realtime 購読（`use-bonsai-realtime.ts`, `use-all-bonsai.ts`）は現段階ではテナントフィルタを適用していない。Realtime 起点の再検証は SWR fetcher 側のテナントフィルタで空結果になるため情報漏洩は発生しないが、購読そのもののスコープ制限は #75 の RLS + カスタム JWT で抜本対応する。
+
 ## 5. ページ一覧とデータフロー
 
 | ページ       | パス               | データ取得方法                                      | Realtime               |
