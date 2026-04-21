@@ -6,8 +6,12 @@ import { useAllBonsaiRealtime } from '@/features/realtime-sync';
 import { useAllBonsai } from '@/entities/bonsai';
 import { Skeleton, ErrorFallback } from '@/shared/ui';
 
-export function GardenContent() {
-    const { data, error, isLoading, mutate } = useAllBonsai();
+type GardenContentProps = {
+    slackTeamId: string;
+};
+
+export function GardenContent({ slackTeamId }: GardenContentProps) {
+    const { data, error, isLoading, mutate } = useAllBonsai(slackTeamId);
     useAllBonsaiRealtime();
 
     if (isLoading) {
