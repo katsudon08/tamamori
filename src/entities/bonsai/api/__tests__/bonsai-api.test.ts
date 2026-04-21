@@ -3,9 +3,10 @@ import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 // --- サーバー用関数のテスト ---
 
 const mockSingle = jest.fn<() => Promise<{ data: unknown; error: unknown }>>();
-const mockEq = jest.fn<(...args: unknown[]) => { single: typeof mockSingle }>(() => ({
-    single: mockSingle,
-}));
+type EqChain = { single: typeof mockSingle; eq: (...args: unknown[]) => EqChain };
+const mockEq: jest.Mock<(...args: unknown[]) => EqChain> = jest.fn(
+    (): EqChain => ({ single: mockSingle, eq: mockEq }),
+);
 const mockSelect = jest.fn<(...args: unknown[]) => { eq: typeof mockEq }>(() => ({ eq: mockEq }));
 const mockInsert = jest.fn<(...args: unknown[]) => { select: () => { single: typeof mockSingle } }>(
     () => ({ select: jest.fn(() => ({ single: mockSingle })) }),
@@ -29,7 +30,7 @@ describe('bonsai-api サーバー用関数', () => {
     });
 
     describe('getBonsaiByUserId', () => {
-        test('user_idで盆栽を取得する', async () => {
+        test('user_id と slackTeamId で盆栽を取得する（users JOIN でテナント検証）', async () => {
             const expected = {
                 id: 'uuid-bonsai-1',
                 user_id: 'uuid-user-1',
@@ -38,11 +39,12 @@ describe('bonsai-api サーバー用関数', () => {
             };
             mockSingle.mockResolvedValue({ data: expected, error: null });
 
-            const result = await getBonsaiByUserId('uuid-user-1');
+            const result = await getBonsaiByUserId('uuid-user-1', 'T01XXXX');
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
-            expect(mockSelect).toHaveBeenCalledWith('*');
+            expect(mockSelect).toHaveBeenCalledWith('*, users!inner(slack_team_id)');
             expect(mockEq).toHaveBeenCalledWith('user_id', 'uuid-user-1');
+            expect(mockEq).toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
             expect(result).toEqual(expected);
         });
 
@@ -52,7 +54,7 @@ describe('bonsai-api サーバー用関数', () => {
                 error: { message: 'Not found' },
             });
 
-            await expect(getBonsaiByUserId('uuid-invalid')).rejects.toEqual({
+            await expect(getBonsaiByUserId('uuid-invalid', 'T01XXXX')).rejects.toEqual({
                 message: 'Not found',
             });
         });

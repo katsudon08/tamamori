@@ -95,10 +95,11 @@ describe('GET /api/auth/slack/callback', () => {
         // セッションにユーザー情報がセットされている
         expect(mockSession.userId).toBe('uuid-123');
         expect(mockSession.slackUserId).toBe('U12345');
+        expect(mockSession.slackTeamId).toBe('T12345');
         expect(mockSession.displayName).toBe('Test User');
         expect(mockSession.avatarUrl).toBe('https://example.com/avatar.png');
         expect(mockSession.oauthState).toBeUndefined();
-        expect(mockSave).toHaveBeenCalled();
+        expect(mockSave).toHaveBeenCalledTimes(2);
     });
 
     test('正常フロー: exchangeCodeForTokenにcodeとredirect_uriが渡される', async () => {
@@ -125,8 +126,9 @@ describe('GET /api/auth/slack/callback', () => {
         });
     });
 
-    test('bonsai未存在時にcreateBonsaiが呼ばれる', async () => {
-        mockGetBonsaiByUserId.mockRejectedValueOnce(new Error('not found'));
+    test('bonsai未存在時(PGRST116)にcreateBonsaiが呼ばれる', async () => {
+        const pgrst116 = Object.assign(new Error('no rows'), { code: 'PGRST116' });
+        mockGetBonsaiByUserId.mockRejectedValueOnce(pgrst116);
         const { GET } = await import('../route');
 
         await GET(new Request(callbackUrl()));
@@ -141,6 +143,21 @@ describe('GET /api/auth/slack/callback', () => {
         await GET(new Request(callbackUrl()));
 
         expect(mockCreateBonsai).not.toHaveBeenCalled();
+    });
+
+    test('bonsai取得時の非PGRST116エラーは握り潰されずauth_failedへ', async () => {
+        const dbError = Object.assign(new Error('db connection lost'), { code: 'PGRST500' });
+        mockGetBonsaiByUserId.mockRejectedValueOnce(dbError);
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { GET } = await import('../route');
+
+        const response = await GET(new Request(callbackUrl()));
+
+        expect(mockCreateBonsai).not.toHaveBeenCalled();
+        expect(response.status).toBe(302);
+        expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
     });
 
     test('不正なクエリパラメータで /?error=auth_failed リダイレクト', async () => {
@@ -160,6 +177,13 @@ describe('GET /api/auth/slack/callback', () => {
 
         expect(response.status).toBe(302);
         expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
+        expect(mockSession.oauthState).toBeUndefined();
+        expect(mockSave).toHaveBeenCalledTimes(1);
+        expect(mockExchangeCodeForToken).not.toHaveBeenCalled();
+        expect(mockFetchUserIdentity).not.toHaveBeenCalled();
+        expect(mockUpsertUser).not.toHaveBeenCalled();
+        expect(mockGetBonsaiByUserId).not.toHaveBeenCalled();
+        expect(mockCreateBonsai).not.toHaveBeenCalled();
     });
 
     test('ユーザー情報取得失敗で /?error=auth_failed リダイレクト', async () => {
@@ -170,6 +194,8 @@ describe('GET /api/auth/slack/callback', () => {
 
         expect(response.status).toBe(302);
         expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
+        expect(mockSession.oauthState).toBeUndefined();
+        expect(mockSave).toHaveBeenCalledTimes(1);
     });
 
     test('ユーザーupsert失敗で /?error=auth_failed リダイレクト', async () => {
@@ -180,6 +206,31 @@ describe('GET /api/auth/slack/callback', () => {
 
         expect(response.status).toBe(302);
         expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
+    });
+
+    test('upsert戻り値のslack_team_idがuserInfo.teamIdと不一致で認証中断', async () => {
+        mockUpsertUser.mockResolvedValueOnce({
+            id: 'uuid-123',
+            slack_user_id: 'U12345',
+            slack_team_id: 'T_OTHER',
+            display_name: 'Test User',
+            avatar_url: 'https://example.com/avatar.png',
+        });
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { GET } = await import('../route');
+
+        const response = await GET(new Request(callbackUrl()));
+
+        expect(response.status).toBe(302);
+        expect(response.headers.get('Location')).toBe('http://localhost:3000/?error=auth_failed');
+        // team_id 検証で中断するため、以降のDB操作・セッション書き込みは行われない
+        expect(mockGetBonsaiByUserId).not.toHaveBeenCalled();
+        expect(mockCreateBonsai).not.toHaveBeenCalled();
+        expect(mockSession.userId).toBeUndefined();
+        expect(mockSession.slackTeamId).toBeUndefined();
+        // state clear の 1 回のみ save される
+        expect(mockSave).toHaveBeenCalledTimes(1);
+        consoleSpy.mockRestore();
     });
 
     test('トークン交換失敗で /?error=auth_failed リダイレクト', async () => {

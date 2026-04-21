@@ -12,10 +12,14 @@ const mockUseAllBonsai =
     jest.fn<
         () => { data: unknown; error: unknown; isLoading: boolean; mutate: typeof mockMutate }
     >();
+const mockUseAllBonsaiWithArgs = jest.fn<(slackTeamId: string) => void>();
 const mockUseAllBonsaiRealtime = jest.fn();
 
 jest.mock('@/entities/bonsai', () => ({
-    useAllBonsai: () => mockUseAllBonsai(),
+    useAllBonsai: (slackTeamId: string) => {
+        mockUseAllBonsaiWithArgs(slackTeamId);
+        return mockUseAllBonsai();
+    },
 }));
 
 jest.mock('@/features/realtime-sync', () => ({
@@ -31,6 +35,8 @@ jest.mock('@/widgets/garden-viewer', () => ({
 // --- helpers -------------------------------------------------------------
 
 import { GardenContent } from '../GardenContent';
+
+const MOCK_SLACK_TEAM_ID = 'T01XXXX';
 
 const MOCK_DATA = [
     { id: '1', user_id: 'u1', users: { display_name: 'User1', avatar_url: null } },
@@ -50,20 +56,21 @@ beforeEach(() => {
 // --- tests ---------------------------------------------------------------
 
 describe('GardenContent', () => {
-    test('useAllBonsai() フックを呼び出す', () => {
-        render(<GardenContent />);
+    test('useAllBonsai(slackTeamId) フックを呼び出す', () => {
+        render(<GardenContent slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(mockUseAllBonsai).toHaveBeenCalled();
+        expect(mockUseAllBonsaiWithArgs).toHaveBeenCalledWith(MOCK_SLACK_TEAM_ID);
     });
 
     test('useAllBonsaiRealtime() フックを呼び出す', () => {
-        render(<GardenContent />);
+        render(<GardenContent slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(mockUseAllBonsaiRealtime).toHaveBeenCalled();
     });
 
     test('SWR データを GardenViewer に渡す', () => {
-        render(<GardenContent />);
+        render(<GardenContent slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         const viewer = screen.getByTestId('garden-viewer');
         expect(viewer).toHaveAttribute('data-count', '2');
@@ -77,7 +84,7 @@ describe('GardenContent', () => {
             mutate: mockMutate,
         });
 
-        render(<GardenContent />);
+        render(<GardenContent slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         const viewer = screen.getByTestId('garden-viewer');
         expect(viewer).toHaveAttribute('data-count', '0');
@@ -91,7 +98,7 @@ describe('GardenContent', () => {
             mutate: mockMutate,
         });
 
-        render(<GardenContent />);
+        render(<GardenContent slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(screen.getByTestId('loading')).toBeInTheDocument();
         expect(screen.queryByTestId('garden-viewer')).not.toBeInTheDocument();
@@ -105,7 +112,7 @@ describe('GardenContent', () => {
             mutate: mockMutate,
         });
 
-        render(<GardenContent />);
+        render(<GardenContent slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(screen.getByText('データの取得に失敗しました')).toBeInTheDocument();
         expect(screen.queryByTestId('garden-viewer')).not.toBeInTheDocument();
@@ -119,7 +126,7 @@ describe('GardenContent', () => {
             mutate: mockMutate,
         });
 
-        render(<GardenContent />);
+        render(<GardenContent slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(screen.getByTestId('garden-viewer')).toBeInTheDocument();
         expect(screen.queryByText('データの取得に失敗しました')).not.toBeInTheDocument();

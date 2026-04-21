@@ -8,11 +8,12 @@ import { Skeleton, ErrorFallback } from '@/shared/ui';
 
 type BonsaiPageContentProps = {
     userId: string;
+    slackTeamId: string;
     growthRules: GrowthRule[];
 };
 
-export function BonsaiPageContent({ userId, growthRules }: BonsaiPageContentProps) {
-    const { data, error, isLoading, mutate } = useBonsai(userId);
+export function BonsaiPageContent({ userId, slackTeamId, growthRules }: BonsaiPageContentProps) {
+    const { data, error, isLoading, mutate } = useBonsai(userId, slackTeamId);
     useBonsaiRealtime(userId);
 
     if (isLoading) {

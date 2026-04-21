@@ -12,8 +12,8 @@ jest.mock('@/entities/action', () => ({
     insertAction: (...args: unknown[]) => mockInsertAction(...(args as [unknown])),
 }));
 
-const mockGetUserBySlackId = jest
-    .fn<(id: string) => Promise<Record<string, string>>>()
+const mockGetUserBySlackIdAndTeamId = jest
+    .fn<(slackUserId: string, slackTeamId: string) => Promise<Record<string, string>>>()
     .mockResolvedValue({
         id: 'user-uuid-123',
         slack_user_id: 'U01XXXX',
@@ -23,7 +23,8 @@ const mockGetUserBySlackId = jest
     });
 
 jest.mock('@/entities/user', () => ({
-    getUserBySlackId: (...args: unknown[]) => mockGetUserBySlackId(...(args as [string])),
+    getUserBySlackIdAndTeamId: (...args: unknown[]) =>
+        mockGetUserBySlackIdAndTeamId(...(args as [string, string])),
 }));
 
 const mockGetBonsaiByUserId = jest
@@ -137,7 +138,7 @@ describe('processSlackEvent', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockCheckEventExists.mockResolvedValue(false);
-        mockGetUserBySlackId.mockResolvedValue({
+        mockGetUserBySlackIdAndTeamId.mockResolvedValue({
             id: 'user-uuid-123',
             slack_user_id: 'U01XXXX',
             slack_team_id: 'T01XXXX',
@@ -183,14 +184,45 @@ describe('processSlackEvent', () => {
         expect(mockInsertAction).not.toHaveBeenCalled();
     });
 
-    test('未登録ユーザーのイベントはスキップされる', async () => {
-        const pgrst116 = Object.assign(new Error('not found'), { code: 'PGRST116' });
-        mockGetUserBySlackId.mockRejectedValueOnce(pgrst116);
+    test('未登録ユーザー (PGRST116) のイベントはスキップされ error ログされない', async () => {
+        const pgrst116 = Object.assign(new Error('no rows'), { code: 'PGRST116' });
+        mockGetUserBySlackIdAndTeamId.mockRejectedValueOnce(pgrst116);
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         const { processSlackEvent } = await import('../process-event');
 
         await processSlackEvent(makeMessagePayload() as never);
 
         expect(mockInsertAction).not.toHaveBeenCalled();
+        expect(consoleSpy).not.toHaveBeenCalled();
+        consoleSpy.mockRestore();
+    });
+
+    test('別テナントのイベントは team-aware lookup の PGRST116 でスキップされる', async () => {
+        // 別テナントでは users クエリの `.eq('slack_team_id', team_id)` で行が返らない
+        const pgrst116 = Object.assign(new Error('no rows'), { code: 'PGRST116' });
+        mockGetUserBySlackIdAndTeamId.mockRejectedValueOnce(pgrst116);
+        const { processSlackEvent } = await import('../process-event');
+
+        await processSlackEvent(makeMessagePayload({ team_id: 'T_OTHER_TENANT' }) as never);
+
+        // lookup が payload.team_id を引数として受け取っていることを検証
+        expect(mockGetUserBySlackIdAndTeamId).toHaveBeenCalledWith('U01XXXX', 'T_OTHER_TENANT');
+        expect(mockInsertAction).not.toHaveBeenCalled();
+        expect(mockUpdateBonsai).not.toHaveBeenCalled();
+    });
+
+    test('user 取得が非 PGRST116 DB エラーなら上位 catch で error ログされる', async () => {
+        const dbError = Object.assign(new Error('connection lost'), { code: 'PGRST500' });
+        mockGetUserBySlackIdAndTeamId.mockRejectedValueOnce(dbError);
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { processSlackEvent } = await import('../process-event');
+
+        await expect(processSlackEvent(makeMessagePayload() as never)).resolves.toBeUndefined();
+
+        expect(mockInsertAction).not.toHaveBeenCalled();
+        expect(mockUpdateBonsai).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
     });
 
     test('通常メッセージで message アクションが記録される', async () => {
@@ -349,14 +381,30 @@ describe('processSlackEvent', () => {
         consoleSpy.mockRestore();
     });
 
-    test('bonsai レコード未存在でスキップされる', async () => {
-        mockGetBonsaiByUserId.mockRejectedValueOnce(new Error('not found'));
+    test('bonsai 取得が PGRST116 (未存在/越境) ならスキップされ error ログされない', async () => {
+        const pgrst116 = Object.assign(new Error('no rows'), { code: 'PGRST116' });
+        mockGetBonsaiByUserId.mockRejectedValueOnce(pgrst116);
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         const { processSlackEvent } = await import('../process-event');
 
         await expect(processSlackEvent(makeMessagePayload() as never)).resolves.toBeUndefined();
 
         expect(mockUpdateBonsai).not.toHaveBeenCalled();
+        // PGRST116 は「書き込み対象なし」として扱うため error ログしない
+        expect(consoleSpy).not.toHaveBeenCalled();
+        consoleSpy.mockRestore();
+    });
+
+    test('bonsai 取得が非 PGRST116 DB エラーなら上位 catch で error ログされる', async () => {
+        const dbError = Object.assign(new Error('connection lost'), { code: 'PGRST500' });
+        mockGetBonsaiByUserId.mockRejectedValueOnce(dbError);
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { processSlackEvent } = await import('../process-event');
+
+        await expect(processSlackEvent(makeMessagePayload() as never)).resolves.toBeUndefined();
+
+        expect(mockUpdateBonsai).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalled();
         consoleSpy.mockRestore();
     });
 });

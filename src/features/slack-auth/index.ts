@@ -17,8 +17,11 @@ export { buildAuthorizationUrl, exchangeCodeForToken, fetchUserIdentity } from '
 export {
     getSession,
     getServerSession,
+    getAuthenticatedSession,
+    isAuthenticated,
     sessionOptions,
     defaultSession,
     type SessionData,
     type ReadonlySession,
+    type AuthenticatedSession,
 } from './model/session';

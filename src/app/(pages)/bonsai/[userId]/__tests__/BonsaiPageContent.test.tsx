@@ -12,13 +12,13 @@ const mockUseBonsai =
     jest.fn<
         () => { data: unknown; error: unknown; isLoading: boolean; mutate: typeof mockMutate }
     >();
-const mockUseBonsaiWithArgs = jest.fn<(userId: string) => void>();
+const mockUseBonsaiWithArgs = jest.fn<(userId: string, slackTeamId: string) => void>();
 const mockUseBonsaiRealtime = jest.fn();
 
 jest.mock('@/entities/bonsai', () => ({
     ...(jest.requireActual('@/entities/bonsai') as Record<string, unknown>),
-    useBonsai: (userId: string) => {
-        mockUseBonsaiWithArgs(userId);
+    useBonsai: (userId: string, slackTeamId: string) => {
+        mockUseBonsaiWithArgs(userId, slackTeamId);
         return mockUseBonsai();
     },
 }));
@@ -44,6 +44,7 @@ import { BonsaiPageContent } from '../BonsaiPageContent';
 import type { GrowthRule } from '@/features/bonsai-growth';
 
 const MOCK_USER_ID = '12345678-1234-4123-8123-123456789abc';
+const MOCK_SLACK_TEAM_ID = 'T01XXXX';
 
 const MOCK_VISUAL_STATE = {
     trunkHeight: 1.0,
@@ -108,20 +109,38 @@ beforeEach(() => {
 // --- tests ---------------------------------------------------------------
 
 describe('BonsaiPageContent', () => {
-    test('useBonsai(userId) フックを呼び出す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
+    test('useBonsai(userId, slackTeamId) フックを呼び出す', () => {
+        render(
+            <BonsaiPageContent
+                userId={MOCK_USER_ID}
+                slackTeamId={MOCK_SLACK_TEAM_ID}
+                growthRules={MOCK_GROWTH_RULES}
+            />,
+        );
 
-        expect(mockUseBonsaiWithArgs).toHaveBeenCalledWith(MOCK_USER_ID);
+        expect(mockUseBonsaiWithArgs).toHaveBeenCalledWith(MOCK_USER_ID, MOCK_SLACK_TEAM_ID);
     });
 
     test('useBonsaiRealtime(userId) フックを呼び出す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
+        render(
+            <BonsaiPageContent
+                userId={MOCK_USER_ID}
+                slackTeamId={MOCK_SLACK_TEAM_ID}
+                growthRules={MOCK_GROWTH_RULES}
+            />,
+        );
 
         expect(mockUseBonsaiRealtime).toHaveBeenCalledWith(MOCK_USER_ID);
     });
 
     test('SWR データを BonsaiViewer に渡す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
+        render(
+            <BonsaiPageContent
+                userId={MOCK_USER_ID}
+                slackTeamId={MOCK_SLACK_TEAM_ID}
+                growthRules={MOCK_GROWTH_RULES}
+            />,
+        );
 
         expect(screen.getByTestId('bonsai-viewer')).toBeInTheDocument();
         expect(capturedBonsaiViewerProps.bonsai).toEqual({
@@ -142,13 +161,25 @@ describe('BonsaiPageContent', () => {
     });
 
     test('現在ステージの次の閾値を算出して BonsaiViewer に渡す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
+        render(
+            <BonsaiPageContent
+                userId={MOCK_USER_ID}
+                slackTeamId={MOCK_SLACK_TEAM_ID}
+                growthRules={MOCK_GROWTH_RULES}
+            />,
+        );
 
         expect(capturedBonsaiViewerProps.nextStageThresholds).toEqual(EXPECTED_THRESHOLDS);
     });
 
     test('最大ステージ (次がない) のときは null を BonsaiViewer に渡す', () => {
-        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES_AT_MAX} />);
+        render(
+            <BonsaiPageContent
+                userId={MOCK_USER_ID}
+                slackTeamId={MOCK_SLACK_TEAM_ID}
+                growthRules={MOCK_GROWTH_RULES_AT_MAX}
+            />,
+        );
 
         expect(capturedBonsaiViewerProps.nextStageThresholds).toBeNull();
     });
@@ -161,7 +192,13 @@ describe('BonsaiPageContent', () => {
             mutate: mockMutate,
         });
 
-        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
+        render(
+            <BonsaiPageContent
+                userId={MOCK_USER_ID}
+                slackTeamId={MOCK_SLACK_TEAM_ID}
+                growthRules={MOCK_GROWTH_RULES}
+            />,
+        );
 
         expect(screen.getByTestId('loading')).toBeInTheDocument();
         expect(screen.queryByTestId('bonsai-viewer')).not.toBeInTheDocument();
@@ -175,7 +212,13 @@ describe('BonsaiPageContent', () => {
             mutate: mockMutate,
         });
 
-        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
+        render(
+            <BonsaiPageContent
+                userId={MOCK_USER_ID}
+                slackTeamId={MOCK_SLACK_TEAM_ID}
+                growthRules={MOCK_GROWTH_RULES}
+            />,
+        );
 
         expect(screen.getByText('データの取得に失敗しました')).toBeInTheDocument();
         expect(screen.queryByTestId('bonsai-viewer')).not.toBeInTheDocument();
@@ -189,7 +232,13 @@ describe('BonsaiPageContent', () => {
             mutate: mockMutate,
         });
 
-        render(<BonsaiPageContent userId={MOCK_USER_ID} growthRules={MOCK_GROWTH_RULES} />);
+        render(
+            <BonsaiPageContent
+                userId={MOCK_USER_ID}
+                slackTeamId={MOCK_SLACK_TEAM_ID}
+                growthRules={MOCK_GROWTH_RULES}
+            />,
+        );
 
         expect(screen.getByTestId('bonsai-viewer')).toBeInTheDocument();
         expect(screen.queryByText('データの取得に失敗しました')).not.toBeInTheDocument();

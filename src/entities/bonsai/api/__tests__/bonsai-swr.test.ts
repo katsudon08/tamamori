@@ -7,12 +7,17 @@ jest.mock('swr', () => ({
     default: (...args: unknown[]) => mockUseSWR(...args),
 }));
 
-// Supabase ブラウザクライアント モック
+// Supabase ブラウザクライアント モック（.eq().eq().single() / .eq().order() をチェーン可能に）
 const mockOrder = jest.fn<(...args: unknown[]) => Promise<{ data: unknown; error: unknown }>>();
 const mockSingle = jest.fn<() => Promise<{ data: unknown; error: unknown }>>();
-const mockEq = jest.fn<(...args: unknown[]) => { single: typeof mockSingle }>(() => ({
-    single: mockSingle,
-}));
+type EqChain = {
+    single: typeof mockSingle;
+    order: typeof mockOrder;
+    eq: (...args: unknown[]) => EqChain;
+};
+const mockEq: jest.Mock<(...args: unknown[]) => EqChain> = jest.fn(
+    (): EqChain => ({ single: mockSingle, order: mockOrder, eq: mockEq }),
+);
 const mockSelect = jest.fn<(...args: unknown[]) => { eq: typeof mockEq; order: typeof mockOrder }>(
     () => ({
         eq: mockEq,
@@ -35,10 +40,10 @@ describe('bonsai SWR フック', () => {
     });
 
     describe('useBonsai', () => {
-        test('userIdが指定された場合、正しいSWRキーでフックを呼ぶ', () => {
+        test('userId と slackTeamId が指定された場合、正しいSWRキーでフックを呼ぶ', () => {
             mockUseSWR.mockReturnValue({ data: null, error: null });
 
-            useBonsai('uuid-user-1');
+            useBonsai('uuid-user-1', 'T01XXXX');
 
             expect(mockUseSWR).toHaveBeenCalledWith(
                 ['bonsai', 'uuid-user-1'],
@@ -49,23 +54,32 @@ describe('bonsai SWR フック', () => {
         test('userIdがundefinedの場合、SWRキーがnullになる', () => {
             mockUseSWR.mockReturnValue({ data: null, error: null });
 
-            useBonsai(undefined);
+            useBonsai(undefined, 'T01XXXX');
 
             expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function));
         });
 
-        test('fetcher が bonsai + users!inner JOIN クエリを構築する', async () => {
+        test('slackTeamIdがundefinedの場合、SWRキーがnullになる', () => {
+            mockUseSWR.mockReturnValue({ data: null, error: null });
+
+            useBonsai('uuid-user-1', undefined);
+
+            expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function));
+        });
+
+        test('fetcher が bonsai + users!inner JOIN + テナントフィルタを構築する', async () => {
             mockSingle.mockResolvedValue({ data: { id: 'bonsai-1' }, error: null });
             mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
                 (fetcher as (...args: unknown[]) => unknown)(['bonsai', 'uuid-user-1']);
                 return { data: null, error: null };
             });
 
-            useBonsai('uuid-user-1');
+            useBonsai('uuid-user-1', 'T01XXXX');
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
             expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('users!inner'));
             expect(mockEq).toHaveBeenCalledWith('user_id', 'uuid-user-1');
+            expect(mockEq).toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
         });
 
         test('fetcherがSupabaseエラー時にthrowする', async () => {
@@ -78,32 +92,41 @@ describe('bonsai SWR フック', () => {
                 return { data: null, error: null };
             });
 
-            useBonsai('uuid-user-1');
+            useBonsai('uuid-user-1', 'T01XXXX');
 
             await expect(capturedFetcher(['bonsai', 'uuid-user-1'])).rejects.toEqual(dbError);
         });
     });
 
     describe('useAllBonsai', () => {
-        test('SWRキーが "all-bonsai" である', () => {
+        test('slackTeamId が指定された場合、SWRキーが "all-bonsai" である', () => {
             mockUseSWR.mockReturnValue({ data: null, error: null });
 
-            useAllBonsai();
+            useAllBonsai('T01XXXX');
 
             expect(mockUseSWR).toHaveBeenCalledWith('all-bonsai', expect.any(Function));
         });
 
-        test('fetcher が users!inner JOIN + created_at 昇順のクエリを構築する', async () => {
+        test('slackTeamIdがundefinedの場合、SWRキーがnullになる', () => {
+            mockUseSWR.mockReturnValue({ data: null, error: null });
+
+            useAllBonsai(undefined);
+
+            expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function));
+        });
+
+        test('fetcher が users!inner JOIN + テナントフィルタ + created_at 昇順のクエリを構築する', async () => {
             mockOrder.mockResolvedValue({ data: [], error: null });
             mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
                 (fetcher as (...args: unknown[]) => unknown)('all-bonsai');
                 return { data: null, error: null };
             });
 
-            useAllBonsai();
+            useAllBonsai('T01XXXX');
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
             expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('users!inner'));
+            expect(mockEq).toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
             expect(mockOrder).toHaveBeenCalledWith('created_at', {
                 ascending: true,
             });
@@ -119,7 +142,7 @@ describe('bonsai SWR フック', () => {
                 return { data: null, error: null };
             });
 
-            useAllBonsai();
+            useAllBonsai('T01XXXX');
 
             await expect(capturedFetcher('all-bonsai')).rejects.toEqual(dbError);
         });

@@ -20,9 +20,13 @@ export async function GET(request: Request) {
             state: searchParams.get('state'),
         });
 
-        // 2. CSRF state を検証
+        // 2. CSRF state を消費してから検証
         const session = await getSession();
-        if (params.state !== session.oauthState) {
+        const expectedState = session.oauthState;
+        session.oauthState = undefined;
+        await session.save();
+
+        if (params.state !== expectedState) {
             throw new Error('State mismatch');
         }
 
@@ -41,19 +45,33 @@ export async function GET(request: Request) {
             avatar_url: userInfo.picture,
         });
 
+        // upsert の onConflict は slack_user_id 単独キー (user-api.ts 参照)。
+        // 戻り値の team_id が Slack Identity の team_id とズレていた場合は
+        // 一意性前提が崩れた兆候 (別 team に同じ slack_user_id が紐づく等) で
+        // あり、以降のテナント認可が不安定化するため認証を中断する。
+        if (user.slack_team_id !== userInfo.teamId) {
+            throw new Error('team_id mismatch after upsertUser');
+        }
+
         // 6. bonsai レコード未存在なら作成
+        // PostgREST の "no rows returned" (PGRST116) のみを「未存在」として扱い、
+        // それ以外のエラー（DB接続・権限・スキーマ不整合など）は上位 catch に伝播させる。
         try {
-            await getBonsaiByUserId(user.id);
-        } catch {
-            await createBonsai(user.id);
+            await getBonsaiByUserId(user.id, user.slack_team_id);
+        } catch (err) {
+            if ((err as { code?: string })?.code === 'PGRST116') {
+                await createBonsai(user.id);
+            } else {
+                throw err;
+            }
         }
 
         // 7. セッションにユーザー情報をセット
         session.userId = user.id;
         session.slackUserId = userInfo.userId;
+        session.slackTeamId = userInfo.teamId;
         session.displayName = userInfo.name;
         session.avatarUrl = userInfo.picture;
-        session.oauthState = undefined;
         await session.save();
 
         // 8. /garden にリダイレクト
