@@ -6,18 +6,18 @@ IDOR対策(1/2): アプリ層でのテナント認可 (`slack_team_id`) の**ユ
 
 ## 登場人物
 
-| 層 | ファイル | 役割 |
-| --- | --- | --- |
-| Edge | `src/proxy.ts` | Cookie の存在チェック（未認証を `/` へ弾く） |
-| Layout (Server) | `src/app/(pages)/layout.tsx` | `session.userId` / `session.slackTeamId` の欠落で `/` へ |
-| Page (Server) | `src/app/(pages)/garden/page.tsx`, `src/app/(pages)/bonsai/[userId]/page.tsx` | SSR 時のテナント絞り込みクエリ／他テナント userId は `notFound()` |
-| Page (Client) | `GardenContent.tsx`, `BonsaiPageContent.tsx` | `slackTeamId` を受けて SWR フックへ伝搬 |
-| SWR | `src/entities/bonsai/api/bonsai-swr.ts` | ブラウザ側でもテナント絞り込みクエリを発行 |
-| Entity API (Server) | `src/entities/bonsai/api/bonsai-api.ts`, `src/entities/user/api/user-api.ts` | サーバ側 Supabase クエリ（JOIN+フィルタ） |
-| Feature (Auth) | `src/features/slack-auth/model/session.ts`, `api/slack-oauth.ts` | セッション定義・OAuth トークン交換 |
-| Feature (Growth) | `src/features/bonsai-growth/api/process-event.ts` | Slack イベント処理でのテナント突合 |
-| API Route | `src/app/api/auth/slack/callback/route.ts`, `src/app/api/slack/events/route.ts` | OAuth コールバック・Slack Webhook |
-| DB | `supabase/migrations/006_enable_rls.sql` | RLS は `anon` に SELECT 全許可（今回は絞り込みはアプリ層で実施） |
+| 層                  | ファイル                                                                        | 役割                                                              |
+| ------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Edge                | `src/proxy.ts`                                                                  | Cookie の存在チェック（未認証を `/` へ弾く）                      |
+| Layout (Server)     | `src/app/(pages)/layout.tsx`                                                    | `session.userId` / `session.slackTeamId` の欠落で `/` へ          |
+| Page (Server)       | `src/app/(pages)/garden/page.tsx`, `src/app/(pages)/bonsai/[userId]/page.tsx`   | SSR 時のテナント絞り込みクエリ／他テナント userId は `notFound()` |
+| Page (Client)       | `GardenContent.tsx`, `BonsaiPageContent.tsx`                                    | `slackTeamId` を受けて SWR フックへ伝搬                           |
+| SWR                 | `src/entities/bonsai/api/bonsai-swr.ts`                                         | ブラウザ側でもテナント絞り込みクエリを発行                        |
+| Entity API (Server) | `src/entities/bonsai/api/bonsai-api.ts`, `src/entities/user/api/user-api.ts`    | サーバ側 Supabase クエリ（JOIN+フィルタ）                         |
+| Feature (Auth)      | `src/features/slack-auth/model/session.ts`, `api/slack-oauth.ts`                | セッション定義・OAuth トークン交換                                |
+| Feature (Growth)    | `src/features/bonsai-growth/api/process-event.ts`                               | Slack イベント処理でのテナント突合                                |
+| API Route           | `src/app/api/auth/slack/callback/route.ts`, `src/app/api/slack/events/route.ts` | OAuth コールバック・Slack Webhook                                 |
+| DB                  | `supabase/migrations/006_enable_rls.sql`                                        | RLS は `anon` に SELECT 全許可（今回は絞り込みはアプリ層で実施）  |
 
 ---
 
@@ -225,13 +225,13 @@ flowchart LR
 
 **レビュー時に確認したい一致箇所（全 5 箇所）:**
 
-| # | ファイル | 用途 |
-| --- | --- | --- |
-| 1 | `src/app/api/auth/slack/callback/route.ts:60` | セッションへの書き込み（Source of Truth） |
-| 2 | `src/app/(pages)/layout.tsx:9` | `!session.slackTeamId` ガード |
-| 3 | `src/app/(pages)/garden/page.tsx:9,14` / `bonsai/[userId]/page.tsx:12,19` | SSR クエリの絞り込み |
-| 4 | `src/entities/bonsai/api/bonsai-swr.ts:19,37` | CSR SWR クエリの絞り込み |
-| 5 | `src/features/bonsai-growth/api/process-event.ts:73-76` | 書き込み系の突合 |
+| #   | ファイル                                                                  | 用途                                      |
+| --- | ------------------------------------------------------------------------- | ----------------------------------------- |
+| 1   | `src/app/api/auth/slack/callback/route.ts:60`                             | セッションへの書き込み（Source of Truth） |
+| 2   | `src/app/(pages)/layout.tsx:9`                                            | `!session.slackTeamId` ガード             |
+| 3   | `src/app/(pages)/garden/page.tsx:9,14` / `bonsai/[userId]/page.tsx:12,19` | SSR クエリの絞り込み                      |
+| 4   | `src/entities/bonsai/api/bonsai-swr.ts:19,37`                             | CSR SWR クエリの絞り込み                  |
+| 5   | `src/features/bonsai-growth/api/process-event.ts:73-76`                   | 書き込み系の突合                          |
 
 ---
 
