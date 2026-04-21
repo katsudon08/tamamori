@@ -16,6 +16,13 @@ jest.mock('next/headers', () => ({
     cookies: () => mockCookies(),
 }));
 
+const mockRedirect = jest.fn((path: string) => {
+    throw new Error(`REDIRECT:${path}`);
+});
+jest.mock('next/navigation', () => ({
+    redirect: (path: string) => mockRedirect(path),
+}));
+
 jest.mock('@/shared/config', () => ({
     getEnv: () => ({ SESSION_SECRET: 'test-secret-must-be-at-least-32-chars!!' }),
 }));
@@ -27,6 +34,8 @@ import {
     defaultSession,
     getSession,
     getServerSession,
+    getAuthenticatedSession,
+    isAuthenticated,
     type SessionData,
     type ReadonlySession,
 } from '../session';
@@ -68,6 +77,7 @@ describe('defaultSession', () => {
         expect(defaultSession).toEqual({
             userId: '',
             slackUserId: '',
+            slackTeamId: '',
             displayName: '',
             avatarUrl: '',
         });
@@ -94,6 +104,7 @@ describe('getSession', () => {
         const sessionData: SessionData = {
             userId: 'uuid-123',
             slackUserId: 'U12345',
+            slackTeamId: 'T12345',
             displayName: 'テストユーザー',
             avatarUrl: 'https://example.com/avatar.png',
         };
@@ -104,6 +115,7 @@ describe('getSession', () => {
 
         expect(session.userId).toBe('uuid-123');
         expect(session.slackUserId).toBe('U12345');
+        expect(session.slackTeamId).toBe('T12345');
         expect(session.displayName).toBe('テストユーザー');
         expect(session.avatarUrl).toBe('https://example.com/avatar.png');
     });
@@ -149,6 +161,7 @@ describe('oauthState', () => {
         const sessionData: SessionData = {
             userId: '',
             slackUserId: '',
+            slackTeamId: '',
             displayName: '',
             avatarUrl: '',
             oauthState: 'test-csrf-state',
@@ -171,6 +184,67 @@ describe('oauthState', () => {
     });
 });
 
+describe('isAuthenticated', () => {
+    test('userId と slackTeamId が両方非空なら true', () => {
+        const session: ReadonlySession = {
+            ...defaultSession,
+            userId: 'uuid-1',
+            slackTeamId: 'T1',
+        };
+        expect(isAuthenticated(session)).toBe(true);
+    });
+
+    test('userId が空なら false', () => {
+        const session: ReadonlySession = { ...defaultSession, userId: '', slackTeamId: 'T1' };
+        expect(isAuthenticated(session)).toBe(false);
+    });
+
+    test('slackTeamId が空なら false', () => {
+        const session: ReadonlySession = { ...defaultSession, userId: 'uuid-1', slackTeamId: '' };
+        expect(isAuthenticated(session)).toBe(false);
+    });
+});
+
+describe('getAuthenticatedSession', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockCookies.mockResolvedValue(mockCookieStore);
+    });
+
+    test('userId と slackTeamId が揃っていればセッションを返す', async () => {
+        const mockSession = createMockSession({
+            userId: 'uuid-1',
+            slackUserId: 'U1',
+            slackTeamId: 'T1',
+            displayName: 'u',
+            avatarUrl: '',
+        });
+        mockGetIronSession.mockResolvedValue(mockSession);
+
+        const session = await getAuthenticatedSession();
+
+        expect(session.userId).toBe('uuid-1');
+        expect(session.slackTeamId).toBe('T1');
+        expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    test('userId が空なら "/" にリダイレクト', async () => {
+        const mockSession = createMockSession({ userId: '', slackTeamId: 'T1' });
+        mockGetIronSession.mockResolvedValue(mockSession);
+
+        await expect(getAuthenticatedSession()).rejects.toThrow('REDIRECT:/');
+        expect(mockRedirect).toHaveBeenCalledWith('/');
+    });
+
+    test('slackTeamId が空なら "/" にリダイレクト', async () => {
+        const mockSession = createMockSession({ userId: 'uuid-1', slackTeamId: '' });
+        mockGetIronSession.mockResolvedValue(mockSession);
+
+        await expect(getAuthenticatedSession()).rejects.toThrow('REDIRECT:/');
+        expect(mockRedirect).toHaveBeenCalledWith('/');
+    });
+});
+
 describe('セッション破棄', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -182,6 +256,7 @@ describe('セッション破棄', () => {
         const sessionData: SessionData = {
             userId: 'uuid-123',
             slackUserId: 'U12345',
+            slackTeamId: 'T12345',
             displayName: 'テストユーザー',
             avatarUrl: 'https://example.com/avatar.png',
         };
@@ -201,6 +276,7 @@ describe('セッション破棄', () => {
         const sessionAfterDestroy = await getSession();
         expect(sessionAfterDestroy.userId).toBe('');
         expect(sessionAfterDestroy.slackUserId).toBe('');
+        expect(sessionAfterDestroy.slackTeamId).toBe('');
         expect(sessionAfterDestroy.displayName).toBe('');
         expect(sessionAfterDestroy.avatarUrl).toBe('');
     });
