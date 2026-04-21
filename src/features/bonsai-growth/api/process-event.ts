@@ -4,7 +4,7 @@ import { fetchGrowthRules } from '../model/growth-rules';
 
 import type { ActionType } from '@/entities/action';
 import { checkEventExists, insertAction } from '@/entities/action';
-import { getUserBySlackId } from '@/entities/user';
+import { getUserBySlackIdAndTeamId } from '@/entities/user';
 import { getBonsaiByUserId, updateBonsai } from '@/entities/bonsai';
 import { getEnv } from '@/shared/config';
 
@@ -43,7 +43,7 @@ const TEXT_SNIPPET_MAX = 100;
  */
 export async function processSlackEvent(payload: SlackEventPayload): Promise<void> {
     try {
-        const { event_id, event } = payload;
+        const { event_id, team_id, event } = payload;
 
         // 1. チャンネルフィルタ
         const channel = extractChannel(event);
@@ -62,16 +62,33 @@ export async function processSlackEvent(payload: SlackEventPayload): Promise<voi
             return;
         }
 
-        // 4. ユーザー取得（未登録ならスキップ）
+        // 4. ユーザー取得 (team-aware lookup)
+        // payload.team_id を取得条件に含めることで、lookup 自体で tenant 境界を
+        // 確立する (後段に post-check を置かない構造)。PGRST116 は
+        // 「未登録」と「別テナント」を区別せず同一エラー扱いとする。
         let user;
         try {
-            user = await getUserBySlackId(event.user);
-        } catch {
-            return;
+            user = await getUserBySlackIdAndTeamId(event.user, team_id);
+        } catch (err) {
+            if ((err as { code?: string })?.code === 'PGRST116') {
+                return;
+            }
+            throw err;
         }
 
         // 5. bonsai 取得
-        const bonsai = await getBonsaiByUserId(user.id);
+        // PGRST116 (該当行なし = bonsai 未作成 or 他テナント越境) は書き込み対象が無いため
+        // 早期 return する。障害系 (非 PGRST116) は上位 catch で error ログさせる。
+        // callback 側の PGRST116 ハンドリングと方針を統一している。
+        let bonsai;
+        try {
+            bonsai = await getBonsaiByUserId(user.id, user.slack_team_id);
+        } catch (err) {
+            if ((err as { code?: string })?.code === 'PGRST116') {
+                return;
+            }
+            throw err;
+        }
 
         // 6. action_log 挿入
         for (let i = 0; i < actions.length; i++) {
