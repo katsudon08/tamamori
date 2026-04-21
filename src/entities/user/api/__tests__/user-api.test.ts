@@ -1,10 +1,14 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 
 // Supabase サーバークライアントのモック
+// .eq() は .eq() チェーン (複数 filter) と .single() の両方を許容する
 const mockSingle = jest.fn<() => Promise<{ data: unknown; error: unknown }>>();
-const mockEq = jest.fn<(...args: unknown[]) => { single: typeof mockSingle }>(() => ({
+type EqReturn = { eq: (...args: unknown[]) => EqReturn; single: typeof mockSingle };
+const eqReturn: EqReturn = {
+    eq: (...args: unknown[]) => mockEq(...args),
     single: mockSingle,
-}));
+};
+const mockEq = jest.fn<(...args: unknown[]) => EqReturn>(() => eqReturn);
 const mockUpsert = jest.fn<(...args: unknown[]) => { select: () => { single: typeof mockSingle } }>(
     () => ({ select: jest.fn(() => ({ single: mockSingle })) }),
 );
@@ -18,7 +22,7 @@ jest.mock('@/shared/lib/supabase', () => ({
     createServerClient: () => ({ from: mockFrom }),
 }));
 
-import { upsertUser, getUserBySlackId } from '../user-api';
+import { upsertUser, getUserBySlackIdAndTeamId } from '../user-api';
 
 describe('user-api (サーバー用関数)', () => {
     beforeEach(() => {
@@ -62,8 +66,8 @@ describe('user-api (サーバー用関数)', () => {
         });
     });
 
-    describe('getUserBySlackId', () => {
-        test('slack_user_idでユーザーを取得する', async () => {
+    describe('getUserBySlackIdAndTeamId', () => {
+        test('slack_user_id + slack_team_id でユーザーを取得する', async () => {
             const expected = {
                 id: 'uuid-1',
                 slack_user_id: 'U01XXXX',
@@ -73,22 +77,35 @@ describe('user-api (サーバー用関数)', () => {
             };
             mockSingle.mockResolvedValue({ data: expected, error: null });
 
-            const result = await getUserBySlackId('U01XXXX');
+            const result = await getUserBySlackIdAndTeamId('U01XXXX', 'T01XXXX');
 
             expect(mockFrom).toHaveBeenCalledWith('users');
             expect(mockSelect).toHaveBeenCalledWith('*');
             expect(mockEq).toHaveBeenCalledWith('slack_user_id', 'U01XXXX');
+            expect(mockEq).toHaveBeenCalledWith('slack_team_id', 'T01XXXX');
             expect(result).toEqual(expected);
         });
 
-        test('エラー時にthrowする', async () => {
+        test('該当行なし (PGRST116) でthrowする', async () => {
             mockSingle.mockResolvedValue({
                 data: null,
-                error: { message: 'Not found' },
+                error: { code: 'PGRST116', message: 'no rows' },
             });
 
-            await expect(getUserBySlackId('U_INVALID')).rejects.toEqual({
-                message: 'Not found',
+            await expect(getUserBySlackIdAndTeamId('U_INVALID', 'T01XXXX')).rejects.toEqual({
+                code: 'PGRST116',
+                message: 'no rows',
+            });
+        });
+
+        test('DB エラー時にthrowする', async () => {
+            mockSingle.mockResolvedValue({
+                data: null,
+                error: { message: 'DB error' },
+            });
+
+            await expect(getUserBySlackIdAndTeamId('U01XXXX', 'T01XXXX')).rejects.toEqual({
+                message: 'DB error',
             });
         });
     });
