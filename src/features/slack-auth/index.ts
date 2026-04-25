@@ -15,6 +15,12 @@ export { oauthCallbackParamsSchema, type OAuthCallbackParams } from './lib/slack
 export { buildAuthorizationUrl, exchangeCodeForToken, fetchUserIdentity } from './api/slack-oauth';
 
 export {
+    issueSupabaseJwt,
+    type IssueSupabaseJwtInput,
+    type IssueSupabaseJwtResult,
+} from './api/supabase-jwt';
+
+export {
     getSession,
     getServerSession,
     getAuthenticatedSession,
