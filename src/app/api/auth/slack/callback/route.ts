@@ -60,7 +60,8 @@ export async function GET(request: Request) {
             await getBonsaiByUserId(user.id, user.slack_team_id);
         } catch (err) {
             if ((err as { code?: string })?.code === 'PGRST116') {
-                await createBonsai(user.id);
+                // INSERT 時に slack_team_id を必須化 (NOT NULL + 複合 FK)
+                await createBonsai(user.id, user.slack_team_id);
             } else {
                 throw err;
             }
