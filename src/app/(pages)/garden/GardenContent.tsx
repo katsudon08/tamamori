@@ -12,7 +12,7 @@ type GardenContentProps = {
 
 export function GardenContent({ slackTeamId }: GardenContentProps) {
     const { data, error, isLoading, mutate } = useAllBonsai(slackTeamId);
-    useAllBonsaiRealtime();
+    useAllBonsaiRealtime(slackTeamId);
 
     if (isLoading) {
         return (
@@ -31,7 +31,9 @@ export function GardenContent({ slackTeamId }: GardenContentProps) {
         return <ErrorFallback onRetry={() => mutate()} />;
     }
 
-    const bonsaiList = (data ?? []) as GardenBonsaiItem[];
+    // SWR が返す Database 型 (visual_state: Json) は widget の具体型より広いため、
+    // unknown を経由して narrow させる。Phase 5 (SSR/SWR 整理) で型運用を見直す。
+    const bonsaiList = (data ?? []) as unknown as GardenBonsaiItem[];
 
     return (
         <div className="h-full w-full">

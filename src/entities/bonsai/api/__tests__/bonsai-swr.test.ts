@@ -67,7 +67,7 @@ describe('bonsai SWR フック', () => {
             expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function));
         });
 
-        test('fetcher が bonsai + users!inner JOIN + テナントフィルタを構築する', async () => {
+        test('fetcher が bonsai + users!inner JOIN (表示用) + slack_team_id 直接参照 filter を構築する', async () => {
             mockSingle.mockResolvedValue({ data: { id: 'bonsai-1' }, error: null });
             mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
                 (fetcher as (...args: unknown[]) => unknown)(['bonsai', 'uuid-user-1']);
@@ -77,9 +77,13 @@ describe('bonsai SWR フック', () => {
             useBonsai('uuid-user-1', 'T01XXXX');
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
+            // display_name/avatar_url の表示用 JOIN は維持
             expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('users!inner'));
             expect(mockEq).toHaveBeenCalledWith('user_id', 'uuid-user-1');
-            expect(mockEq).toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
+            // RLS と同じ列を参照する形に統一
+            expect(mockEq).toHaveBeenCalledWith('slack_team_id', 'T01XXXX');
+            // 旧来の users JOIN 経由 filter は使わない
+            expect(mockEq).not.toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
         });
 
         test('fetcherがSupabaseエラー時にthrowする', async () => {
@@ -115,7 +119,7 @@ describe('bonsai SWR フック', () => {
             expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function));
         });
 
-        test('fetcher が users!inner JOIN + テナントフィルタ + created_at 昇順のクエリを構築する', async () => {
+        test('fetcher が users!inner JOIN (表示用) + slack_team_id 直接参照 + created_at 昇順を構築する', async () => {
             mockOrder.mockResolvedValue({ data: [], error: null });
             mockUseSWR.mockImplementation((_key: unknown, fetcher: unknown) => {
                 (fetcher as (...args: unknown[]) => unknown)('all-bonsai');
@@ -126,7 +130,9 @@ describe('bonsai SWR フック', () => {
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
             expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('users!inner'));
-            expect(mockEq).toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
+            // RLS と同じ列を参照する形に統一
+            expect(mockEq).toHaveBeenCalledWith('slack_team_id', 'T01XXXX');
+            expect(mockEq).not.toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
             expect(mockOrder).toHaveBeenCalledWith('created_at', {
                 ascending: true,
             });
