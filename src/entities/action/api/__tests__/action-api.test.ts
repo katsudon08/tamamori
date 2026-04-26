@@ -26,9 +26,10 @@ describe('action-api サーバー用関数', () => {
     });
 
     describe('insertAction', () => {
-        test('action_logにレコードを挿入する', async () => {
+        test('action_log に slack_team_id 込みでレコードを挿入する', async () => {
             const actionData = {
                 user_id: 'uuid-user-1',
+                slack_team_id: 'T01XXXX',
                 action_type: 'message' as const,
                 slack_event_id: 'Ev01XXXX',
                 slack_channel: 'C01XXXX',
@@ -41,6 +42,10 @@ describe('action-api サーバー用関数', () => {
 
             expect(mockFrom).toHaveBeenCalledWith('action_log');
             expect(mockInsert).toHaveBeenCalledWith(actionData);
+            // slack_team_id が INSERT ペイロードに必ず含まれる (RLS + 複合 FK の前提)
+            expect((mockInsert.mock.calls[0]![0] as { slack_team_id: string }).slack_team_id).toBe(
+                'T01XXXX',
+            );
             expect(result).toEqual(expected);
         });
 
@@ -53,6 +58,7 @@ describe('action-api サーバー用関数', () => {
             await expect(
                 insertAction({
                     user_id: 'uuid-user-1',
+                    slack_team_id: 'T01XXXX',
                     action_type: 'message',
                     slack_event_id: 'Ev01XXXX',
                     slack_channel: null,
