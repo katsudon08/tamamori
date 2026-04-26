@@ -11,9 +11,7 @@ type Session = {
 };
 
 const mockGetSession = jest.fn<() => Promise<Session>>();
-const mockIsAuthenticated = jest.fn((s: Session) =>
-    s.userId !== '' && s.slackTeamId !== '',
-);
+const mockIsAuthenticated = jest.fn((s: Session) => s.userId !== '' && s.slackTeamId !== '');
 const mockIssueSupabaseJwt = jest.fn<
     (input: { userId: string; slackTeamId: string; slackUserId: string }) => Promise<{
         token: string;

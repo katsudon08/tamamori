@@ -4,11 +4,11 @@
 
 **設計成立**。3 つのチェックポイントすべて通過。ただし実装時に **必須の前提条件 3 つ** が判明したため、本ドキュメントで明文化する。
 
-| CP                             | 結果       | 備考                                                   |
-| ------------------------------ | ---------- | ------------------------------------------------------ |
-| **CP1: RLS で auth.jwt() が読める** | ✅ Pass    | カラム直接参照ポリシー (`slack_team_id = auth.jwt()...`) で機能 |
-| **CP2: Realtime で同じ JWT**   | ✅ Pass    | ただし **explicit `setAuth` 必須** (下記)               |
-| **CP3: token 更新時に再取得**   | ✅ Pass    | client 共有のまま closure 差し替えで次の RPC が新 JWT で実行 |
+| CP                                  | 結果    | 備考                                                            |
+| ----------------------------------- | ------- | --------------------------------------------------------------- |
+| **CP1: RLS で auth.jwt() が読める** | ✅ Pass | カラム直接参照ポリシー (`slack_team_id = auth.jwt()...`) で機能 |
+| **CP2: Realtime で同じ JWT**        | ✅ Pass | ただし **explicit `setAuth` 必須** (下記)                       |
+| **CP3: token 更新時に再取得**       | ✅ Pass | client 共有のまま closure 差し替えで次の RPC が新 JWT で実行    |
 
 ---
 
@@ -44,14 +44,14 @@ if (this.accessToken) {
 }
 ```
 
-このように auto-setAuth は **fire-and-forget の Promise**。`channel().subscribe()` を直後に呼ぶと、setAuth が完了する前に subscribe が走る → WebSocket は anon ロールで postgres_changes RLS を評価する → `anon_select_*` ポリシーが該当して全行が漏れる。
+このように auto-setAuth は **fire-and-forget の Promise**。`channel().subscribe()` を直後に呼ぶと、setAuth が完了する前に subscribe が走る → WebSocket は anon ロールで postgres*changes RLS を評価する → `anon_select*\*` ポリシーが該当して全行が漏れる。
 
 **PoC での実証**:
 
-| 構成                                                           | 結果                                                  |
-| -------------------------------------------------------------- | ----------------------------------------------------- |
-| `accessToken` のみ (auto-setAuth に依存)                       | ❌ team B の UPDATE が team A 側に漏れる              |
-| `accessToken` + `await realtime.setAuth(jwt)` を subscribe 前に明示 | ✅ team A の購読には team A の UPDATE のみ届く        |
+| 構成                                                                | 結果                                           |
+| ------------------------------------------------------------------- | ---------------------------------------------- |
+| `accessToken` のみ (auto-setAuth に依存)                            | ❌ team B の UPDATE が team A 側に漏れる       |
+| `accessToken` + `await realtime.setAuth(jwt)` を subscribe 前に明示 | ✅ team A の購読には team A の UPDATE のみ届く |
 
 **対策**: Realtime hook 側で **必ず subscribe 前に `setAuth` を await** する。
 

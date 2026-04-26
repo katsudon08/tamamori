@@ -10,13 +10,13 @@ Issue #75 備考:
 
 ## 大前提: 防御層の役割分担
 
-| 層                          | 経路                                                     | 防御主体                  | 補足                            |
-| --------------------------- | -------------------------------------------------------- | ------------------------- | ------------------------------- |
-| Server Component / SSR     | `service_role` キー使用                                  | **アプリ層 (唯一)**      | RLS をバイパスするので必須      |
-| Entity API (server-side)    | `service_role` キー (callback / process-event から)     | **アプリ層 (唯一)**      | 同上                            |
-| ブラウザ SWR fetch          | `anon` キー + 独自 JWT                                   | RLS + アプリ層 (二重)    | アプリ層は冗長だが防御の対称性 |
-| ブラウザ Realtime 購読      | `anon` キー + 独自 JWT                                   | RLS + 購読 filter (二重) | 論点 #3                         |
-| 書き込み (INSERT/UPDATE)    | `service_role` キー (Slack イベント処理)                | **アプリ層 (唯一)**      | JWT コンテキストなし            |
+| 層                       | 経路                                                | 防御主体                 | 補足                           |
+| ------------------------ | --------------------------------------------------- | ------------------------ | ------------------------------ |
+| Server Component / SSR   | `service_role` キー使用                             | **アプリ層 (唯一)**      | RLS をバイパスするので必須     |
+| Entity API (server-side) | `service_role` キー (callback / process-event から) | **アプリ層 (唯一)**      | 同上                           |
+| ブラウザ SWR fetch       | `anon` キー + 独自 JWT                              | RLS + アプリ層 (二重)    | アプリ層は冗長だが防御の対称性 |
+| ブラウザ Realtime 購読   | `anon` キー + 独自 JWT                              | RLS + 購読 filter (二重) | 論点 #3                        |
+| 書き込み (INSERT/UPDATE) | `service_role` キー (Slack イベント処理)            | **アプリ層 (唯一)**      | JWT コンテキストなし           |
 
 **重要:** Server Component と Entity API は service_role なので **RLS は効かない**。アプリ層の `.eq('slack_team_id', ...)` を外すと即時に全テナント漏れに直結する。これが #74 のフィルタを残す核心理由。
 
@@ -31,7 +31,7 @@ const supabase = createServerClient(); // service_role
 await supabase
     .from('bonsai')
     .select('*, users!inner (display_name, avatar_url)')
-    .eq('users.slack_team_id', slackTeamId);  // users JOIN 経由
+    .eq('users.slack_team_id', slackTeamId); // users JOIN 経由
 ```
 
 **#75 後**: `bonsai.slack_team_id` カラム追加に伴い、JOIN 経由 filter をカラム直接 eq に統一:
@@ -40,10 +40,11 @@ await supabase
 await supabase
     .from('bonsai')
     .select('*, users!inner (display_name, avatar_url)') // 表示用 JOIN は残す
-    .eq('slack_team_id', slackTeamId);  // カラム直接
+    .eq('slack_team_id', slackTeamId); // カラム直接
 ```
 
 **統一する理由**:
+
 - RLS ポリシー (`bonsai.slack_team_id = auth.jwt() ...`) と**同じ列を参照**することで意図が一致
 - `users!inner` の embedded-filter 仕様への依存を減らす
 - JOIN コスト軽減
@@ -55,7 +56,8 @@ await supabase
 ```ts
 export async function getBonsaiByUserId(userId: string, slackTeamId: string) {
     const supabase = createServerClient();
-    return supabase.from('bonsai')
+    return supabase
+        .from('bonsai')
         .select('*, users!inner(slack_team_id)')
         .eq('user_id', userId)
         .eq('users.slack_team_id', slackTeamId)
@@ -68,7 +70,8 @@ export async function getBonsaiByUserId(userId: string, slackTeamId: string) {
 ```ts
 export async function getBonsaiByUserId(userId: string, slackTeamId: string) {
     const supabase = createServerClient();
-    return supabase.from('bonsai')
+    return supabase
+        .from('bonsai')
         .select('*')
         .eq('user_id', userId)
         .eq('slack_team_id', slackTeamId)
@@ -81,7 +84,8 @@ export async function getBonsaiByUserId(userId: string, slackTeamId: string) {
 **現状** (`bonsai-swr.ts`):
 
 ```ts
-await supabase.from('bonsai')
+await supabase
+    .from('bonsai')
     .select('*, users!inner (display_name, avatar_url)')
     .eq('user_id', id)
     .eq('users.slack_team_id', slackTeamId);
@@ -90,7 +94,8 @@ await supabase.from('bonsai')
 **#75 後**: 表示用 JOIN は残し、テナント filter のみカラム直接 eq:
 
 ```ts
-await supabase.from('bonsai')
+await supabase
+    .from('bonsai')
     .select('*, users!inner (display_name, avatar_url)') // display_name 取得のため残す
     .eq('user_id', id)
     .eq('slack_team_id', slackTeamId);
@@ -114,20 +119,20 @@ await supabase.from('bonsai')
 
 ## 削除・維持の一覧表
 
-| 対象                                    | #74 状態                       | #75 後                                            | 理由                                              |
-| --------------------------------------- | ------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
-| SSR `.eq('users.slack_team_id', ...)`   | 追加済                         | **`.eq('slack_team_id', ...)` に変更**           | カラム直接参照で意図がそろう                      |
-| Entity API `getBonsaiByUserId`          | `slackTeamId` 引数追加         | **引数維持・JOIN 外し**                           | service_role 経路: アプリ層防御必須               |
-| SWR `.eq('users.slack_team_id', ...)`   | 追加済                         | **`.eq('slack_team_id', ...)` に変更**           | 同上                                              |
-| SWR `slackTeamId` 引数                  | 追加済                         | **維持**                                          | RLS 二重化。FSD 型契約                            |
-| Realtime filter                         | 無し (`use-all-bonsai`)        | **`slack_team_id=eq.` 追加** (論点 #3)           | RLS + 購読 filter の二重化                        |
-| Realtime `slackTeamId` 引数             | 無し                           | **追加**                                          | 同上                                              |
-| `getUserBySlackIdAndTeamId`             | 追加済                         | 維持                                              | 書き込み経路の Root of Trust                      |
-| `process-event` の `payload.team_id` 突合 | 追加済                         | 維持                                              | 同上                                              |
-| `createBonsai(userId)` シグネチャ       | 変更なし                       | **`createBonsai(userId, slackTeamId)` へ拡張**    | INSERT に列値が必要                               |
-| `insertAction` の引数                   | 変更なし                       | **`slack_team_id` を引数に追加**                  | 同上                                              |
-| `authenticated` 向け書き込みポリシー    | 無し                           | **追加しない**                                    | service_role 専用                                 |
-| layout ガード                           | `session.slackTeamId` チェック | **変更なし**                                      | iron-session のみ Root of Trust → 既存ガードで十分 |
+| 対象                                      | #74 状態                       | #75 後                                         | 理由                                               |
+| ----------------------------------------- | ------------------------------ | ---------------------------------------------- | -------------------------------------------------- |
+| SSR `.eq('users.slack_team_id', ...)`     | 追加済                         | **`.eq('slack_team_id', ...)` に変更**         | カラム直接参照で意図がそろう                       |
+| Entity API `getBonsaiByUserId`            | `slackTeamId` 引数追加         | **引数維持・JOIN 外し**                        | service_role 経路: アプリ層防御必須                |
+| SWR `.eq('users.slack_team_id', ...)`     | 追加済                         | **`.eq('slack_team_id', ...)` に変更**         | 同上                                               |
+| SWR `slackTeamId` 引数                    | 追加済                         | **維持**                                       | RLS 二重化。FSD 型契約                             |
+| Realtime filter                           | 無し (`use-all-bonsai`)        | **`slack_team_id=eq.` 追加** (論点 #3)         | RLS + 購読 filter の二重化                         |
+| Realtime `slackTeamId` 引数               | 無し                           | **追加**                                       | 同上                                               |
+| `getUserBySlackIdAndTeamId`               | 追加済                         | 維持                                           | 書き込み経路の Root of Trust                       |
+| `process-event` の `payload.team_id` 突合 | 追加済                         | 維持                                           | 同上                                               |
+| `createBonsai(userId)` シグネチャ         | 変更なし                       | **`createBonsai(userId, slackTeamId)` へ拡張** | INSERT に列値が必要                                |
+| `insertAction` の引数                     | 変更なし                       | **`slack_team_id` を引数に追加**               | 同上                                               |
+| `authenticated` 向け書き込みポリシー      | 無し                           | **追加しない**                                 | service_role 専用                                  |
+| layout ガード                             | `session.slackTeamId` チェック | **変更なし**                                   | iron-session のみ Root of Trust → 既存ガードで十分 |
 
 注: 当初案にあった「layout ガードに `sb-access-token` cookie 存在チェックを併設」は、**サーバAPI 発行方式では JWT cookie 自体が存在しない**ため不要となった。iron-session が Root of Trust なので既存の `getAuthenticatedSession()` で十分。
 

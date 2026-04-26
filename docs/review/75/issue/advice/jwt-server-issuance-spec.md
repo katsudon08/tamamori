@@ -65,7 +65,7 @@ Issue #75 の JWT 配布について、当初案では「OAuth callback で JWT 
     "iss": "tamamori", // 自前発行の識別
     "iat": 1745305200,
     "exp": 1745308800, // iat + 3600
-    "jti": "<random uuid>" // 監査・失効トラッキング用
+    "jti": "<random uuid>", // 監査・失効トラッキング用
 }
 ```
 
@@ -104,15 +104,15 @@ Issue #75 の JWT 配布について、当初案では「OAuth callback で JWT 
 
 token-cache は以下を**集中して担う**。caller (Supabase client / Realtime hook) はこれらの詳細を知らなくてよい。
 
-| 責務                       | 説明                                                                                                | 実装メモ                                                                  |
-| -------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **メモリキャッシュ保持**   | `{ token, expiresAt }` を closure 内に保持                                                           | `localStorage` / `sessionStorage` 禁止 (XSS 耐性)                         |
-| **期限判定**               | `expiresAt - now > 60` ならキャッシュヒット、それ以外は再 fetch                                     | 60 秒バッファで TTL 切れ直前のレースを抑止                                |
-| **並列 fetch 重複抑止**    | 同時に複数 caller が `getSessionToken()` を呼んでも、進行中の fetch は **1 本に集約**                | `inflight: Promise<string> \| null` パターン                              |
-| **先行更新 (proactive)**   | TTL 残り 60 秒以下になったら次の `getSessionToken()` 呼び出しで透過的に再取得                       | 別途 setTimeout でのバックグラウンド更新は**しない** (実装複雑化を避ける) |
-| **401 ハンドリング**       | `/api/auth/session-token` が 401 を返したらキャッシュをクリアし `Error('session_expired')` を throw | caller (fetcher wrapper) が catch して `/` リダイレクト                   |
-| **明示破棄**               | `clearSessionToken()` を export → ログアウト・テナント切替時に呼ばれる                              | Realtime の `removeAllChannels()` と並べて呼ぶ                            |
-| **Realtime 同期フック**    | `onTokenRefresh(callback)` を export → token 再取得成功時に callback を呼ぶ                          | Realtime hook 側で `setAuth(newToken)` をフックさせる (論点 #3)           |
+| 責務                     | 説明                                                                                                | 実装メモ                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **メモリキャッシュ保持** | `{ token, expiresAt }` を closure 内に保持                                                          | `localStorage` / `sessionStorage` 禁止 (XSS 耐性)                         |
+| **期限判定**             | `expiresAt - now > 60` ならキャッシュヒット、それ以外は再 fetch                                     | 60 秒バッファで TTL 切れ直前のレースを抑止                                |
+| **並列 fetch 重複抑止**  | 同時に複数 caller が `getSessionToken()` を呼んでも、進行中の fetch は **1 本に集約**               | `inflight: Promise<string> \| null` パターン                              |
+| **先行更新 (proactive)** | TTL 残り 60 秒以下になったら次の `getSessionToken()` 呼び出しで透過的に再取得                       | 別途 setTimeout でのバックグラウンド更新は**しない** (実装複雑化を避ける) |
+| **401 ハンドリング**     | `/api/auth/session-token` が 401 を返したらキャッシュをクリアし `Error('session_expired')` を throw | caller (fetcher wrapper) が catch して `/` リダイレクト                   |
+| **明示破棄**             | `clearSessionToken()` を export → ログアウト・テナント切替時に呼ばれる                              | Realtime の `removeAllChannels()` と並べて呼ぶ                            |
+| **Realtime 同期フック**  | `onTokenRefresh(callback)` を export → token 再取得成功時に callback を呼ぶ                         | Realtime hook 側で `setAuth(newToken)` をフックさせる (論点 #3)           |
 
 **やらないこと (明示):**
 
@@ -218,10 +218,10 @@ Realtime は WebSocket を張りっぱなしにするため、REST と挙動が�
 
 接続中に JWT が切り替わるケースの**正式パターンを以下の 2 つに固定**する:
 
-| ケース                          | 採用パターン                          | 理由                                                                              |
-| ------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------- |
-| **TTL ロールオーバー**          | **`realtime.setAuth(newToken)`**      | 既存チャネルを維持したまま auth だけ更新。再購読のオーバーヘッド・体験影響なし。 |
-| **テナント切替 (logout → 別ログイン)** | **client 再生成 + `removeAllChannels()`** | 認可境界が変わる場面で接続を維持するのは危険。明示的に全断 → 再構築。         |
+| ケース                                 | 採用パターン                              | 理由                                                                             |
+| -------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------- |
+| **TTL ロールオーバー**                 | **`realtime.setAuth(newToken)`**          | 既存チャネルを維持したまま auth だけ更新。再購読のオーバーヘッド・体験影響なし。 |
+| **テナント切替 (logout → 別ログイン)** | **client 再生成 + `removeAllChannels()`** | 認可境界が変わる場面で接続を維持するのは危険。明示的に全断 → 再構築。            |
 
 **実装方針**:
 

@@ -24,15 +24,15 @@ Issue #75「IDOR対策 (2/2): RLSによるテナント分離 (カスタムJWT方
 
 ## 論点一覧
 
-| #   | タイトル                                                                         | 粒度 | 重要度 |
-| --- | -------------------------------------------------------------------------------- | ---- | ------ |
-| 1   | [supabase-js への JWT 注入方式](./01-jwt-delivery.md)                            | 実装 | 高     |
-| 2   | [/api/auth/session-token エンドポイント仕様](./02-session-token-endpoint.md)     | 実装 | 高     |
-| 3   | [Realtime 認証と購読フィルタの二重化](./03-realtime-auth.md)                     | 実装 | 高     |
+| #   | タイトル                                                                                       | 粒度 | 重要度 |
+| --- | ---------------------------------------------------------------------------------------------- | ---- | ------ |
+| 1   | [supabase-js への JWT 注入方式](./01-jwt-delivery.md)                                          | 実装 | 高     |
+| 2   | [/api/auth/session-token エンドポイント仕様](./02-session-token-endpoint.md)                   | 実装 | 高     |
+| 3   | [Realtime 認証と購読フィルタの二重化](./03-realtime-auth.md)                                   | 実装 | 高     |
 | 4   | [スキーマ整合性 (denormalize・複合 FK・immutable・REPLICA IDENTITY)](./04-schema-integrity.md) | DB   | 中     |
-| 5   | [マイグレーション分割とロールアウト順序](./05-migration-rollout.md)              | 運用 | 中     |
-| 6   | [#74 アプリ層フィルタとの多層防御整理](./06-layered-defense.md)                  | 設計 | 中     |
-| 7   | [Issue タスクリストへの追加タスク](./07-missing-tasks.md)                        | 棚卸 | 高     |
+| 5   | [マイグレーション分割とロールアウト順序](./05-migration-rollout.md)                            | 運用 | 中     |
+| 6   | [#74 アプリ層フィルタとの多層防御整理](./06-layered-defense.md)                                | 設計 | 中     |
+| 7   | [Issue タスクリストへの追加タスク](./07-missing-tasks.md)                                      | 棚卸 | 高     |
 
 ## 優先して決めたい順序
 

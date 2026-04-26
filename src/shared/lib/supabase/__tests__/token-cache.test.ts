@@ -33,9 +33,7 @@ function setNow(epochSeconds: number) {
 describe('getSessionToken', () => {
     test('初回呼び出しで /api/auth/session-token を fetch しトークンを返す', async () => {
         setNow(1000);
-        mockFetch.mockResolvedValueOnce(
-            jsonResponse({ token: 'jwt-A', expiresAt: 1000 + 3600 }),
-        );
+        mockFetch.mockResolvedValueOnce(jsonResponse({ token: 'jwt-A', expiresAt: 1000 + 3600 }));
 
         const { getSessionToken } = await import('../token-cache');
         const token = await getSessionToken();
@@ -49,9 +47,7 @@ describe('getSessionToken', () => {
 
     test('期限内 (残り > 60 秒) のキャッシュは fetch せずに返す', async () => {
         setNow(1000);
-        mockFetch.mockResolvedValueOnce(
-            jsonResponse({ token: 'jwt-A', expiresAt: 1000 + 3600 }),
-        );
+        mockFetch.mockResolvedValueOnce(jsonResponse({ token: 'jwt-A', expiresAt: 1000 + 3600 }));
 
         const { getSessionToken } = await import('../token-cache');
         await getSessionToken();
@@ -104,7 +100,9 @@ describe('getSessionToken', () => {
 
     test('401 が返ったらキャッシュをクリアして session_expired を throw', async () => {
         setNow(1000);
-        mockFetch.mockResolvedValueOnce(jsonResponse({ token: null, reason: 'unauthenticated' }, 401));
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse({ token: null, reason: 'unauthenticated' }, 401),
+        );
 
         const { getSessionToken } = await import('../token-cache');
         await expect(getSessionToken()).rejects.toThrow('session_expired');
@@ -120,9 +118,7 @@ describe('getSessionToken', () => {
 
     test('5xx 等の他エラーも throw する (キャッシュは更新しない)', async () => {
         setNow(1000);
-        mockFetch.mockResolvedValueOnce(
-            jsonResponse({ token: null, reason: 'server_error' }, 500),
-        );
+        mockFetch.mockResolvedValueOnce(jsonResponse({ token: null, reason: 'server_error' }, 500));
 
         const { getSessionToken } = await import('../token-cache');
         await expect(getSessionToken()).rejects.toThrow();
@@ -158,9 +154,8 @@ describe('onTokenRefresh', () => {
             .mockResolvedValueOnce(jsonResponse({ token: 'jwt-A', expiresAt: 1000 + 3600 }))
             .mockResolvedValueOnce(jsonResponse({ token: 'jwt-B', expiresAt: 1000 + 7200 }));
 
-        const { getSessionToken, onTokenRefresh, clearSessionToken } = await import(
-            '../token-cache'
-        );
+        const { getSessionToken, onTokenRefresh, clearSessionToken } =
+            await import('../token-cache');
         const cb = jest.fn<(token: string) => void>();
         onTokenRefresh(cb);
 
@@ -179,9 +174,8 @@ describe('onTokenRefresh', () => {
             .mockResolvedValueOnce(jsonResponse({ token: 'jwt-A', expiresAt: 1000 + 3600 }))
             .mockResolvedValueOnce(jsonResponse({ token: 'jwt-B', expiresAt: 1000 + 7200 }));
 
-        const { getSessionToken, onTokenRefresh, clearSessionToken } = await import(
-            '../token-cache'
-        );
+        const { getSessionToken, onTokenRefresh, clearSessionToken } =
+            await import('../token-cache');
         const cb = jest.fn<(token: string) => void>();
         const unsubscribe = onTokenRefresh(cb);
 
@@ -195,7 +189,9 @@ describe('onTokenRefresh', () => {
 
     test('401 で fetch 失敗した場合は callback されない', async () => {
         setNow(1000);
-        mockFetch.mockResolvedValueOnce(jsonResponse({ token: null, reason: 'unauthenticated' }, 401));
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse({ token: null, reason: 'unauthenticated' }, 401),
+        );
 
         const { getSessionToken, onTokenRefresh } = await import('../token-cache');
         const cb = jest.fn<(token: string) => void>();

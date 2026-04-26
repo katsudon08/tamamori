@@ -81,18 +81,22 @@ useEffect(() => {
     let channel: RealtimeChannel | null = null;
 
     (async () => {
-        const token = await getSessionToken();         // token-cache から
-        await supabase.realtime.setAuth(token);        // ★ 必須: subscribe 前に await
+        const token = await getSessionToken(); // token-cache から
+        await supabase.realtime.setAuth(token); // ★ 必須: subscribe 前に await
         if (!active) return;
 
         channel = supabase
             .channel(`bonsai-changes-${userId}`)
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'bonsai',
-                filter: `slack_team_id=eq.${slackTeamId}`,
-            }, handler)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'bonsai',
+                    filter: `slack_team_id=eq.${slackTeamId}`,
+                },
+                handler,
+            )
             .subscribe();
     })();
 
@@ -113,11 +117,11 @@ useEffect(() => {
 
 接続中に JWT が切り替わるケースの挙動を**明文化**する:
 
-| パターン                       | 採否     | 適用場面                                | 理由                                                                                    |
-| ------------------------------ | -------- | --------------------------------------- | --------------------------------------------------------------------------------------- |
-| **A. `realtime.setAuth(jwt)`** | **採用** | TTL ロールオーバー (JWT が更新される)   | 既存チャネルを維持したまま auth だけ更新。再購読のオーバーヘッドなし・体験影響ゼロ。   |
-| **B. `removeAllChannels()` + client 再生成または再購読** | **採用** | テナント切替 (logout → 別ログイン / 再ログイン) | 認可境界が変わる場面では接続を維持する方が危険。全断して再構築する。                  |
-| C. 何もせず TTL 切れまで待つ   | 不採用   | —                                       | TTL 切れ直前～直後で Realtime の挙動が不定 (実装依存)。                                 |
+| パターン                                                 | 採否     | 適用場面                                        | 理由                                                                                 |
+| -------------------------------------------------------- | -------- | ----------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **A. `realtime.setAuth(jwt)`**                           | **採用** | TTL ロールオーバー (JWT が更新される)           | 既存チャネルを維持したまま auth だけ更新。再購読のオーバーヘッドなし・体験影響ゼロ。 |
+| **B. `removeAllChannels()` + client 再生成または再購読** | **採用** | テナント切替 (logout → 別ログイン / 再ログイン) | 認可境界が変わる場面では接続を維持する方が危険。全断して再構築する。                 |
+| C. 何もせず TTL 切れまで待つ                             | 不採用   | —                                               | TTL 切れ直前～直後で Realtime の挙動が不定 (実装依存)。                              |
 
 **A の実装方針** (token-cache の onRefresh フックを利用):
 
@@ -128,7 +132,7 @@ import { onTokenRefresh } from '@/shared/lib/supabase/token-cache';
 export function useRealtimeAuthSync(supabase: SupabaseClient) {
     useEffect(() => {
         const unsubscribe = onTokenRefresh((newToken) => {
-            supabase.realtime.setAuth(newToken);  // 既存チャネルを維持したまま auth 更新
+            supabase.realtime.setAuth(newToken); // 既存チャネルを維持したまま auth 更新
         });
         return unsubscribe;
     }, [supabase]);

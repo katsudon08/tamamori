@@ -110,13 +110,13 @@ export async function GET() {
 
 ## エラー時の挙動マトリクス
 
-| 状況                                 | レスポンス | クライアント側の動作                                  |
-| ------------------------------------ | ---------- | ----------------------------------------------------- |
-| iron-session 有効 + 認証済み         | 200        | token を memory cache → Supabase RPC に注入          |
-| session cookie 無し                  | 401        | `clearSessionToken()` → `/` リダイレクト              |
-| session cookie 改ざん (decrypt 失敗) | 401        | 同上 (iron-session 側で `defaultSession` 返却)        |
-| `userId` / `slackTeamId` が空文字   | 401        | 同上                                                  |
-| `SUPABASE_JWT_SECRET` 未設定         | 500        | retry 1 回 → 失敗で error toast 表示 + 監視ログ      |
+| 状況                                 | レスポンス | クライアント側の動作                            |
+| ------------------------------------ | ---------- | ----------------------------------------------- |
+| iron-session 有効 + 認証済み         | 200        | token を memory cache → Supabase RPC に注入     |
+| session cookie 無し                  | 401        | `clearSessionToken()` → `/` リダイレクト        |
+| session cookie 改ざん (decrypt 失敗) | 401        | 同上 (iron-session 側で `defaultSession` 返却)  |
+| `userId` / `slackTeamId` が空文字    | 401        | 同上                                            |
+| `SUPABASE_JWT_SECRET` 未設定         | 500        | retry 1 回 → 失敗で error toast 表示 + 監視ログ |
 
 ## キャッシュ・ヘッダ要件
 

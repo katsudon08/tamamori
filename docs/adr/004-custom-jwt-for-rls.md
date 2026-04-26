@@ -97,13 +97,13 @@ RLS と並走させる多層防御。Server Component / Entity API は service_r
 
 ### 1. なぜ callback での JWT 発行ではなくサーバAPI で都度発行するのか
 
-| 観点                       | callback で cookie 配布                        | **サーバAPI で都度発行 (採用)**                     |
-| -------------------------- | ---------------------------------------------- | --------------------------------------------------- |
-| 信頼源 (Root of Trust)     | iron-session **と** JWT cookie の 2 系統       | **iron-session 一系統**                             |
-| TTL 切れ時の挙動           | 強制再ログイン (cookie 切れたら復元できない)  | **iron-session が生きていればシームレスに新 JWT**   |
-| logout の整合性            | 両 cookie を破棄する必要 (片方残ると不整合)    | iron-session 破棄だけで JWT も次の取得時に 401      |
-| インシデント時の失効       | cookie を全ユーザーから消す手段が無い          | `SUPABASE_JWT_SECRET` ローテで全 JWT 一斉失効可能   |
-| 当初案の矛盾               | httpOnly と `document.cookie` 読みは両立しない | 矛盾なし                                            |
+| 観点                   | callback で cookie 配布                        | **サーバAPI で都度発行 (採用)**                   |
+| ---------------------- | ---------------------------------------------- | ------------------------------------------------- |
+| 信頼源 (Root of Trust) | iron-session **と** JWT cookie の 2 系統       | **iron-session 一系統**                           |
+| TTL 切れ時の挙動       | 強制再ログイン (cookie 切れたら復元できない)   | **iron-session が生きていればシームレスに新 JWT** |
+| logout の整合性        | 両 cookie を破棄する必要 (片方残ると不整合)    | iron-session 破棄だけで JWT も次の取得時に 401    |
+| インシデント時の失効   | cookie を全ユーザーから消す手段が無い          | `SUPABASE_JWT_SECRET` ローテで全 JWT 一斉失効可能 |
+| 当初案の矛盾           | httpOnly と `document.cookie` 読みは両立しない | 矛盾なし                                          |
 
 決め手は **「信頼源を増やさない」**。iron-session に集約することで、認証/認可の状態が常に 1 箇所で決まり、JWT は派生物にすぎない。
 
@@ -122,11 +122,11 @@ RLS と並走させる多層防御。Server Component / Entity API は service_r
 
 PoC で 3 案を比較した:
 
-| 案                                  | 評価                                                                                                  |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **A. `accessToken` 関数オプション (採用)** | リクエストごとに関数を呼ぶ → TTL 切れ・rotation に自然対応。client 再生成不要。closure 内で responsibilities が完結 |
-| B. `setSession({ access_token, refresh_token: '' })` | 内部で `refreshSession` が走ると空 refresh_token で失敗。`@supabase/ssr` の cookie 管理と衝突 |
-| C. `global.headers.Authorization` 固定 | TTL 切れで client 再生成が必要 → caller 側に複雑度が漏れる                                              |
+| 案                                                   | 評価                                                                                                                |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **A. `accessToken` 関数オプション (採用)**           | リクエストごとに関数を呼ぶ → TTL 切れ・rotation に自然対応。client 再生成不要。closure 内で responsibilities が完結 |
+| B. `setSession({ access_token, refresh_token: '' })` | 内部で `refreshSession` が走ると空 refresh_token で失敗。`@supabase/ssr` の cookie 管理と衝突                       |
+| C. `global.headers.Authorization` 固定               | TTL 切れで client 再生成が必要 → caller 側に複雑度が漏れる                                                          |
 
 PoC 結果 (`accessToken called 3 times: [A, A, B]`):
 
@@ -168,7 +168,7 @@ if (this.accessToken) {
 }
 ```
 
-ユーザーコードが直後に `channel().subscribe()` を呼ぶと、setAuth 完了前に subscribe が走る → WebSocket は anon ロールで postgres_changes RLS を評価する → `anon_select_*` ポリシーが該当して全行が漏れる。
+ユーザーコードが直後に `channel().subscribe()` を呼ぶと、setAuth 完了前に subscribe が走る → WebSocket は anon ロールで postgres*changes RLS を評価する → `anon_select*\*` ポリシーが該当して全行が漏れる。
 
 PoC で実証 (`POC_NO_EXPLICIT_SETAUTH=1`):
 
@@ -181,11 +181,11 @@ PoC で実証 (`POC_NO_EXPLICIT_SETAUTH=1`):
 
 denormalize したため、**`bonsai.slack_team_id` と `users.slack_team_id` の整合性が崩れるリスク**が生まれる。RLS は `bonsai.slack_team_id` を信頼するため、ここがズレるとそのまま越境を許す。
 
-| 案                              | 評価                                                                                       |
-| ------------------------------- | ------------------------------------------------------------------------------------------ |
-| アプリ層保証のみ                | コピペバグ・将来のリグレッションに弱い。RLS の「最終防衛線」価値が半減                      |
-| **複合 FK + immutable (採用)** | DB 側で物理的に保証 → アプリ層バグが越境につながる経路を遮断 (#75 の本来の目的と一致)        |
-| トリガで都度 SELECT             | サブクエリ CHECK 制約は PostgreSQL で不可。トリガ代替は性能オーバーヘッドが高い              |
+| 案                             | 評価                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------- |
+| アプリ層保証のみ               | コピペバグ・将来のリグレッションに弱い。RLS の「最終防衛線」価値が半減                |
+| **複合 FK + immutable (採用)** | DB 側で物理的に保証 → アプリ層バグが越境につながる経路を遮断 (#75 の本来の目的と一致) |
+| トリガで都度 SELECT            | サブクエリ CHECK 制約は PostgreSQL で不可。トリガ代替は性能オーバーヘッドが高い       |
 
 immutable トリガの対象は 3 テーブル (`users` / `bonsai` / `action_log`):
 
@@ -194,12 +194,12 @@ immutable トリガの対象は 3 テーブル (`users` / `bonsai` / `action_log
 
 ### 8. なぜ #74 のアプリ層フィルタを削除しないのか
 
-| 経路                       | アクセスキー        | RLS が効くか    | 防御主体                |
-| -------------------------- | ------------------- | --------------- | ----------------------- |
-| Server Component (`/garden`) | service_role        | **バイパス**    | **アプリ層 (唯一)**    |
-| Entity API (callback 等)    | service_role        | **バイパス**    | **アプリ層 (唯一)**    |
-| ブラウザ SWR                | anon + 独自 JWT     | 効く            | RLS + アプリ層 (二重) |
-| ブラウザ Realtime           | anon + 独自 JWT     | 効く            | RLS + filter (二重)   |
+| 経路                         | アクセスキー    | RLS が効くか | 防御主体              |
+| ---------------------------- | --------------- | ------------ | --------------------- |
+| Server Component (`/garden`) | service_role    | **バイパス** | **アプリ層 (唯一)**   |
+| Entity API (callback 等)     | service_role    | **バイパス** | **アプリ層 (唯一)**   |
+| ブラウザ SWR                 | anon + 独自 JWT | 効く         | RLS + アプリ層 (二重) |
+| ブラウザ Realtime            | anon + 独自 JWT | 効く         | RLS + filter (二重)   |
 
 - **service_role 経路ではアプリ層が唯一の防御**。削除すると即座に越境
 - SWR / Realtime は RLS と冗長だが、防御の対称性 + 将来の RLS バグ時の保険
@@ -256,13 +256,13 @@ immutable トリガの対象は 3 テーブル (`users` / `bonsai` / `action_log
 
 ## 多層防御の役割分担
 
-| 層                          | 経路                                          | 防御主体                  | 補足                                |
-| --------------------------- | --------------------------------------------- | ------------------------- | ----------------------------------- |
-| Server Component / SSR     | `service_role` キー                           | **アプリ層 (唯一)**       | RLS バイパス                        |
-| Entity API (server-side)    | `service_role` キー                           | **アプリ層 (唯一)**       | RLS バイパス                        |
-| ブラウザ SWR fetch          | `anon` キー + 独自 JWT                        | RLS + アプリ層 (二重)    | アプリ層は冗長だが対称性のため維持 |
-| ブラウザ Realtime 購読      | `anon` キー + 独自 JWT + explicit `setAuth`   | RLS + 購読 filter (二重) | filter で先絞りして RLS 適用漏れに保険 |
-| 書き込み (INSERT/UPDATE)    | `service_role` キー                           | **アプリ層 (唯一)**       | JWT コンテキストなし                |
+| 層                       | 経路                                        | 防御主体                 | 補足                                   |
+| ------------------------ | ------------------------------------------- | ------------------------ | -------------------------------------- |
+| Server Component / SSR   | `service_role` キー                         | **アプリ層 (唯一)**      | RLS バイパス                           |
+| Entity API (server-side) | `service_role` キー                         | **アプリ層 (唯一)**      | RLS バイパス                           |
+| ブラウザ SWR fetch       | `anon` キー + 独自 JWT                      | RLS + アプリ層 (二重)    | アプリ層は冗長だが対称性のため維持     |
+| ブラウザ Realtime 購読   | `anon` キー + 独自 JWT + explicit `setAuth` | RLS + 購読 filter (二重) | filter で先絞りして RLS 適用漏れに保険 |
+| 書き込み (INSERT/UPDATE) | `service_role` キー                         | **アプリ層 (唯一)**      | JWT コンテキストなし                   |
 
 ## 影響
 

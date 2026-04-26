@@ -73,7 +73,10 @@ async function checkpoint1() {
         fail('SELECT users (team A JWT)', error.message);
         return;
     }
-    log('  rows returned:', data.map((r) => r.slack_team_id));
+    log(
+        '  rows returned:',
+        data.map((r) => r.slack_team_id),
+    );
 
     const teams = new Set(data.map((r) => r.slack_team_id));
     expect(teams.has(TEAM_A), 'team A の行が見える');
@@ -189,10 +192,7 @@ async function checkpoint3() {
     log(`  accessToken called ${calls.length} times: ${JSON.stringify(calls)}`);
     expect(teams2.has(TEAM_B) && !teams2.has(TEAM_A), '2 回目: team B のみ見える');
     expect(calls.length >= 2, 'accessToken が複数回呼ばれた');
-    expect(
-        calls[calls.length - 1] === TEAM_B,
-        '最後の呼び出しは差し替え後の team B JWT を返した',
-    );
+    expect(calls[calls.length - 1] === TEAM_B, '最後の呼び出しは差し替え後の team B JWT を返した');
 }
 
 (async () => {

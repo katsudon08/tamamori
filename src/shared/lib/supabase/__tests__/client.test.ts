@@ -4,9 +4,9 @@ import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 
 // supabase-js の createClient をモック化し、渡されるオプションを検証する
 type CreateClientArgs = [url: string, key: string, options?: Record<string, unknown>];
-const mockCreateClient = jest.fn<(...args: CreateClientArgs) => { from: jest.Mock }>(
-    () => ({ from: jest.fn() }),
-);
+const mockCreateClient = jest.fn<(...args: CreateClientArgs) => { from: jest.Mock }>(() => ({
+    from: jest.fn(),
+}));
 jest.mock('@supabase/supabase-js', () => ({
     createClient: (...args: unknown[]) => mockCreateClient(...(args as CreateClientArgs)),
 }));

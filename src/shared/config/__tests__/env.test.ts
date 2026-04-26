@@ -51,9 +51,9 @@ describe('parseEnv', () => {
     });
 
     test('SUPABASE_JWT_SECRET が32文字未満の場合にZodErrorをthrowする', () => {
-        expect(() =>
-            parseEnv({ ...VALID_ENV, SUPABASE_JWT_SECRET: 'too-short' }),
-        ).toThrow(ZodError);
+        expect(() => parseEnv({ ...VALID_ENV, SUPABASE_JWT_SECRET: 'too-short' })).toThrow(
+            ZodError,
+        );
     });
 });
 
