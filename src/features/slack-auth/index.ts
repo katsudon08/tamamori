@@ -20,6 +20,8 @@ export {
     type IssueSupabaseJwtResult,
 } from './api/supabase-jwt';
 
+export { LogoutButton } from './ui/LogoutButton';
+
 export {
     getSession,
     getServerSession,
