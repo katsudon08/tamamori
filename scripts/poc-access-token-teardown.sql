@@ -1,10 +1,6 @@
 -- PoC 検証後のクリーンアップ
-
-DROP POLICY IF EXISTS "poc_authenticated_select_users" ON users;
-DROP POLICY IF EXISTS "poc_authenticated_select_bonsai" ON bonsai;
-
-ALTER TABLE bonsai REPLICA IDENTITY DEFAULT;
-ALTER TABLE bonsai DROP COLUMN IF EXISTS slack_team_id;
+-- 007/008 適用後の状態を保ったまま、PoC で追加した行のみ削除する。
+-- 既存ポリシーや REPLICA IDENTITY FULL 等は触らない。
 
 DELETE FROM bonsai WHERE id IN (
     'b1111111-0000-4000-a000-000000000001'::uuid,
