@@ -225,7 +225,7 @@ describe('processSlackEvent', () => {
         consoleSpy.mockRestore();
     });
 
-    test('通常メッセージで message アクションが記録される', async () => {
+    test('通常メッセージで message アクションが記録される (slack_team_id 込み)', async () => {
         const { processSlackEvent } = await import('../process-event');
 
         await processSlackEvent(makeMessagePayload() as never);
@@ -234,6 +234,7 @@ describe('processSlackEvent', () => {
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({
                 user_id: 'user-uuid-123',
+                slack_team_id: 'T01XXXX', // user lookup の結果由来 (検証済み値)
                 action_type: 'message',
                 slack_event_id: 'Ev01XXXX',
                 slack_channel: 'C01XXXX',
@@ -241,7 +242,7 @@ describe('processSlackEvent', () => {
         );
     });
 
-    test('感謝メッセージで message + thanks の2つのアクションが記録される', async () => {
+    test('感謝メッセージで message + thanks の2つのアクションが slack_team_id 込みで記録される', async () => {
         const { processSlackEvent } = await import('../process-event');
 
         await processSlackEvent(makeThanksPayload() as never);
@@ -249,19 +250,21 @@ describe('processSlackEvent', () => {
         expect(mockInsertAction).toHaveBeenCalledTimes(2);
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({
+                slack_team_id: 'T01XXXX',
                 action_type: 'message',
                 slack_event_id: 'Ev01XXXX',
             }),
         );
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({
+                slack_team_id: 'T01XXXX',
                 action_type: 'thanks',
                 slack_event_id: 'Ev01XXXX_thanks',
             }),
         );
     });
 
-    test('リアクションで reaction アクションが記録される', async () => {
+    test('リアクションで reaction アクションが記録される (slack_team_id 込み)', async () => {
         const { processSlackEvent } = await import('../process-event');
 
         await processSlackEvent(makeReactionPayload() as never);
@@ -269,6 +272,7 @@ describe('processSlackEvent', () => {
         expect(mockInsertAction).toHaveBeenCalledTimes(1);
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({
+                slack_team_id: 'T01XXXX',
                 action_type: 'reaction',
                 slack_event_id: 'Ev02XXXX',
                 slack_channel: 'C01XXXX',
