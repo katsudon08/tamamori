@@ -3,38 +3,69 @@
 import { useEffect } from 'react';
 import { useSWRConfig } from 'swr';
 
-import { createBrowserClient } from '@/shared/lib/supabase';
+import { createBrowserClient, getSessionToken } from '@/shared/lib/supabase';
 import type { Database } from '@/shared/lib/supabase';
 
 type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
 
-const supabase = createBrowserClient();
-
-export function useAllBonsaiRealtime() {
+/**
+ * テナント全員の bonsai UPDATE を購読する。
+ *
+ * 設計要件 (PoC 由来 / ADR-004 §決定 6):
+ * - createBrowserClient はフック内で呼ぶ (モジュールシングルトン撤去)
+ * - subscribe 前に **必ず `await supabase.realtime.setAuth(token)` を呼ぶ**。
+ *   accessToken オプションの auto-setAuth は fire-and-forget で race するため、
+ *   これを怠ると postgres_changes RLS が anon ロールで評価されて他テナント
+ *   UPDATE が漏れる (PoC で実証済み)。
+ * - 購読 filter に `slack_team_id=eq.${slackTeamId}` を付け、RLS との二重防御。
+ *   RLS が万一バグっても購読側で先に絞られる。
+ */
+export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
     const { mutate } = useSWRConfig();
 
     useEffect(() => {
-        const channel = supabase
-            .channel('bonsai-changes-all')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'bonsai',
-                },
-                (payload) => {
-                    mutate('all-bonsai');
-                    const newRow = payload.new as BonsaiRow;
-                    if (newRow.user_id) {
-                        mutate(['bonsai', newRow.user_id]);
-                    }
-                },
-            )
-            .subscribe();
+        if (!slackTeamId) return;
+
+        const supabase = createBrowserClient();
+        let cancelled = false;
+        let channel: ReturnType<typeof supabase.channel> | null = null;
+
+        (async () => {
+            try {
+                const token = await getSessionToken();
+                if (cancelled) return;
+                await supabase.realtime.setAuth(token);
+                if (cancelled) return;
+
+                channel = supabase
+                    .channel(`bonsai-changes-all-${slackTeamId}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'bonsai',
+                            filter: `slack_team_id=eq.${slackTeamId}`,
+                        },
+                        (payload) => {
+                            mutate('all-bonsai');
+                            const newRow = payload.new as BonsaiRow;
+                            if (newRow.user_id) {
+                                mutate(['bonsai', newRow.user_id]);
+                            }
+                        },
+                    )
+                    .subscribe();
+            } catch (err) {
+                console.error('[useAllBonsaiRealtime] subscribe failed:', err);
+            }
+        })();
 
         return () => {
-            supabase.removeChannel(channel);
+            cancelled = true;
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
         };
-    }, [mutate]);
+    }, [slackTeamId, mutate]);
 }

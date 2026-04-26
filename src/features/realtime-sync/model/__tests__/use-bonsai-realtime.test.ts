@@ -14,7 +14,10 @@ jest.mock('swr', () => ({
     useSWRConfig: () => ({ mutate: mockMutate }),
 }));
 
-// Supabase チャンネルモック
+// token-cache: subscribe 前に await される getSessionToken と onTokenRefresh
+const mockGetSessionToken = jest.fn(async () => 'jwt-A');
+
+// Supabase チャンネルモック (createBrowserClient はフック内で都度呼ぶ前提)
 type OnCallback = (payload: { new: Record<string, unknown> }) => void;
 let capturedOnCallback: OnCallback = () => {};
 const mockChannelObj = Symbol('channel');
@@ -25,12 +28,18 @@ const mockOn = jest.fn((_type: string, _filter: Record<string, unknown>, cb: OnC
 });
 const mockChannel = jest.fn<(...args: unknown[]) => { on: typeof mockOn }>(() => ({ on: mockOn }));
 const mockRemoveChannel = jest.fn();
+const mockSetAuth = jest.fn(async (token: string) => {
+    void token; // 受領していることだけ確認
+});
+const mockCreateBrowserClient = jest.fn(() => ({
+    channel: mockChannel,
+    removeChannel: mockRemoveChannel,
+    realtime: { setAuth: mockSetAuth },
+}));
 
 jest.mock('@/shared/lib/supabase', () => ({
-    createBrowserClient: () => ({
-        channel: mockChannel,
-        removeChannel: mockRemoveChannel,
-    }),
+    createBrowserClient: () => mockCreateBrowserClient(),
+    getSessionToken: () => mockGetSessionToken(),
 }));
 
 import { useBonsaiRealtime } from '../use-bonsai-realtime';
@@ -41,10 +50,25 @@ describe('useBonsaiRealtime', () => {
         effectCallback = null;
     });
 
-    test('正しいフィルタで購読が作成される', () => {
-        useBonsaiRealtime('user-123');
-        // useEffect コールバックを実行
-        effectCallback!();
+    test('subscribe 前に realtime.setAuth(jwt) が await される (PoC 由来の必須要件)', async () => {
+        useBonsaiRealtime('user-123', 'T01XXXX');
+        await effectCallback!();
+        // microtask flush
+        await Promise.resolve();
+        await Promise.resolve();
+
+        // setAuth は subscribe より前に呼ばれている
+        const setAuthOrder = mockSetAuth.mock.invocationCallOrder[0]!;
+        const subscribeOrder = mockSubscribe.mock.invocationCallOrder[0]!;
+        expect(setAuthOrder).toBeLessThan(subscribeOrder);
+        expect(mockSetAuth).toHaveBeenCalledWith('jwt-A');
+    });
+
+    test('user_id filter で postgres_changes が購読される', async () => {
+        useBonsaiRealtime('user-123', 'T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
 
         expect(mockChannel).toHaveBeenCalledWith('bonsai-changes-user-123');
         expect(mockOn).toHaveBeenCalledWith(
@@ -60,9 +84,18 @@ describe('useBonsaiRealtime', () => {
         expect(mockSubscribe).toHaveBeenCalled();
     });
 
-    test('payload到着時にmutateが正しいキーで呼ばれる', () => {
-        useBonsaiRealtime('user-123');
-        effectCallback!();
+    test('createBrowserClient はフック内で呼ばれる (モジュールスコープのシングルトン撤去)', async () => {
+        useBonsaiRealtime('user-123', 'T01XXXX');
+        await effectCallback!();
+
+        expect(mockCreateBrowserClient).toHaveBeenCalledTimes(1);
+    });
+
+    test('payload到着時にmutateが正しいキーで呼ばれる', async () => {
+        useBonsaiRealtime('user-123', 'T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
 
         capturedOnCallback({ new: { user_id: 'user-123' } });
 
@@ -70,20 +103,30 @@ describe('useBonsaiRealtime', () => {
         expect(mockMutate).toHaveBeenCalledWith('all-bonsai');
     });
 
-    test('unmount時にremoveChannelが呼ばれる', () => {
-        useBonsaiRealtime('user-123');
-        const cleanup = effectCallback!() as () => void;
+    test('unmount時にremoveChannelが呼ばれる', async () => {
+        useBonsaiRealtime('user-123', 'T01XXXX');
+        const cleanup = (await effectCallback!()) as () => void;
+        await Promise.resolve();
+        await Promise.resolve();
 
         cleanup();
 
         expect(mockRemoveChannel).toHaveBeenCalledWith(mockChannelObj);
     });
 
-    test('userIdがundefinedの場合は購読しない', () => {
-        useBonsaiRealtime(undefined);
-        effectCallback!();
+    test('userId が undefined の場合は購読しない', async () => {
+        useBonsaiRealtime(undefined, 'T01XXXX');
+        await effectCallback!();
 
+        expect(mockSetAuth).not.toHaveBeenCalled();
         expect(mockChannel).not.toHaveBeenCalled();
-        expect(mockSubscribe).not.toHaveBeenCalled();
+    });
+
+    test('slackTeamId が undefined の場合も購読しない (二重防御の前提が崩れるため)', async () => {
+        useBonsaiRealtime('user-123', undefined);
+        await effectCallback!();
+
+        expect(mockSetAuth).not.toHaveBeenCalled();
+        expect(mockChannel).not.toHaveBeenCalled();
     });
 });

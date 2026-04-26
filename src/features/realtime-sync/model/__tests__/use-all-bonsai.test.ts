@@ -14,7 +14,9 @@ jest.mock('swr', () => ({
     useSWRConfig: () => ({ mutate: mockMutate }),
 }));
 
-// Supabase チャンネルモック
+const mockGetSessionToken = jest.fn(async () => 'jwt-A');
+
+// Supabase チャンネルモック (createBrowserClient はフック内で都度呼ぶ前提)
 type OnCallback = (payload: { new: Record<string, unknown> }) => void;
 let capturedOnCallback: OnCallback = () => {};
 const mockChannelObj = Symbol('channel');
@@ -25,12 +27,18 @@ const mockOn = jest.fn((_type: string, _filter: Record<string, unknown>, cb: OnC
 });
 const mockChannel = jest.fn<(...args: unknown[]) => { on: typeof mockOn }>(() => ({ on: mockOn }));
 const mockRemoveChannel = jest.fn();
+const mockSetAuth = jest.fn(async (token: string) => {
+    void token;
+});
+const mockCreateBrowserClient = jest.fn(() => ({
+    channel: mockChannel,
+    removeChannel: mockRemoveChannel,
+    realtime: { setAuth: mockSetAuth },
+}));
 
 jest.mock('@/shared/lib/supabase', () => ({
-    createBrowserClient: () => ({
-        channel: mockChannel,
-        removeChannel: mockRemoveChannel,
-    }),
+    createBrowserClient: () => mockCreateBrowserClient(),
+    getSessionToken: () => mockGetSessionToken(),
 }));
 
 import { useAllBonsaiRealtime } from '../use-all-bonsai';
@@ -41,26 +49,50 @@ describe('useAllBonsaiRealtime', () => {
         effectCallback = null;
     });
 
-    test('フィルタなしで全盆栽購読が作成される', () => {
-        useAllBonsaiRealtime();
-        effectCallback!();
+    test('subscribe 前に realtime.setAuth(jwt) が await される (PoC 由来の必須要件)', async () => {
+        useAllBonsaiRealtime('T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
 
-        expect(mockChannel).toHaveBeenCalledWith('bonsai-changes-all');
+        const setAuthOrder = mockSetAuth.mock.invocationCallOrder[0]!;
+        const subscribeOrder = mockSubscribe.mock.invocationCallOrder[0]!;
+        expect(setAuthOrder).toBeLessThan(subscribeOrder);
+        expect(mockSetAuth).toHaveBeenCalledWith('jwt-A');
+    });
+
+    test('slack_team_id filter で全盆栽購読が作成される (RLS との二重防御)', async () => {
+        useAllBonsaiRealtime('T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(mockChannel).toHaveBeenCalledWith('bonsai-changes-all-T01XXXX');
         expect(mockOn).toHaveBeenCalledWith(
             'postgres_changes',
             {
                 event: 'UPDATE',
                 schema: 'public',
                 table: 'bonsai',
+                filter: 'slack_team_id=eq.T01XXXX',
             },
             expect.any(Function),
         );
         expect(mockSubscribe).toHaveBeenCalled();
     });
 
-    test('payload到着時にmutateが呼ばれる', () => {
-        useAllBonsaiRealtime();
-        effectCallback!();
+    test('createBrowserClient はフック内で呼ばれる (モジュールスコープのシングルトン撤去)', async () => {
+        useAllBonsaiRealtime('T01XXXX');
+        await effectCallback!();
+
+        expect(mockCreateBrowserClient).toHaveBeenCalledTimes(1);
+    });
+
+    test('payload到着時にmutateが呼ばれる', async () => {
+        useAllBonsaiRealtime('T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
 
         capturedOnCallback({ new: { user_id: 'user-456' } });
 
@@ -68,12 +100,22 @@ describe('useAllBonsaiRealtime', () => {
         expect(mockMutate).toHaveBeenCalledWith(['bonsai', 'user-456']);
     });
 
-    test('unmount時にremoveChannelが呼ばれる', () => {
-        useAllBonsaiRealtime();
-        const cleanup = effectCallback!() as () => void;
+    test('unmount時にremoveChannelが呼ばれる', async () => {
+        useAllBonsaiRealtime('T01XXXX');
+        const cleanup = (await effectCallback!()) as () => void;
+        await Promise.resolve();
+        await Promise.resolve();
 
         cleanup();
 
         expect(mockRemoveChannel).toHaveBeenCalledWith(mockChannelObj);
+    });
+
+    test('slackTeamId が undefined の場合は購読しない', async () => {
+        useAllBonsaiRealtime(undefined);
+        await effectCallback!();
+
+        expect(mockSetAuth).not.toHaveBeenCalled();
+        expect(mockChannel).not.toHaveBeenCalled();
     });
 });
