@@ -30,10 +30,11 @@ describe('bonsai-api サーバー用関数', () => {
     });
 
     describe('getBonsaiByUserId', () => {
-        test('user_id と slackTeamId で盆栽を取得する（users JOIN でテナント検証）', async () => {
+        test('user_id と slackTeamId で盆栽を取得する (自テーブル slack_team_id 直接参照)', async () => {
             const expected = {
                 id: 'uuid-bonsai-1',
                 user_id: 'uuid-user-1',
+                slack_team_id: 'T01XXXX',
                 total_messages: 5,
                 growth_stage: 'sprout',
             };
@@ -42,9 +43,12 @@ describe('bonsai-api サーバー用関数', () => {
             const result = await getBonsaiByUserId('uuid-user-1', 'T01XXXX');
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
-            expect(mockSelect).toHaveBeenCalledWith('*, users!inner(slack_team_id)');
+            // RLS ポリシーと同じ列を参照する形に統一 (JOIN は使わない)
+            expect(mockSelect).toHaveBeenCalledWith('*');
             expect(mockEq).toHaveBeenCalledWith('user_id', 'uuid-user-1');
-            expect(mockEq).toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
+            expect(mockEq).toHaveBeenCalledWith('slack_team_id', 'T01XXXX');
+            // 旧来の users JOIN 経由の filter が呼ばれていないことを確認
+            expect(mockEq).not.toHaveBeenCalledWith('users.slack_team_id', 'T01XXXX');
             expect(result).toEqual(expected);
         });
 
@@ -61,15 +65,24 @@ describe('bonsai-api サーバー用関数', () => {
     });
 
     describe('createBonsai', () => {
-        test('初期状態(seed)で盆栽を作成する', async () => {
+        test('userId と slackTeamId を受け取り INSERT に slack_team_id を含める', async () => {
             const userId = 'uuid-user-1';
-            const expected = { id: 'uuid-bonsai-1', user_id: userId, growth_stage: 'seed' };
+            const slackTeamId = 'T01XXXX';
+            const expected = {
+                id: 'uuid-bonsai-1',
+                user_id: userId,
+                slack_team_id: slackTeamId,
+                growth_stage: 'seed',
+            };
             mockSingle.mockResolvedValue({ data: expected, error: null });
 
-            const result = await createBonsai(userId);
+            const result = await createBonsai(userId, slackTeamId);
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
-            expect(mockInsert).toHaveBeenCalledWith({ user_id: userId });
+            expect(mockInsert).toHaveBeenCalledWith({
+                user_id: userId,
+                slack_team_id: slackTeamId,
+            });
             expect(result).toEqual(expected);
         });
 
@@ -79,7 +92,7 @@ describe('bonsai-api サーバー用関数', () => {
                 error: { message: 'Duplicate' },
             });
 
-            await expect(createBonsai('uuid-user-1')).rejects.toEqual({
+            await expect(createBonsai('uuid-user-1', 'T01XXXX')).rejects.toEqual({
                 message: 'Duplicate',
             });
         });
