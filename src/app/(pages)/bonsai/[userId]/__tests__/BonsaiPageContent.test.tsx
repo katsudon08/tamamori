@@ -121,7 +121,7 @@ describe('BonsaiPageContent', () => {
         expect(mockUseBonsaiWithArgs).toHaveBeenCalledWith(MOCK_USER_ID, MOCK_SLACK_TEAM_ID);
     });
 
-    test('useBonsaiRealtime(userId) フックを呼び出す', () => {
+    test('useBonsaiRealtime(userId, slackTeamId) フックを呼び出す', () => {
         render(
             <BonsaiPageContent
                 userId={MOCK_USER_ID}
@@ -130,7 +130,7 @@ describe('BonsaiPageContent', () => {
             />,
         );
 
-        expect(mockUseBonsaiRealtime).toHaveBeenCalledWith(MOCK_USER_ID);
+        expect(mockUseBonsaiRealtime).toHaveBeenCalledWith(MOCK_USER_ID, MOCK_SLACK_TEAM_ID);
     });
 
     test('SWR データを BonsaiViewer に渡す', () => {
