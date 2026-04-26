@@ -12,11 +12,13 @@ export default async function BonsaiPage({ params }: { params: Promise<{ userId:
     const { slackTeamId } = await getAuthenticatedSession();
     const supabase = createServerClient();
 
+    // 表示用 JOIN は維持。テナント filter は RLS と同じ列 (bonsai.slack_team_id)
+    // を直接参照する形に統一。
     const { data } = await supabase
         .from('bonsai')
         .select('*, users!inner (display_name, avatar_url)')
         .eq('user_id', userId)
-        .eq('users.slack_team_id', slackTeamId)
+        .eq('slack_team_id', slackTeamId)
         .single();
 
     if (!data) {
