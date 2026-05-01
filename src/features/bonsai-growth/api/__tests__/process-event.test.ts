@@ -39,12 +39,13 @@ const mockGetBonsaiByUserId = jest
         visual_state: {},
     });
 const mockUpdateBonsai = jest
-    .fn<(id: unknown, data: unknown) => Promise<Record<string, unknown>>>()
+    .fn<(id: unknown, slackTeamId: unknown, data: unknown) => Promise<Record<string, unknown>>>()
     .mockResolvedValue({ id: 'bonsai-uuid-123' });
 
 jest.mock('@/entities/bonsai', () => ({
     getBonsaiByUserId: (...args: unknown[]) => mockGetBonsaiByUserId(...(args as [string])),
-    updateBonsai: (...args: unknown[]) => mockUpdateBonsai(...(args as [unknown, unknown])),
+    updateBonsai: (...args: unknown[]) =>
+        mockUpdateBonsai(...(args as [unknown, unknown, unknown])),
 }));
 
 jest.mock('@/shared/config', () => ({
@@ -287,6 +288,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 total_messages: 11,
                 total_reactions: 5,
@@ -302,6 +304,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 total_messages: 11,
                 total_thanks: 3,
@@ -316,6 +319,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 total_reactions: 6,
             }),
@@ -329,6 +333,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 growth_stage: expect.any(String),
             }),
@@ -342,6 +347,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 visual_state: expect.objectContaining({
                     trunkHeight: expect.any(Number),

@@ -122,7 +122,10 @@ export async function processSlackEvent(payload: SlackEventPayload): Promise<voi
         const visualState = computeVisualState(counters, user.id);
 
         // 10. bonsai 更新
-        await updateBonsai(bonsai.id as string, {
+        // updateBonsai は (id, slackTeamId) 二重 filter を持つため、bonsai.id が
+        // 何らかの理由で別テナントの行を指していても DB レベルで弾かれる
+        // (service_role 経路で RLS バイパスのためアプリ層 filter が唯一の防御)。
+        await updateBonsai(bonsai.id as string, user.slack_team_id, {
             total_messages: counters.totalMessages,
             total_reactions: counters.totalReactions,
             total_thanks: counters.totalThanks,

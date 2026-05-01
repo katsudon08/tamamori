@@ -55,15 +55,21 @@ export async function createBonsai(userId: string, slackTeamId: string) {
 }
 
 /**
- * bonsai を id 直接指定で更新する。
+ * bonsai を (id, slackTeamId) 指定で更新する。
  *
- * 注意: tenant 検証を内包していない「検証済み ID 専用 API」。
- * 呼び出し側で id が `getBonsaiByUserId(userId, slackTeamId)` の結果に由来する
- * 検証済み ID であることを保証した上で呼ぶこと (現在の caller は process-event のみ)。
+ * service_role 経由 (= RLS バイパス) なので、id 単独で UPDATE すると tenant
+ * 境界がアプリ層に依存してしまう。caller のバグ・誤った id 渡しによる
+ * 越境書き込みを構造的に防ぐため、API 自体で slack_team_id filter を持つ。
+ * caller (process-event) は user lookup の検証済み slack_team_id を渡すこと。
  */
-export async function updateBonsai(id: string, updateData: UpdateBonsaiData) {
+export async function updateBonsai(id: string, slackTeamId: string, updateData: UpdateBonsaiData) {
     const supabase = createServerClient();
-    const { data, error } = await supabase.from('bonsai').update(updateData).eq('id', id).single();
+    const { data, error } = await supabase
+        .from('bonsai')
+        .update(updateData)
+        .eq('id', id)
+        .eq('slack_team_id', slackTeamId)
+        .single();
     if (error) throw error;
     return data;
 }

@@ -99,7 +99,7 @@ describe('bonsai-api サーバー用関数', () => {
     });
 
     describe('updateBonsai', () => {
-        test('カウンター・ステージ・visual_stateを更新する', async () => {
+        test('id + slack_team_id 二重 filter で update する', async () => {
             const updateData = {
                 total_messages: 10,
                 growth_stage: 'sprout' as const,
@@ -107,11 +107,12 @@ describe('bonsai-api サーバー用関数', () => {
             const expected = { id: 'uuid-bonsai-1', ...updateData };
             mockSingle.mockResolvedValue({ data: expected, error: null });
 
-            const result = await updateBonsai('uuid-bonsai-1', updateData);
+            const result = await updateBonsai('uuid-bonsai-1', 'T01XXXX', updateData);
 
             expect(mockFrom).toHaveBeenCalledWith('bonsai');
             expect(mockUpdate).toHaveBeenCalledWith(updateData);
             expect(mockEq).toHaveBeenCalledWith('id', 'uuid-bonsai-1');
+            expect(mockEq).toHaveBeenCalledWith('slack_team_id', 'T01XXXX');
             expect(result).toEqual(expected);
         });
 
@@ -121,7 +122,7 @@ describe('bonsai-api サーバー用関数', () => {
                 error: { message: 'Not found' },
             });
 
-            await expect(updateBonsai('invalid', {})).rejects.toEqual({
+            await expect(updateBonsai('invalid', 'T01XXXX', {})).rejects.toEqual({
                 message: 'Not found',
             });
         });
