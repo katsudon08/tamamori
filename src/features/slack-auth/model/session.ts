@@ -22,13 +22,19 @@ export interface SessionData {
 export type ReadonlySession = Readonly<SessionData>;
 
 /**
- * 認証済み状態のセッション型。`userId` と `slackTeamId` が非空であることを
- * 型レベルで表現する。`(pages)/` 配下の layout ガード通過後にのみ得られる。
+ * 認証済み状態のセッション型。`userId` / `slackTeamId` / `slackUserId` のすべてが
+ * 非空であることを型レベルで表現する。`(pages)/` 配下の layout ガード通過後と、
+ * `/api/auth/session-token` で issueSupabaseJwt に渡す段階で型が確定する。
+ *
+ * `slackUserId` も非空保証する理由: JWT claim に slack_user_id が含まれるため、
+ * ここで欠損していると JWT が空文字 claim を持つことになり監査ログ等の整合性を
+ * 損なう。callback で必ずセットされるが型でも強制する。
  */
 export type AuthenticatedSession = Readonly<
-    Omit<SessionData, 'userId' | 'slackTeamId'> & {
+    Omit<SessionData, 'userId' | 'slackTeamId' | 'slackUserId'> & {
         userId: string; // non-empty
         slackTeamId: string; // non-empty
+        slackUserId: string; // non-empty
     }
 >;
 
@@ -68,9 +74,9 @@ export async function getServerSession(): Promise<ReadonlySession> {
     return getIronSession<SessionData>(await cookies(), sessionOptions);
 }
 
-/** 未認証状態を型ガードで判別する */
+/** 未認証状態を型ガードで判別する。3 値すべて非空のときだけ認証済み扱い */
 export function isAuthenticated(session: ReadonlySession): session is AuthenticatedSession {
-    return session.userId !== '' && session.slackTeamId !== '';
+    return session.userId !== '' && session.slackTeamId !== '' && session.slackUserId !== '';
 }
 
 /**

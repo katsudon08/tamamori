@@ -185,22 +185,43 @@ describe('oauthState', () => {
 });
 
 describe('isAuthenticated', () => {
-    test('userId と slackTeamId が両方非空なら true', () => {
+    test('userId / slackTeamId / slackUserId のすべてが非空なら true', () => {
         const session: ReadonlySession = {
             ...defaultSession,
             userId: 'uuid-1',
             slackTeamId: 'T1',
+            slackUserId: 'U1',
         };
         expect(isAuthenticated(session)).toBe(true);
     });
 
     test('userId が空なら false', () => {
-        const session: ReadonlySession = { ...defaultSession, userId: '', slackTeamId: 'T1' };
+        const session: ReadonlySession = {
+            ...defaultSession,
+            userId: '',
+            slackTeamId: 'T1',
+            slackUserId: 'U1',
+        };
         expect(isAuthenticated(session)).toBe(false);
     });
 
     test('slackTeamId が空なら false', () => {
-        const session: ReadonlySession = { ...defaultSession, userId: 'uuid-1', slackTeamId: '' };
+        const session: ReadonlySession = {
+            ...defaultSession,
+            userId: 'uuid-1',
+            slackTeamId: '',
+            slackUserId: 'U1',
+        };
+        expect(isAuthenticated(session)).toBe(false);
+    });
+
+    test('slackUserId が空なら false (JWT claim 整合性のため)', () => {
+        const session: ReadonlySession = {
+            ...defaultSession,
+            userId: 'uuid-1',
+            slackTeamId: 'T1',
+            slackUserId: '',
+        };
         expect(isAuthenticated(session)).toBe(false);
     });
 });
