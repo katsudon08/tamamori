@@ -32,16 +32,19 @@ describe('oauthTokenResponseSchema', () => {
         expect(() => oauthTokenResponseSchema.parse(response)).toThrow();
     });
 
-    test('ok が false の場合でもスキーマ自体はパースできること', () => {
-        const response = {
-            ok: false,
-            access_token: 'xoxp-test-token',
-            id_token: 'test-id-token',
-        };
+    test('ok: false + error code がパースでき、error が読み取れる', () => {
+        const response = { ok: false, error: 'invalid_code' };
 
         const result = oauthTokenResponseSchema.parse(response);
 
         expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error).toBe('invalid_code');
+        }
+    });
+
+    test('ok: false でも error が欠損していれば ZodError が発生する', () => {
+        expect(() => oauthTokenResponseSchema.parse({ ok: false })).toThrow();
     });
 });
 
@@ -69,17 +72,18 @@ describe('oauthUserInfoResponseSchema', () => {
         expect(() => oauthUserInfoResponseSchema.parse(response)).toThrow();
     });
 
-    test('ok が false の場合でもスキーマ自体はパースできること', () => {
-        const response = {
-            ok: false,
-            sub: 'U12345',
-            'https://slack.com/team_id': 'T12345',
-            name: 'Test User',
-            picture: 'https://example.com/avatar.png',
-        };
+    test('ok: false + error code がパースでき、error が読み取れる', () => {
+        const response = { ok: false, error: 'token_revoked' };
 
         const result = oauthUserInfoResponseSchema.parse(response);
 
         expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error).toBe('token_revoked');
+        }
+    });
+
+    test('ok: false でも error が欠損していれば ZodError が発生する', () => {
+        expect(() => oauthUserInfoResponseSchema.parse({ ok: false })).toThrow();
     });
 });

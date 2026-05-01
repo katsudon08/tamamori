@@ -70,13 +70,18 @@ describe('exchangeOAuthCode', () => {
         });
     });
 
-    test('APIエラー時 (ok: false) に例外をthrowする', async () => {
+    test('APIエラー時 (ok: false) に SlackApiError を throw し Slack error code を保持する', async () => {
         mockFetch.mockResolvedValueOnce(
             new Response(JSON.stringify({ ok: false, error: 'invalid_code' }), { status: 200 }),
         );
-        const { exchangeOAuthCode } = await import('../client');
+        const { exchangeOAuthCode, SlackApiError } = await import('../client');
 
-        await expect(exchangeOAuthCode('bad-code', TEST_REDIRECT_URI)).rejects.toThrow();
+        const promise = exchangeOAuthCode('bad-code', TEST_REDIRECT_URI);
+        await expect(promise).rejects.toBeInstanceOf(SlackApiError);
+        await expect(promise).rejects.toMatchObject({
+            endpoint: 'openid.connect.token',
+            slackError: 'invalid_code',
+        });
     });
 
     test('不正なレスポンス（必須フィールド欠損）でZodErrorが発生する', async () => {
@@ -136,13 +141,18 @@ describe('getUserInfo', () => {
         });
     });
 
-    test('APIエラー時 (ok: false) に例外をthrowする', async () => {
+    test('APIエラー時 (ok: false) に SlackApiError を throw し Slack error code を保持する', async () => {
         mockFetch.mockResolvedValueOnce(
             new Response(JSON.stringify({ ok: false, error: 'token_revoked' }), { status: 200 }),
         );
-        const { getUserInfo } = await import('../client');
+        const { getUserInfo, SlackApiError } = await import('../client');
 
-        await expect(getUserInfo('bad-token')).rejects.toThrow();
+        const promise = getUserInfo('bad-token');
+        await expect(promise).rejects.toBeInstanceOf(SlackApiError);
+        await expect(promise).rejects.toMatchObject({
+            endpoint: 'openid.connect.userInfo',
+            slackError: 'token_revoked',
+        });
     });
 
     test('不正なレスポンス（必須フィールド欠損）でZodErrorが発生する', async () => {

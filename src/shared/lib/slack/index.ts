@@ -1,5 +1,5 @@
 // Public API
-export { exchangeOAuthCode, getUserInfo } from './client';
+export { exchangeOAuthCode, getUserInfo, SlackApiError } from './client';
 export type { OAuthTokenResult, SlackUserInfo } from './client';
 
 export {
