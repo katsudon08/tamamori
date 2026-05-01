@@ -23,7 +23,12 @@ export async function GET() {
     let session;
     try {
         session = await getSession();
-    } catch {
+    } catch (err) {
+        // cookie 改ざん・SESSION_SECRET 設定不備など。レスポンスは 401 に丸めるが、
+        // 障害切り分けのために安全な範囲でログを残す (cookie / token / secret は
+        // 一切含めない: error の name と message のみ)。
+        const safeMessage = err instanceof Error ? `${err.name}: ${err.message}` : 'unknown';
+        console.warn('[session-token] getSession failed:', safeMessage);
         return NextResponse.json(
             { token: null, reason: 'unauthenticated' },
             { status: 401, headers: SECURITY_HEADERS },

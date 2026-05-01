@@ -125,13 +125,29 @@ describe('GET /api/auth/session-token', () => {
         errorSpy.mockRestore();
     });
 
-    test('getSession が throw した場合 (cookie 改ざん等) は 401 にフォールバック', async () => {
+    test('getSession が throw した場合 (cookie 改ざん等) は 401 にフォールバック + 安全なログを残す', async () => {
         mockGetSession.mockRejectedValueOnce(new Error('decrypt failed'));
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
         const { GET } = await import('../route');
 
         const response = await GET();
 
         expect(response.status).toBe(401);
         expect(mockIssueSupabaseJwt).not.toHaveBeenCalled();
+        // ログには error の name + message のみ残し、cookie/secret 等の機密値は含めない
+        expect(warnSpy).toHaveBeenCalledWith(
+            '[session-token] getSession failed:',
+            'Error: decrypt failed',
+        );
+        const safeLogged = warnSpy.mock.calls
+            .flat()
+            .map((arg) => String(arg))
+            .filter((s) => !s.startsWith('[session-token]')) // ログ prefix は除外
+            .join(' ');
+        // 実値に cookie/secret/jwt 等の機密が混ざっていないこと
+        expect(safeLogged).not.toMatch(/cookie/i);
+        expect(safeLogged).not.toMatch(/secret/i);
+        expect(safeLogged).not.toMatch(/eyJ[a-zA-Z0-9._-]+/); // JWT パターン
+        warnSpy.mockRestore();
     });
 });
