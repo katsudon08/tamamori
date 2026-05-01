@@ -64,6 +64,11 @@ CREATE INDEX idx_action_log_slack_team_id ON action_log(slack_team_id);
 -- DEFAULT (PK + 変更カラムのみ WAL に乗る) では、UPDATE 時に slack_team_id が
 -- 変更されない場合 WAL に slack_team_id が含まれず、RLS ポリシーが評価できず
 -- 自テナントの UPDATE すら届かなくなる (PoC で実証済み)。
+--
+-- bonsai は publication 対象 (005_enable_realtime.sql) なので必須。
+-- action_log は現状 publication 対象外だが、テナント境界テーブルの設定を
+-- 揃えておくため (将来 Realtime 配信を有効化する場合の前準備でもある) 同じく
+-- FULL に設定する。WAL 容量増は更新頻度・行サイズから無視できる範囲。
 ALTER TABLE bonsai REPLICA IDENTITY FULL;
 ALTER TABLE action_log REPLICA IDENTITY FULL;
 
