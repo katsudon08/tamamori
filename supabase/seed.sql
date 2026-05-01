@@ -13,9 +13,10 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- テストユーザーの盆栽（visual_state は 002_create_bonsai.sql の DEFAULT と同じ）
-INSERT INTO bonsai (user_id, growth_stage, visual_state)
+INSERT INTO bonsai (user_id, slack_team_id, growth_stage, visual_state)
 VALUES (
   'a0000000-0000-4000-a000-000000000001',
+  'T_E2E_TEST',
   'seed',
   '{
     "trunkHeight": 0.3,
