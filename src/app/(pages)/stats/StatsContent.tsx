@@ -24,12 +24,13 @@ function computeStartDate(range: DateRange): string {
 
 type StatsContentProps = {
     userId: string;
+    slackTeamId: string;
 };
 
-export function StatsContent({ userId }: StatsContentProps) {
+export function StatsContent({ userId, slackTeamId }: StatsContentProps) {
     const [range, setRange] = useState<DateRange>('7d');
     const startDate = useMemo(() => computeStartDate(range), [range]);
-    const { data, error, isLoading, mutate } = useActionLogs(userId, startDate);
+    const { data, error, isLoading, mutate } = useActionLogs(userId, slackTeamId, startDate);
 
     if (isLoading) {
         return (
