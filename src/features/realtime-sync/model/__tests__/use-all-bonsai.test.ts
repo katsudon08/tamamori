@@ -15,6 +15,12 @@ jest.mock('swr', () => ({
 }));
 
 const mockGetSessionToken = jest.fn(async () => 'jwt-A');
+let registeredRefresh: ((token: string) => void) | null = null;
+const mockUnsubscribeRefresh = jest.fn();
+const mockOnTokenRefresh = jest.fn((cb: (token: string) => void) => {
+    registeredRefresh = cb;
+    return mockUnsubscribeRefresh;
+});
 
 // Supabase チャンネルモック (createBrowserClient はフック内で都度呼ぶ前提)
 type OnCallback = (payload: { new: Record<string, unknown> }) => void;
@@ -39,6 +45,7 @@ const mockCreateBrowserClient = jest.fn(() => ({
 jest.mock('@/shared/lib/supabase', () => ({
     createBrowserClient: () => mockCreateBrowserClient(),
     getSessionToken: () => mockGetSessionToken(),
+    onTokenRefresh: (cb: (token: string) => void) => mockOnTokenRefresh(cb),
 }));
 
 import { useAllBonsaiRealtime } from '../use-all-bonsai';
@@ -47,6 +54,7 @@ describe('useAllBonsaiRealtime', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         effectCallback = null;
+        registeredRefresh = null;
     });
 
     test('subscribe 前に realtime.setAuth(jwt) が await される (PoC 由来の必須要件)', async () => {
@@ -81,7 +89,7 @@ describe('useAllBonsaiRealtime', () => {
         expect(mockSubscribe).toHaveBeenCalled();
     });
 
-    test('createBrowserClient はフック内で呼ばれる (モジュールスコープのシングルトン撤去)', async () => {
+    test('createBrowserClient はフック内で呼ばれる (シングルトン撤去)', async () => {
         useAllBonsaiRealtime('T01XXXX');
         await effectCallback!();
 
@@ -100,7 +108,19 @@ describe('useAllBonsaiRealtime', () => {
         expect(mockMutate).toHaveBeenCalledWith(['bonsai', 'user-456']);
     });
 
-    test('unmount時にremoveChannelが呼ばれる', async () => {
+    test('onTokenRefresh 経由で setAuth(newToken) が呼ばれる (TTL ロールオーバー対応)', async () => {
+        useAllBonsaiRealtime('T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(mockOnTokenRefresh).toHaveBeenCalledTimes(1);
+        registeredRefresh!('jwt-B');
+
+        expect(mockSetAuth).toHaveBeenCalledWith('jwt-B');
+    });
+
+    test('unmount で removeChannel + onTokenRefresh の unsubscribe が呼ばれる', async () => {
         useAllBonsaiRealtime('T01XXXX');
         const cleanup = (await effectCallback!()) as () => void;
         await Promise.resolve();
@@ -109,6 +129,7 @@ describe('useAllBonsaiRealtime', () => {
         cleanup();
 
         expect(mockRemoveChannel).toHaveBeenCalledWith(mockChannelObj);
+        expect(mockUnsubscribeRefresh).toHaveBeenCalled();
     });
 
     test('slackTeamId が undefined の場合は購読しない', async () => {
@@ -117,5 +138,6 @@ describe('useAllBonsaiRealtime', () => {
 
         expect(mockSetAuth).not.toHaveBeenCalled();
         expect(mockChannel).not.toHaveBeenCalled();
+        expect(mockOnTokenRefresh).not.toHaveBeenCalled();
     });
 });

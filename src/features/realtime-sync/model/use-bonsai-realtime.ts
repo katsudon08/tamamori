@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useSWRConfig } from 'swr';
 
-import { createBrowserClient, getSessionToken } from '@/shared/lib/supabase';
+import { createBrowserClient, getSessionToken, onTokenRefresh } from '@/shared/lib/supabase';
 import type { Database } from '@/shared/lib/supabase';
 
 type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
@@ -17,14 +17,13 @@ type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
  *   accessToken オプションの auto-setAuth は fire-and-forget で race するため、
  *   これを怠ると postgres_changes RLS が anon ロールで評価されて他テナント
  *   UPDATE が漏れる (PoC で実証済み)。
- *
- * Supabase の postgres_changes filter は単一カラムのみサポートするため、
- * テナント絞り込みは RLS (`bonsai.slack_team_id = auth.jwt() ->> 'slack_team_id'`) に
- * 委ね、購読 filter は `user_id=eq.${userId}` を採用する。`bonsai.user_id` は
- * UNIQUE のため user_id 単独でも一意。
- *
- * `slackTeamId` 引数は subscribe の前提条件ガード + FSD 型契約 (テナント ID が
- * 必須であることを呼び出し側に明示) のために受け取る。
+ * - postgres_changes filter は単一カラムのみサポートするため、購読側 filter は
+ *   `slack_team_id=eq.${slackTeamId}` を採用 (RLS と同じ列で二重防御)。
+ *   配信される行は user_id != userId のものも含まれる可能性があるため、callback
+ *   内で対象 user_id 以外は mutate しない (= 自分の bonsai キャッシュは触らない)。
+ * - JWT が再発行されたら onTokenRefresh で **同じ supabase インスタンス** に
+ *   `realtime.setAuth(newToken)` を流す (TTL ロールオーバー時の認証維持)。
+ *   cleanup 時には unsubscribe + removeChannel の両方を行う。
  */
 export function useBonsaiRealtime(userId: string | undefined, slackTeamId: string | undefined) {
     const { mutate } = useSWRConfig();
@@ -35,6 +34,9 @@ export function useBonsaiRealtime(userId: string | undefined, slackTeamId: strin
         const supabase = createBrowserClient();
         let cancelled = false;
         let channel: ReturnType<typeof supabase.channel> | null = null;
+        const unsubscribeRefresh = onTokenRefresh((newToken) => {
+            void supabase.realtime.setAuth(newToken);
+        });
 
         (async () => {
             try {
@@ -44,21 +46,21 @@ export function useBonsaiRealtime(userId: string | undefined, slackTeamId: strin
                 if (cancelled) return;
 
                 channel = supabase
-                    .channel(`bonsai-changes-${userId}`)
+                    .channel(`bonsai-changes-${slackTeamId}-${userId}`)
                     .on(
                         'postgres_changes',
                         {
                             event: 'UPDATE',
                             schema: 'public',
                             table: 'bonsai',
-                            filter: `user_id=eq.${userId}`,
+                            filter: `slack_team_id=eq.${slackTeamId}`,
                         },
                         (payload) => {
                             const newRow = payload.new as BonsaiRow;
-                            if (newRow.user_id) {
-                                mutate(['bonsai', newRow.user_id]);
-                            }
-                            mutate('all-bonsai');
+                            // tenant 内のうち、自分以外の bonsai UPDATE は無視
+                            // (mutate('all-bonsai') は花壇ビュー側の hook が担当)
+                            if (newRow.user_id !== userId) return;
+                            mutate(['bonsai', newRow.user_id]);
                         },
                     )
                     .subscribe();
@@ -69,6 +71,7 @@ export function useBonsaiRealtime(userId: string | undefined, slackTeamId: strin
 
         return () => {
             cancelled = true;
+            unsubscribeRefresh();
             if (channel) {
                 supabase.removeChannel(channel);
             }

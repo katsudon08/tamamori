@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useSWRConfig } from 'swr';
 
-import { createBrowserClient, getSessionToken } from '@/shared/lib/supabase';
+import { createBrowserClient, getSessionToken, onTokenRefresh } from '@/shared/lib/supabase';
 import type { Database } from '@/shared/lib/supabase';
 
 type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
@@ -19,6 +19,9 @@ type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
  *   UPDATE が漏れる (PoC で実証済み)。
  * - 購読 filter に `slack_team_id=eq.${slackTeamId}` を付け、RLS との二重防御。
  *   RLS が万一バグっても購読側で先に絞られる。
+ * - JWT が再発行されたら onTokenRefresh で **同じ supabase インスタンス** に
+ *   `realtime.setAuth(newToken)` を流す (TTL ロールオーバー時の認証維持)。
+ *   cleanup 時には unsubscribe + removeChannel の両方を行う。
  */
 export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
     const { mutate } = useSWRConfig();
@@ -29,6 +32,9 @@ export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
         const supabase = createBrowserClient();
         let cancelled = false;
         let channel: ReturnType<typeof supabase.channel> | null = null;
+        const unsubscribeRefresh = onTokenRefresh((newToken) => {
+            void supabase.realtime.setAuth(newToken);
+        });
 
         (async () => {
             try {
@@ -63,6 +69,7 @@ export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
 
         return () => {
             cancelled = true;
+            unsubscribeRefresh();
             if (channel) {
                 supabase.removeChannel(channel);
             }
