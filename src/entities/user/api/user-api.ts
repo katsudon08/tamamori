@@ -7,19 +7,17 @@ interface UpsertUserData {
     avatar_url: string | null;
 }
 
-// onConflict に slack_user_id 単独を指定している理由:
-// Slack のユーザーIDはワークスペースを跨いでグローバル一意 (ある U01XXXX は
-// どの team に所属しても同一人物を指す) であるため、単独キーで衝突判定して
-// よい。この前提が崩れる (別 team の slack_user_id が衝突する) と、
-// session.slackTeamId を起点とするテナント認可全体の整合性が崩れるため、
-// 呼び出し側 (callback) で戻り値の slack_team_id を検証している。
-// 前提を変える場合は users の一意制約と upsert 戦略を
-// (slack_user_id, slack_team_id) 複合キーへ見直すこと。
+// onConflict に (slack_user_id, slack_team_id) 複合キーを指定している理由:
+// 「同じ slack_user_id が別テナントに所属している」ケース (Enterprise Grid 跨ぎ
+// や workspace 移行時の遺存データ等) で誤って team_id を上書きしないため、
+// テナント境界を跨ぐ衝突は発生させない方針。これを支える DB 側制約は
+// 009_users_composite_unique.sql の users_slack_user_team_uk。
+// callback 側の team_id mismatch チェックは防御的検知として残してよい。
 export async function upsertUser(userData: UpsertUserData) {
     const supabase = createServerClient();
     const { data, error } = await supabase
         .from('users')
-        .upsert(userData, { onConflict: 'slack_user_id' })
+        .upsert(userData, { onConflict: 'slack_user_id,slack_team_id' })
         .select()
         .single();
     if (error) throw error;
