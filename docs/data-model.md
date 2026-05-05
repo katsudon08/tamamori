@@ -35,7 +35,7 @@ erDiagram
         UUID user_id FK
         TEXT slack_team_id FK
         TEXT action_type
-        TEXT slack_event_id UK
+        TEXT slack_event_id
         TEXT slack_channel
         JSONB metadata
         TIMESTAMPTZ created_at
@@ -155,7 +155,7 @@ CREATE TABLE action_log (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   action_type     TEXT NOT NULL CHECK (action_type IN ('message', 'reaction', 'thanks')),
-  slack_event_id  TEXT UNIQUE,
+  slack_event_id  TEXT,
   slack_channel   TEXT,
   metadata        JSONB NOT NULL DEFAULT '{}',
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -173,6 +173,11 @@ ALTER TABLE action_log ADD CONSTRAINT action_log_user_team_fk
     ON DELETE CASCADE ON UPDATE NO ACTION;
 CREATE INDEX idx_action_log_slack_team_id ON action_log(slack_team_id);
 ALTER TABLE action_log REPLICA IDENTITY FULL;
+
+-- tenant-aware 冪等性キー
+ALTER TABLE action_log DROP CONSTRAINT action_log_slack_event_id_key;
+ALTER TABLE action_log ADD CONSTRAINT action_log_event_team_uk
+    UNIQUE (slack_event_id, slack_team_id);
 ```
 
 | カラム         | 型          | 制約                                                        | 説明                                        |
@@ -181,7 +186,7 @@ ALTER TABLE action_log REPLICA IDENTITY FULL;
 | user_id        | UUID        | NOT NULL (複合 FK の一部)                                   | アクション実行ユーザー                      |
 | slack_team_id  | TEXT        | NOT NULL, **immutable**, 複合 FK → users(id, slack_team_id) | テナント識別 (RLS の判定列)                 |
 | action_type    | TEXT        | NOT NULL, CHECK制約                                         | アクション種別: message / reaction / thanks |
-| slack_event_id | TEXT        | UNIQUE                                                      | Slack event_id（冪等性キー）                |
+| slack_event_id | TEXT        | 複合 UNIQUE (slack_event_id, slack_team_id)                 | Slack event_id（tenant-aware 冪等性キー）   |
 | slack_channel  | TEXT        |                                                             | イベント発生チャンネルID                    |
 | metadata       | JSONB       | NOT NULL, DEFAULT '{}'                                      | 付加情報                                    |
 | created_at     | TIMESTAMPTZ | NOT NULL                                                    | イベント発生日時                            |

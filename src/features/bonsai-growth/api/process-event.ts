@@ -52,7 +52,8 @@ export async function processSlackEvent(payload: SlackEventPayload): Promise<voi
         }
 
         // 2. 冪等性チェック
-        if (await checkEventExists(event_id)) {
+        // Slack payload の team_id で絞り、別テナントの同一 event_id を重複扱いしない。
+        if (await checkEventExists(event_id, team_id)) {
             return;
         }
 

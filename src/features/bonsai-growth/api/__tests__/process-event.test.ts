@@ -2,13 +2,15 @@ import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 
 // --- mocks ---------------------------------------------------------------
 
-const mockCheckEventExists = jest.fn<(id: string) => Promise<boolean>>().mockResolvedValue(false);
+const mockCheckEventExists = jest
+    .fn<(id: string, slackTeamId: string) => Promise<boolean>>()
+    .mockResolvedValue(false);
 const mockInsertAction = jest
     .fn<(data: unknown) => Promise<Record<string, unknown>>>()
     .mockResolvedValue({ id: 'action-uuid' });
 
 jest.mock('@/entities/action', () => ({
-    checkEventExists: (...args: unknown[]) => mockCheckEventExists(...(args as [string])),
+    checkEventExists: (...args: unknown[]) => mockCheckEventExists(...(args as [string, string])),
     insertAction: (...args: unknown[]) => mockInsertAction(...(args as [unknown])),
 }));
 
@@ -182,6 +184,7 @@ describe('processSlackEvent', () => {
 
         await processSlackEvent(makeMessagePayload() as never);
 
+        expect(mockCheckEventExists).toHaveBeenCalledWith('Ev01XXXX', 'T01XXXX');
         expect(mockInsertAction).not.toHaveBeenCalled();
     });
 
@@ -231,6 +234,7 @@ describe('processSlackEvent', () => {
 
         await processSlackEvent(makeMessagePayload() as never);
 
+        expect(mockCheckEventExists).toHaveBeenCalledWith('Ev01XXXX', 'T01XXXX');
         expect(mockInsertAction).toHaveBeenCalledTimes(1);
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({

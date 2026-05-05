@@ -27,12 +27,22 @@ export async function insertAction(data: InsertActionData) {
     return result;
 }
 
-export async function checkEventExists(slackEventId: string): Promise<boolean> {
+/**
+ * Slack event の冪等性を tenant-aware に確認する。
+ *
+ * createServerClient は service_role 経路で RLS をバイパスするため、
+ * slack_team_id filter をアプリ層でも必ず付ける。
+ */
+export async function checkEventExists(
+    slackEventId: string,
+    slackTeamId: string,
+): Promise<boolean> {
     const supabase = createServerClient();
     const { data, error } = await supabase
         .from('action_log')
         .select('id')
         .eq('slack_event_id', slackEventId)
+        .eq('slack_team_id', slackTeamId)
         .single();
 
     if (error) {

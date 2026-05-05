@@ -37,7 +37,7 @@ flowchart TD
     D["4. 200 OK を即座に返却\n（Slackの3秒ルール対応）"]
     E["5. waitUntil() で非同期処理を開始"]
     F6a["6a. チャンネルフィルタリング\n（SLACK_WATCHED_CHANNELS に含まれるか）"]
-    F6b["6b. 冪等性チェック\n（slack_event_id が action_log に存在するか）"]
+    F6b["6b. 冪等性チェック\n（slack_event_id + slack_team_id が action_log に存在するか）"]
     F6c["6c. イベント分類"]
     F6c_msg["message.channels → message\n(+ 感謝キーワードがあれば thanks も)"]
     F6c_react["reaction_added → reaction"]

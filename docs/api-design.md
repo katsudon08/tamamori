@@ -74,7 +74,7 @@ Slack App のイベントURL設定時に送信されるチャレンジリクエ�
 
 1. `X-Slack-Signature` で署名検証
 2. リクエストボディを Zod スキーマでバリデーション（`slack-event-schema.ts`）
-3. `event_id` で冪等性チェック（`action_log.slack_event_id` と照合）
+3. `event_id` と `team_id` で冪等性チェック（`action_log.slack_event_id` + `slack_team_id` と照合）
 4. `channel` が `SLACK_WATCHED_CHANNELS` に含まれるか確認
 5. `subtype` が null の通常メッセージのみ処理（bot メッセージ、編集等は除外）
 6. ユーザー upsert

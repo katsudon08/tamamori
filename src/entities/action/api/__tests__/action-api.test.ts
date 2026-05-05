@@ -2,13 +2,18 @@ import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 
 // Supabase サーバークライアントのモック
 const mockSingle = jest.fn<() => Promise<{ data: unknown; error: unknown }>>();
-const mockEq = jest.fn<(...args: unknown[]) => { single: typeof mockSingle }>(() => ({
-    single: mockSingle,
-}));
+interface QueryBuilder {
+    eq: (...args: unknown[]) => QueryBuilder;
+    single: typeof mockSingle;
+}
+const queryBuilder = {} as QueryBuilder;
+const mockEq = jest.fn<(...args: unknown[]) => QueryBuilder>(() => queryBuilder);
+queryBuilder.eq = mockEq;
+queryBuilder.single = mockSingle;
 const mockInsert = jest.fn<(...args: unknown[]) => { select: () => { single: typeof mockSingle } }>(
     () => ({ select: jest.fn(() => ({ single: mockSingle })) }),
 );
-const mockSelect = jest.fn<(...args: unknown[]) => { eq: typeof mockEq }>(() => ({ eq: mockEq }));
+const mockSelect = jest.fn<(...args: unknown[]) => QueryBuilder>(() => queryBuilder);
 const mockFrom = jest.fn<(...args: unknown[]) => Record<string, unknown>>(() => ({
     select: mockSelect,
     insert: mockInsert,
@@ -69,17 +74,18 @@ describe('action-api サーバー用関数', () => {
     });
 
     describe('checkEventExists', () => {
-        test('slack_event_idの存在を確認する', async () => {
+        test('slack_event_id と slack_team_id の組で存在を確認する', async () => {
             mockSingle.mockResolvedValue({
                 data: { id: 'uuid-action-1' },
                 error: null,
             });
 
-            const result = await checkEventExists('Ev01XXXX');
+            const result = await checkEventExists('Ev01XXXX', 'T01XXXX');
 
             expect(mockFrom).toHaveBeenCalledWith('action_log');
             expect(mockSelect).toHaveBeenCalledWith('id');
             expect(mockEq).toHaveBeenCalledWith('slack_event_id', 'Ev01XXXX');
+            expect(mockEq).toHaveBeenCalledWith('slack_team_id', 'T01XXXX');
             expect(result).toBe(true);
         });
 
@@ -89,7 +95,7 @@ describe('action-api サーバー用関数', () => {
                 error: { code: 'PGRST116' },
             });
 
-            const result = await checkEventExists('Ev_NOTFOUND');
+            const result = await checkEventExists('Ev_NOTFOUND', 'T01XXXX');
 
             expect(result).toBe(false);
         });
@@ -100,7 +106,7 @@ describe('action-api サーバー用関数', () => {
                 error: { code: 'OTHER', message: 'Unexpected error' },
             });
 
-            await expect(checkEventExists('Ev01XXXX')).rejects.toEqual({
+            await expect(checkEventExists('Ev01XXXX', 'T01XXXX')).rejects.toEqual({
                 code: 'OTHER',
                 message: 'Unexpected error',
             });
