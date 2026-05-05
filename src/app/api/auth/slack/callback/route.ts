@@ -45,10 +45,10 @@ export async function GET(request: Request) {
             avatar_url: userInfo.picture,
         });
 
-        // upsert の onConflict は slack_user_id 単独キー (user-api.ts 参照)。
-        // 戻り値の team_id が Slack Identity の team_id とズレていた場合は
-        // 一意性前提が崩れた兆候 (別 team に同じ slack_user_id が紐づく等) で
-        // あり、以降のテナント認可が不安定化するため認証を中断する。
+        // upsert は (slack_user_id, slack_team_id) 複合キーで行う (user-api.ts 参照)。
+        // 通常この mismatch は起きないが、DB制約・API戻り値・モックのいずれかが
+        // 壊れた場合に session.slackTeamId へ誤った tenant を保存しないため、
+        // セッション確定前の防御的検知として残す。
         if (user.slack_team_id !== userInfo.teamId) {
             throw new Error('team_id mismatch after upsertUser');
         }
