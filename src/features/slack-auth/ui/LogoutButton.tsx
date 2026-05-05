@@ -1,7 +1,5 @@
 'use client';
 
-import { type MouseEvent } from 'react';
-
 import { navigateTo } from './navigate';
 
 import { clearSessionToken } from '@/shared/lib/supabase';
@@ -11,12 +9,11 @@ interface LogoutButtonProps {
 }
 
 /**
- * ログアウト用リンク (Client Component)。
+ * ログアウト用ボタン (Client Component)。
  *
  * クリック時の流れ:
- *   1. デフォルト遷移を抑止
- *   2. token-cache のメモリキャッシュを破棄 (in-memory JWT 残骸の即時消去)
- *   3. `/api/auth/logout` に明示的に遷移 (サーバ側で iron-session を destroy)
+ *   1. token-cache のメモリキャッシュを破棄 (in-memory JWT 残骸の即時消去)
+ *   2. `/api/auth/logout` に明示的に遷移 (サーバ側で iron-session を destroy)
  *
  * 完全なページ遷移により、各 Realtime hook が保持していた WebSocket / Supabase
  * client インスタンスは React のアンマウントで破棄される (シングルトン撤去後の
@@ -24,15 +21,14 @@ interface LogoutButtonProps {
  * 明示的な `removeAllChannels` は省略する。
  */
 export function LogoutButton({ className }: LogoutButtonProps) {
-    function handleClick(event: MouseEvent<HTMLAnchorElement>) {
-        event.preventDefault();
+    function handleClick() {
         clearSessionToken();
         navigateTo('/api/auth/logout');
     }
 
     return (
-        <a href="/api/auth/logout" onClick={handleClick} className={className}>
+        <button type="button" onClick={handleClick} className={className}>
             ログアウト
-        </a>
+        </button>
     );
 }

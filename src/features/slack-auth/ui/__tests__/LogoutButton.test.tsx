@@ -28,46 +28,46 @@ beforeEach(() => {
 // --- tests ---------------------------------------------------------------
 
 describe('LogoutButton', () => {
-    test('「ログアウト」リンクとして描画される (a タグ + href)', () => {
+    test('「ログアウト」ボタンとして描画される', () => {
         render(<LogoutButton />);
-        const link = screen.getByRole('link', { name: 'ログアウト' });
-        expect(link.tagName).toBe('A');
-        expect(link.getAttribute('href')).toBe('/api/auth/logout');
+        const button = screen.getByRole('button', { name: 'ログアウト' });
+        expect(button.tagName).toBe('BUTTON');
+        expect(button.getAttribute('type')).toBe('button');
     });
 
     test('クリック時に clearSessionToken が呼ばれる', () => {
         render(<LogoutButton />);
-        const link = screen.getByRole('link', { name: 'ログアウト' });
+        const button = screen.getByRole('button', { name: 'ログアウト' });
 
-        fireEvent.click(link);
+        fireEvent.click(button);
 
         expect(mockClearSessionToken).toHaveBeenCalledTimes(1);
     });
 
-    test('クリック時にデフォルト遷移を抑止し /api/auth/logout に navigateTo で遷移する', () => {
+    test('クリック時に /api/auth/logout に navigateTo で遷移する', () => {
         render(<LogoutButton />);
-        const link = screen.getByRole('link', { name: 'ログアウト' });
+        const button = screen.getByRole('button', { name: 'ログアウト' });
 
-        fireEvent.click(link);
+        fireEvent.click(button);
 
         expect(mockNavigateTo).toHaveBeenCalledWith('/api/auth/logout');
     });
 
     test('clearSessionToken は遷移より先に呼ばれる (in-memory JWT 破棄を navigation 前に保証)', () => {
         render(<LogoutButton />);
-        const link = screen.getByRole('link', { name: 'ログアウト' });
+        const button = screen.getByRole('button', { name: 'ログアウト' });
 
-        fireEvent.click(link);
+        fireEvent.click(button);
 
         const clearOrder = mockClearSessionToken.mock.invocationCallOrder[0]!;
         const navigateOrder = mockNavigateTo.mock.invocationCallOrder[0]!;
         expect(clearOrder).toBeLessThan(navigateOrder);
     });
 
-    test('className が指定された場合に a 要素に適用される', () => {
+    test('className が指定された場合に button 要素に適用される', () => {
         render(<LogoutButton className="text-sm text-sub hover:text-main" />);
-        const link = screen.getByRole('link', { name: 'ログアウト' });
-        expect(link.className).toContain('text-sm');
-        expect(link.className).toContain('text-sub');
+        const button = screen.getByRole('button', { name: 'ログアウト' });
+        expect(button.className).toContain('text-sm');
+        expect(button.className).toContain('text-sub');
     });
 });
