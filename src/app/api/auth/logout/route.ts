@@ -7,5 +7,9 @@ export async function GET(request: Request) {
     session.destroy();
 
     const origin = getRequestOrigin(request);
-    return NextResponse.redirect(`${origin}/`, 302);
+    const { searchParams } = new URL(request.url);
+    const reason = searchParams.get('reason');
+    const redirectPath = reason === 'session_expired' ? '/?error=session_expired' : '/';
+
+    return NextResponse.redirect(`${origin}${redirectPath}`, 302);
 }

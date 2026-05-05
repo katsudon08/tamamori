@@ -14,6 +14,13 @@ jest.mock('swr', () => ({
     useSWRConfig: () => ({ mutate: mockMutate }),
 }));
 
+const mockHandleSessionExpired = jest.fn();
+jest.mock('@/shared/lib/auth/session-expired', () => ({
+    handleSessionExpired: () => mockHandleSessionExpired(),
+    isSessionExpiredError: (error: unknown) =>
+        error instanceof Error && error.message === 'session_expired',
+}));
+
 const mockGetSessionToken = jest.fn(async () => 'jwt-A');
 let registeredRefresh: ((token: string) => void) | null = null;
 const mockUnsubscribeRefresh = jest.fn();
@@ -55,6 +62,7 @@ describe('useAllBonsaiRealtime', () => {
         jest.clearAllMocks();
         effectCallback = null;
         registeredRefresh = null;
+        mockGetSessionToken.mockResolvedValue('jwt-A');
     });
 
     test('subscribe 前に realtime.setAuth(jwt) が await される (PoC 由来の必須要件)', async () => {
@@ -174,6 +182,21 @@ describe('useAllBonsaiRealtime', () => {
 
         expect(mockRemoveChannel).toHaveBeenCalledWith(mockChannelObj);
         expect(mockUnsubscribeRefresh).toHaveBeenCalled();
+    });
+
+    test('getSessionToken が session_expired の場合は再ログイン導線へ流し subscribe しない', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        mockGetSessionToken.mockRejectedValueOnce(new Error('session_expired'));
+
+        useAllBonsaiRealtime('T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+
+        expect(mockHandleSessionExpired).toHaveBeenCalledTimes(1);
+        expect(mockSetAuth).not.toHaveBeenCalled();
+        expect(mockChannel).not.toHaveBeenCalled();
+        expect(consoleSpy).not.toHaveBeenCalled();
+        consoleSpy.mockRestore();
     });
 
     test('slackTeamId が undefined の場合は購読しない', async () => {

@@ -5,6 +5,7 @@ import { useSWRConfig } from 'swr';
 
 import { createBrowserClient, getSessionToken, onTokenRefresh } from '@/shared/lib/supabase';
 import type { Database } from '@/shared/lib/supabase';
+import { handleSessionExpired, isSessionExpiredError } from '@/shared/lib/auth/session-expired';
 
 type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
 type BonsaiPayloadRow = Partial<Pick<BonsaiRow, 'user_id' | 'slack_team_id'>>;
@@ -69,6 +70,10 @@ export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
                     )
                     .subscribe();
             } catch (err) {
+                if (isSessionExpiredError(err)) {
+                    handleSessionExpired();
+                    return;
+                }
                 console.error('[useAllBonsaiRealtime] subscribe failed:', err);
             }
         })();
