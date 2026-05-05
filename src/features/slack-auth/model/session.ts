@@ -76,7 +76,14 @@ export async function getServerSession(): Promise<ReadonlySession> {
 
 /** 未認証状態を型ガードで判別する。3 値すべて非空のときだけ認証済み扱い */
 export function isAuthenticated(session: ReadonlySession): session is AuthenticatedSession {
-    return session.userId !== '' && session.slackTeamId !== '' && session.slackUserId !== '';
+    return (
+        typeof session.userId === 'string' &&
+        session.userId !== '' &&
+        typeof session.slackTeamId === 'string' &&
+        session.slackTeamId !== '' &&
+        typeof session.slackUserId === 'string' &&
+        session.slackUserId !== ''
+    );
 }
 
 /**

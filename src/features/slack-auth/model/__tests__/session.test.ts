@@ -224,6 +224,12 @@ describe('isAuthenticated', () => {
         };
         expect(isAuthenticated(session)).toBe(false);
     });
+
+    test('未初期化セッションで値が undefined の場合も false', () => {
+        const session = {} as ReadonlySession;
+
+        expect(isAuthenticated(session)).toBe(false);
+    });
 });
 
 describe('getAuthenticatedSession', () => {
