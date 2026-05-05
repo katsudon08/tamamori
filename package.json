@@ -14,6 +14,7 @@
         "storybook": "storybook dev -p 6006",
         "build-storybook": "storybook build",
         "test:e2e": "playwright test",
+        "test:e2e:ngrok": "PLAYWRIGHT_BASE_URL=https://enjoying-hash-native.ngrok-free.dev playwright test",
         "gen:types": "supabase gen types typescript --local > src/shared/lib/supabase/types.ts"
     },
     "dependencies": {

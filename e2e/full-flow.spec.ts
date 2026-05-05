@@ -69,8 +69,8 @@ test.describe('フルフロー統合テスト', () => {
         await expect(page.getByRole('heading', { name: 'アクティビティ推移' })).toBeVisible();
         await expect(page.getByRole('heading', { name: 'アクション内訳' })).toBeVisible();
 
-        // Step 8: ヘッダーのログアウトリンクでランディングページにリダイレクト
-        await page.getByRole('link', { name: 'ログアウト' }).click();
+        // Step 8: ヘッダーのログアウトボタンでランディングページにリダイレクト
+        await page.getByRole('button', { name: 'ログアウト' }).click();
         await expect(page).toHaveURL(/\/$/);
         await expect(page.getByRole('link', { name: 'Sign in with Slack' })).toBeVisible();
     });
