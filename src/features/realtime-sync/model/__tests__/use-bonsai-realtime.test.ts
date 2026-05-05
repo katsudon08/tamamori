@@ -119,6 +119,28 @@ describe('useBonsaiRealtime', () => {
         expect(mockMutate).not.toHaveBeenCalled();
     });
 
+    test('payload の slack_team_id が異なる場合は mutate しない', async () => {
+        useBonsaiRealtime('user-123', 'T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        capturedOnCallback({ new: { user_id: 'user-123', slack_team_id: 'T_OTHER' } });
+
+        expect(mockMutate).not.toHaveBeenCalled();
+    });
+
+    test('payload.new が欠損している場合は mutate しない', async () => {
+        useBonsaiRealtime('user-123', 'T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        capturedOnCallback({ new: {} });
+
+        expect(mockMutate).not.toHaveBeenCalled();
+    });
+
     test('onTokenRefresh 経由で setAuth(newToken) が呼ばれる (TTL ロールオーバー対応)', async () => {
         useBonsaiRealtime('user-123', 'T01XXXX');
         await effectCallback!();
@@ -126,10 +148,32 @@ describe('useBonsaiRealtime', () => {
         await Promise.resolve();
 
         expect(mockOnTokenRefresh).toHaveBeenCalledTimes(1);
+        const initialSetAuthOrder = mockSetAuth.mock.invocationCallOrder[0]!;
+        const subscribeRefreshOrder = mockOnTokenRefresh.mock.invocationCallOrder[0]!;
+        expect(initialSetAuthOrder).toBeLessThan(subscribeRefreshOrder);
+
         // token-cache 側で再取得が起きたことをシミュレート
         registeredRefresh!('jwt-B');
 
         expect(mockSetAuth).toHaveBeenCalledWith('jwt-B');
+    });
+
+    test('onTokenRefresh 経由の setAuth が reject しても unhandled にせずログに流す', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        useBonsaiRealtime('user-123', 'T01XXXX');
+        await effectCallback!();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        mockSetAuth.mockRejectedValueOnce(new Error('refresh failed'));
+        registeredRefresh!('jwt-B');
+        await Promise.resolve();
+
+        expect(consoleSpy).toHaveBeenCalledWith(
+            '[useBonsaiRealtime] refresh setAuth failed:',
+            expect.any(Error),
+        );
+        consoleSpy.mockRestore();
     });
 
     test('unmount で removeChannel + onTokenRefresh の unsubscribe が呼ばれる', async () => {

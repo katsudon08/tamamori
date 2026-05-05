@@ -7,6 +7,7 @@ import { createBrowserClient, getSessionToken, onTokenRefresh } from '@/shared/l
 import type { Database } from '@/shared/lib/supabase';
 
 type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
+type BonsaiPayloadRow = Partial<Pick<BonsaiRow, 'user_id' | 'slack_team_id'>>;
 
 /**
  * テナント全員の bonsai UPDATE を購読する。
@@ -32,9 +33,7 @@ export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
         const supabase = createBrowserClient();
         let cancelled = false;
         let channel: ReturnType<typeof supabase.channel> | null = null;
-        const unsubscribeRefresh = onTokenRefresh((newToken) => {
-            void supabase.realtime.setAuth(newToken);
-        });
+        let unsubscribeRefresh: (() => void) | null = null;
 
         (async () => {
             try {
@@ -42,6 +41,12 @@ export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
                 if (cancelled) return;
                 await supabase.realtime.setAuth(token);
                 if (cancelled) return;
+
+                unsubscribeRefresh = onTokenRefresh((newToken) => {
+                    void supabase.realtime.setAuth(newToken).catch((err) => {
+                        console.error('[useAllBonsaiRealtime] refresh setAuth failed:', err);
+                    });
+                });
 
                 channel = supabase
                     .channel(`bonsai-changes-all-${slackTeamId}`)
@@ -54,8 +59,9 @@ export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
                             filter: `slack_team_id=eq.${slackTeamId}`,
                         },
                         (payload) => {
+                            const newRow = payload.new as BonsaiPayloadRow | null;
+                            if (newRow?.slack_team_id !== slackTeamId) return;
                             mutate('all-bonsai');
-                            const newRow = payload.new as BonsaiRow;
                             if (newRow.user_id) {
                                 mutate(['bonsai', newRow.user_id]);
                             }
@@ -69,7 +75,7 @@ export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
 
         return () => {
             cancelled = true;
-            unsubscribeRefresh();
+            unsubscribeRefresh?.();
             if (channel) {
                 supabase.removeChannel(channel);
             }

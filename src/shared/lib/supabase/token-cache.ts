@@ -8,6 +8,7 @@
  * - 並列取得は inflight Promise で 1 本に集約
  * - 401 (iron-session 切れ) はキャッシュをクリアし `session_expired` を throw
  * - `onTokenRefresh` で再取得イベントを購読でき、Realtime の `setAuth` 同期に使う
+ * - `clearSessionToken` 後に古い inflight が解決してもキャッシュを復活させない
  */
 
 interface Cached {
@@ -30,6 +31,7 @@ const SESSION_TOKEN_ENDPOINT = '/api/auth/session-token';
 
 let cached: Cached | null = null;
 let inflight: Promise<string> | null = null;
+let cacheEpoch: symbol = Symbol('token-cache');
 const refreshCallbacks = new Set<RefreshCallback>();
 
 /**
@@ -46,23 +48,37 @@ export async function getSessionToken(): Promise<string> {
         return inflight;
     }
 
-    inflight = fetchAndCache().finally(() => {
-        inflight = null;
+    const epoch = cacheEpoch;
+    const currentInflight = fetchAndCache(epoch).finally(() => {
+        if (inflight === currentInflight) {
+            inflight = null;
+        }
     });
 
-    return inflight;
+    inflight = currentInflight;
+    return currentInflight;
 }
 
-async function fetchAndCache(): Promise<string> {
+async function fetchAndCache(epoch: symbol): Promise<string> {
     const res = await fetch(SESSION_TOKEN_ENDPOINT, { credentials: 'same-origin' });
+    if (epoch !== cacheEpoch) {
+        throw new Error('session_token_fetch_cancelled');
+    }
     if (res.status === 401) {
         cached = null;
         throw new Error('session_expired');
     }
+
     if (!res.ok) {
         throw new Error(`session_token_fetch_failed:${res.status}`);
     }
+
     const body = (await res.json()) as SessionTokenResponse;
+
+    if (epoch !== cacheEpoch) {
+        throw new Error('session_token_fetch_cancelled');
+    }
+
     cached = { token: body.token, expiresAt: body.expiresAt };
     refreshCallbacks.forEach((cb) => {
         try {
@@ -77,11 +93,13 @@ async function fetchAndCache(): Promise<string> {
 
 /**
  * メモリキャッシュを破棄する。ログアウト・テナント切替時に呼ぶ。
- * 進行中の inflight Promise は影響を受けない (resolve すればキャッシュは復活する)
- * ため、必要なら呼び出し側で続けて `getSessionToken` を呼んで上書きする。
+ * 進行中の inflight Promise は無効化され、解決してもキャッシュや callback は更新しない。
+ * 既存の Realtime 購読は別管理のため、テナント切替時は hook 側の再 mount も必要。
  */
 export function clearSessionToken(): void {
     cached = null;
+    inflight = null;
+    cacheEpoch = Symbol('token-cache');
 }
 
 /**

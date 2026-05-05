@@ -7,6 +7,7 @@ import { createBrowserClient, getSessionToken, onTokenRefresh } from '@/shared/l
 import type { Database } from '@/shared/lib/supabase';
 
 type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
+type BonsaiPayloadRow = Partial<Pick<BonsaiRow, 'user_id' | 'slack_team_id'>>;
 
 /**
  * 単一 user の bonsai UPDATE を購読する。
@@ -34,9 +35,7 @@ export function useBonsaiRealtime(userId: string | undefined, slackTeamId: strin
         const supabase = createBrowserClient();
         let cancelled = false;
         let channel: ReturnType<typeof supabase.channel> | null = null;
-        const unsubscribeRefresh = onTokenRefresh((newToken) => {
-            void supabase.realtime.setAuth(newToken);
-        });
+        let unsubscribeRefresh: (() => void) | null = null;
 
         (async () => {
             try {
@@ -44,6 +43,12 @@ export function useBonsaiRealtime(userId: string | undefined, slackTeamId: strin
                 if (cancelled) return;
                 await supabase.realtime.setAuth(token);
                 if (cancelled) return;
+
+                unsubscribeRefresh = onTokenRefresh((newToken) => {
+                    void supabase.realtime.setAuth(newToken).catch((err) => {
+                        console.error('[useBonsaiRealtime] refresh setAuth failed:', err);
+                    });
+                });
 
                 channel = supabase
                     .channel(`bonsai-changes-${slackTeamId}-${userId}`)
@@ -56,7 +61,8 @@ export function useBonsaiRealtime(userId: string | undefined, slackTeamId: strin
                             filter: `slack_team_id=eq.${slackTeamId}`,
                         },
                         (payload) => {
-                            const newRow = payload.new as BonsaiRow;
+                            const newRow = payload.new as BonsaiPayloadRow | null;
+                            if (newRow?.slack_team_id !== slackTeamId) return;
                             // tenant 内のうち、自分以外の bonsai UPDATE は無視
                             // (mutate('all-bonsai') は花壇ビュー側の hook が担当)
                             if (newRow.user_id !== userId) return;
@@ -71,7 +77,7 @@ export function useBonsaiRealtime(userId: string | undefined, slackTeamId: strin
 
         return () => {
             cancelled = true;
-            unsubscribeRefresh();
+            unsubscribeRefresh?.();
             if (channel) {
                 supabase.removeChannel(channel);
             }

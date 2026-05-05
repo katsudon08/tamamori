@@ -116,12 +116,40 @@ describe('getSessionToken', () => {
         expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
-    test('5xx 等の他エラーも throw する (キャッシュは更新しない)', async () => {
+    test('5xx 等の他エラーも status 付きで throw し、次回は再 fetch する', async () => {
         setNow(1000);
-        mockFetch.mockResolvedValueOnce(jsonResponse({ token: null, reason: 'server_error' }, 500));
+        mockFetch
+            .mockResolvedValueOnce(jsonResponse({ token: null, reason: 'server_error' }, 500))
+            .mockResolvedValueOnce(
+                jsonResponse({ token: 'jwt-recovered', expiresAt: 1000 + 3600 }),
+            );
 
         const { getSessionToken } = await import('../token-cache');
-        await expect(getSessionToken()).rejects.toThrow();
+        await expect(getSessionToken()).rejects.toThrow('session_token_fetch_failed:500');
+
+        const recovered = await getSessionToken();
+        expect(recovered).toBe('jwt-recovered');
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('inflight 中の fetch reject は並列 caller 全員に伝播し、次回は再 fetch する', async () => {
+        setNow(1000);
+        mockFetch
+            .mockRejectedValueOnce(new Error('network down'))
+            .mockResolvedValueOnce(
+                jsonResponse({ token: 'jwt-recovered', expiresAt: 1000 + 3600 }),
+            );
+
+        const { getSessionToken } = await import('../token-cache');
+        const a = getSessionToken();
+        const b = getSessionToken();
+
+        await expect(a).rejects.toThrow('network down');
+        await expect(b).rejects.toThrow('network down');
+
+        const recovered = await getSessionToken();
+        expect(recovered).toBe('jwt-recovered');
+        expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 });
 
@@ -142,6 +170,64 @@ describe('clearSessionToken', () => {
         expect(first).toBe('jwt-A');
         expect(second).toBe('jwt-B');
         expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('進行中の古い fetch 結果は clearSessionToken 後に cache/callback へ反映しない', async () => {
+        setNow(1000);
+        let resolveFirst: ((value: Response) => void) | null = null;
+        let resolveSecond: ((value: Response) => void) | null = null;
+        mockFetch
+            .mockImplementationOnce(
+                () =>
+                    new Promise<Response>((resolve) => {
+                        resolveFirst = resolve;
+                    }),
+            )
+            .mockImplementationOnce(
+                () =>
+                    new Promise<Response>((resolve) => {
+                        resolveSecond = resolve;
+                    }),
+            );
+
+        const { getSessionToken, clearSessionToken, onTokenRefresh } =
+            await import('../token-cache');
+        const cb = jest.fn<(token: string) => void>();
+        onTokenRefresh(cb);
+
+        const first = getSessionToken();
+        clearSessionToken();
+        const second = getSessionToken();
+
+        resolveFirst!(jsonResponse({ token: 'jwt-stale', expiresAt: 1000 + 3600 }));
+        await expect(first).rejects.toThrow('session_token_fetch_cancelled');
+
+        const third = getSessionToken();
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+
+        resolveSecond!(jsonResponse({ token: 'jwt-fresh', expiresAt: 1000 + 7200 }));
+        await expect(Promise.all([second, third])).resolves.toEqual(['jwt-fresh', 'jwt-fresh']);
+        expect(cb).toHaveBeenCalledTimes(1);
+        expect(cb).toHaveBeenCalledWith('jwt-fresh');
+    });
+
+    test('進行中の古い fetch が 401 を返しても session_expired ではなく cancelled 扱いにする', async () => {
+        setNow(1000);
+        let resolveFetch: ((value: Response) => void) | null = null;
+        mockFetch.mockImplementationOnce(
+            () =>
+                new Promise<Response>((resolve) => {
+                    resolveFetch = resolve;
+                }),
+        );
+
+        const { getSessionToken, clearSessionToken } = await import('../token-cache');
+        const first = getSessionToken();
+        clearSessionToken();
+
+        resolveFetch!(jsonResponse({ token: null, reason: 'unauthenticated' }, 401));
+
+        await expect(first).rejects.toThrow('session_token_fetch_cancelled');
     });
 });
 
@@ -199,5 +285,29 @@ describe('onTokenRefresh', () => {
 
         await expect(getSessionToken()).rejects.toThrow();
         expect(cb).not.toHaveBeenCalled();
+    });
+
+    test('callback の 1 つが throw しても他 callback と caller には影響しない', async () => {
+        setNow(1000);
+        mockFetch.mockResolvedValueOnce(jsonResponse({ token: 'jwt-A', expiresAt: 1000 + 3600 }));
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        const { getSessionToken, onTokenRefresh } = await import('../token-cache');
+        const throwingCb = jest.fn<(token: string) => void>(() => {
+            throw new Error('callback failed');
+        });
+        const succeedingCb = jest.fn<(token: string) => void>();
+        onTokenRefresh(throwingCb);
+        onTokenRefresh(succeedingCb);
+
+        await expect(getSessionToken()).resolves.toBe('jwt-A');
+
+        expect(throwingCb).toHaveBeenCalledWith('jwt-A');
+        expect(succeedingCb).toHaveBeenCalledWith('jwt-A');
+        expect(consoleSpy).toHaveBeenCalledWith(
+            '[token-cache] onTokenRefresh callback threw:',
+            expect.any(Error),
+        );
+        consoleSpy.mockRestore();
     });
 });
