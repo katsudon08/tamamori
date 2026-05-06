@@ -6,6 +6,7 @@ const VALID_ENV: Record<string, string> = {
     SUPABASE_URL: 'https://example.supabase.co',
     SUPABASE_ANON_KEY: 'anon-key-123',
     SUPABASE_SERVICE_ROLE_KEY: 'service-role-key-123',
+    SUPABASE_JWT_SECRET: 'jwt-secret-value-32-chars-long-ok-12',
     SLACK_CLIENT_ID: 'slack-client-id',
     SLACK_CLIENT_SECRET: 'slack-client-secret',
     SLACK_SIGNING_SECRET: 'slack-signing-secret',
@@ -42,6 +43,17 @@ describe('parseEnv', () => {
 
     test('SESSION_SECRET が32文字未満の場合にZodErrorをthrowする', () => {
         expect(() => parseEnv({ ...VALID_ENV, SESSION_SECRET: 'too-short' })).toThrow(ZodError);
+    });
+
+    test('SUPABASE_JWT_SECRET が必須かつ正しく型付けされる', () => {
+        const env = parseEnv(VALID_ENV);
+        expect(env.SUPABASE_JWT_SECRET).toBe('jwt-secret-value-32-chars-long-ok-12');
+    });
+
+    test('SUPABASE_JWT_SECRET が32文字未満の場合にZodErrorをthrowする', () => {
+        expect(() => parseEnv({ ...VALID_ENV, SUPABASE_JWT_SECRET: 'too-short' })).toThrow(
+            ZodError,
+        );
     });
 });
 

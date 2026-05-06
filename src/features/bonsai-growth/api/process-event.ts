@@ -52,7 +52,8 @@ export async function processSlackEvent(payload: SlackEventPayload): Promise<voi
         }
 
         // 2. 冪等性チェック
-        if (await checkEventExists(event_id)) {
+        // Slack payload の team_id で絞り、別テナントの同一 event_id を重複扱いしない。
+        if (await checkEventExists(event_id, team_id)) {
             return;
         }
 
@@ -91,10 +92,13 @@ export async function processSlackEvent(payload: SlackEventPayload): Promise<voi
         }
 
         // 6. action_log 挿入
+        // slack_team_id は user lookup の結果由来 (検証済み値) を渡す。
+        // payload.team_id を直接渡すと user との不整合が起き得るため避ける。
         for (let i = 0; i < actions.length; i++) {
             const actionType = actions[i];
             await insertAction({
                 user_id: user.id,
+                slack_team_id: user.slack_team_id,
                 action_type: actionType,
                 slack_event_id: i === 0 ? event_id : `${event_id}_${actionType}`,
                 slack_channel: channel,
@@ -119,7 +123,10 @@ export async function processSlackEvent(payload: SlackEventPayload): Promise<voi
         const visualState = computeVisualState(counters, user.id);
 
         // 10. bonsai 更新
-        await updateBonsai(bonsai.id as string, {
+        // updateBonsai は (id, slackTeamId) 二重 filter を持つため、bonsai.id が
+        // 何らかの理由で別テナントの行を指していても DB レベルで弾かれる
+        // (service_role 経路で RLS バイパスのためアプリ層 filter が唯一の防御)。
+        await updateBonsai(bonsai.id as string, user.slack_team_id, {
             total_messages: counters.totalMessages,
             total_reactions: counters.totalReactions,
             total_thanks: counters.totalThanks,

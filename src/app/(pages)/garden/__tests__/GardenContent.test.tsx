@@ -13,7 +13,7 @@ const mockUseAllBonsai =
         () => { data: unknown; error: unknown; isLoading: boolean; mutate: typeof mockMutate }
     >();
 const mockUseAllBonsaiWithArgs = jest.fn<(slackTeamId: string) => void>();
-const mockUseAllBonsaiRealtime = jest.fn();
+const mockUseAllBonsaiRealtime = jest.fn<(slackTeamId: string) => void>();
 
 jest.mock('@/entities/bonsai', () => ({
     useAllBonsai: (slackTeamId: string) => {
@@ -23,7 +23,7 @@ jest.mock('@/entities/bonsai', () => ({
 }));
 
 jest.mock('@/features/realtime-sync', () => ({
-    useAllBonsaiRealtime: () => mockUseAllBonsaiRealtime(),
+    useAllBonsaiRealtime: (slackTeamId: string) => mockUseAllBonsaiRealtime(slackTeamId),
 }));
 
 jest.mock('@/widgets/garden-viewer', () => ({
@@ -63,10 +63,10 @@ describe('GardenContent', () => {
         expect(mockUseAllBonsaiWithArgs).toHaveBeenCalledWith(MOCK_SLACK_TEAM_ID);
     });
 
-    test('useAllBonsaiRealtime() フックを呼び出す', () => {
+    test('useAllBonsaiRealtime(slackTeamId) フックを呼び出す', () => {
         render(<GardenContent slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
-        expect(mockUseAllBonsaiRealtime).toHaveBeenCalled();
+        expect(mockUseAllBonsaiRealtime).toHaveBeenCalledWith(MOCK_SLACK_TEAM_ID);
     });
 
     test('SWR データを GardenViewer に渡す', () => {

@@ -16,6 +16,21 @@ export interface SlackUserInfo {
 }
 
 /**
+ * Slack OAuth で `ok: false` 応答が返ったときに throw されるエラー。
+ * Slack 側の `error` code (例: `invalid_code`) を保持してサーバログ等で
+ * 障害切り分けに使う。token / secret / 生ボディは一切含めない。
+ */
+export class SlackApiError extends Error {
+    constructor(
+        public readonly endpoint: string,
+        public readonly slackError: string,
+    ) {
+        super(`Slack API ${endpoint} failed: ${slackError}`);
+        this.name = 'SlackApiError';
+    }
+}
+
+/**
  * 認可コードを Slack の openid.connect.token API でトークンに交換する
  */
 export async function exchangeOAuthCode(
@@ -39,7 +54,7 @@ export async function exchangeOAuthCode(
     const data = oauthTokenResponseSchema.parse(await res.json());
 
     if (!data.ok) {
-        throw new Error('exchangeOAuthCode failed');
+        throw new SlackApiError('openid.connect.token', data.error);
     }
 
     return {
@@ -60,7 +75,7 @@ export async function getUserInfo(token: string): Promise<SlackUserInfo> {
     const data = oauthUserInfoResponseSchema.parse(await res.json());
 
     if (!data.ok) {
-        throw new Error('getUserInfo failed');
+        throw new SlackApiError('openid.connect.userInfo', data.error);
     }
 
     return {

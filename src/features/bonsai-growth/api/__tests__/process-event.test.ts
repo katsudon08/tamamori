@@ -2,13 +2,15 @@ import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 
 // --- mocks ---------------------------------------------------------------
 
-const mockCheckEventExists = jest.fn<(id: string) => Promise<boolean>>().mockResolvedValue(false);
+const mockCheckEventExists = jest
+    .fn<(id: string, slackTeamId: string) => Promise<boolean>>()
+    .mockResolvedValue(false);
 const mockInsertAction = jest
     .fn<(data: unknown) => Promise<Record<string, unknown>>>()
     .mockResolvedValue({ id: 'action-uuid' });
 
 jest.mock('@/entities/action', () => ({
-    checkEventExists: (...args: unknown[]) => mockCheckEventExists(...(args as [string])),
+    checkEventExists: (...args: unknown[]) => mockCheckEventExists(...(args as [string, string])),
     insertAction: (...args: unknown[]) => mockInsertAction(...(args as [unknown])),
 }));
 
@@ -39,12 +41,13 @@ const mockGetBonsaiByUserId = jest
         visual_state: {},
     });
 const mockUpdateBonsai = jest
-    .fn<(id: unknown, data: unknown) => Promise<Record<string, unknown>>>()
+    .fn<(id: unknown, slackTeamId: unknown, data: unknown) => Promise<Record<string, unknown>>>()
     .mockResolvedValue({ id: 'bonsai-uuid-123' });
 
 jest.mock('@/entities/bonsai', () => ({
     getBonsaiByUserId: (...args: unknown[]) => mockGetBonsaiByUserId(...(args as [string])),
-    updateBonsai: (...args: unknown[]) => mockUpdateBonsai(...(args as [unknown, unknown])),
+    updateBonsai: (...args: unknown[]) =>
+        mockUpdateBonsai(...(args as [unknown, unknown, unknown])),
 }));
 
 jest.mock('@/shared/config', () => ({
@@ -181,6 +184,7 @@ describe('processSlackEvent', () => {
 
         await processSlackEvent(makeMessagePayload() as never);
 
+        expect(mockCheckEventExists).toHaveBeenCalledWith('Ev01XXXX', 'T01XXXX');
         expect(mockInsertAction).not.toHaveBeenCalled();
     });
 
@@ -225,15 +229,17 @@ describe('processSlackEvent', () => {
         consoleSpy.mockRestore();
     });
 
-    test('通常メッセージで message アクションが記録される', async () => {
+    test('通常メッセージで message アクションが記録される (slack_team_id 込み)', async () => {
         const { processSlackEvent } = await import('../process-event');
 
         await processSlackEvent(makeMessagePayload() as never);
 
+        expect(mockCheckEventExists).toHaveBeenCalledWith('Ev01XXXX', 'T01XXXX');
         expect(mockInsertAction).toHaveBeenCalledTimes(1);
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({
                 user_id: 'user-uuid-123',
+                slack_team_id: 'T01XXXX', // user lookup の結果由来 (検証済み値)
                 action_type: 'message',
                 slack_event_id: 'Ev01XXXX',
                 slack_channel: 'C01XXXX',
@@ -241,7 +247,7 @@ describe('processSlackEvent', () => {
         );
     });
 
-    test('感謝メッセージで message + thanks の2つのアクションが記録される', async () => {
+    test('感謝メッセージで message + thanks の2つのアクションが slack_team_id 込みで記録される', async () => {
         const { processSlackEvent } = await import('../process-event');
 
         await processSlackEvent(makeThanksPayload() as never);
@@ -249,19 +255,21 @@ describe('processSlackEvent', () => {
         expect(mockInsertAction).toHaveBeenCalledTimes(2);
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({
+                slack_team_id: 'T01XXXX',
                 action_type: 'message',
                 slack_event_id: 'Ev01XXXX',
             }),
         );
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({
+                slack_team_id: 'T01XXXX',
                 action_type: 'thanks',
                 slack_event_id: 'Ev01XXXX_thanks',
             }),
         );
     });
 
-    test('リアクションで reaction アクションが記録される', async () => {
+    test('リアクションで reaction アクションが記録される (slack_team_id 込み)', async () => {
         const { processSlackEvent } = await import('../process-event');
 
         await processSlackEvent(makeReactionPayload() as never);
@@ -269,6 +277,7 @@ describe('processSlackEvent', () => {
         expect(mockInsertAction).toHaveBeenCalledTimes(1);
         expect(mockInsertAction).toHaveBeenCalledWith(
             expect.objectContaining({
+                slack_team_id: 'T01XXXX',
                 action_type: 'reaction',
                 slack_event_id: 'Ev02XXXX',
                 slack_channel: 'C01XXXX',
@@ -283,6 +292,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 total_messages: 11,
                 total_reactions: 5,
@@ -298,6 +308,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 total_messages: 11,
                 total_thanks: 3,
@@ -312,6 +323,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 total_reactions: 6,
             }),
@@ -325,6 +337,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 growth_stage: expect.any(String),
             }),
@@ -338,6 +351,7 @@ describe('processSlackEvent', () => {
 
         expect(mockUpdateBonsai).toHaveBeenCalledWith(
             'bonsai-uuid-123',
+            'T01XXXX',
             expect.objectContaining({
                 visual_state: expect.objectContaining({
                     trunkHeight: expect.any(Number),

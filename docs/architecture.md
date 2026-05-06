@@ -37,7 +37,7 @@ flowchart TD
     D["4. 200 OK を即座に返却\n（Slackの3秒ルール対応）"]
     E["5. waitUntil() で非同期処理を開始"]
     F6a["6a. チャンネルフィルタリング\n（SLACK_WATCHED_CHANNELS に含まれるか）"]
-    F6b["6b. 冪等性チェック\n（slack_event_id が action_log に存在するか）"]
+    F6b["6b. 冪等性チェック\n（slack_event_id + slack_team_id が action_log に存在するか）"]
     F6c["6c. イベント分類"]
     F6c_msg["message.channels → message\n(+ 感謝キーワードがあれば thanks も)"]
     F6c_react["reaction_added → reaction"]
@@ -79,6 +79,42 @@ sequenceDiagram
     App->>App: 8. iron-session でセッションCookie設定
     App-->>User: 9. /garden にリダイレクト
 ```
+
+### Supabase RLS 用 JWT 取得フロー (#75 / ADR-004)
+
+iron-session を Root of Trust として、ブラウザ側で必要になったタイミングで
+独自 JWT を発行する。cookie には載せず、メモリキャッシュのみで保持する。
+
+```mermaid
+sequenceDiagram
+    participant Hook as Realtime/SWR Hook
+    participant Cache as token-cache (memory)
+    participant API as /api/auth/session-token
+    participant Sess as iron-session
+    participant Sup as Supabase (RLS)
+
+    Hook->>Cache: getSessionToken()
+    alt キャッシュ有効
+        Cache-->>Hook: token (期限残り > 60s)
+    else 期限切れ・未取得
+        Cache->>API: GET (same-origin cookie)
+        API->>Sess: getSession() → isAuthenticated?
+        Sess-->>API: { userId, slackTeamId, slackUserId }
+        API->>API: issueSupabaseJwt() (HS256)
+        API-->>Cache: { token, expiresAt }
+        Cache-->>Hook: token
+    end
+    Note over Hook: Realtime: subscribe 前に<br/>await supabase.realtime.setAuth(token)
+    Hook->>Sup: REST/Realtime (Bearer token)
+    Sup->>Sup: auth.jwt() ->> 'slack_team_id' で RLS 評価
+    Sup-->>Hook: 自テナント行のみ
+```
+
+**重要な設計上の制約 (ADR-004 §決定 6)**:
+
+- Realtime hook は `subscribe` 前に **`await supabase.realtime.setAuth(token)`** を必須化
+- `accessToken` 関数オプションの auto-setAuth は fire-and-forget で race するため依存しない
+- ログアウト時は `clearSessionToken()` + ページ遷移 (`/api/auth/logout`) で WebSocket 等を一括破棄
 
 ## レイヤーアーキテクチャ (FSD)
 
@@ -154,13 +190,14 @@ flowchart TD
 
 ## 設計判断の記録
 
-| 判断                   | 選択                             | 理由                                                                                                                              |
-| ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 3D描画方式             | プロシージャル生成               | 各盆栽がユニークで連続変化するため。glTFモデルでは表現が制限される                                                                |
-| visual_stateの保存場所 | サーバーサイド（DB）             | 全クライアントで同一の見た目を保証するため                                                                                        |
-| 成長閾値の管理         | DBテーブル（growth_rules）       | デプロイなしで調整可能にするため                                                                                                  |
-| セッション管理         | iron-session                     | Slackのみの単一OAuth。next-authより軽量                                                                                           |
-| Slack連携方式          | Events API（リアルタイム）       | ポーリングでは盆栽成長のリアルタイム体験が損なわれる                                                                              |
-| 非同期処理             | Vercel waitUntil()               | Slackの3秒ルール対応。DB処理をレスポンス後に実行                                                                                  |
-| データ取得管理         | SWR（TanStack Queryではなく）    | フロントエンドがリードオンリーでミューテーション不要。軽量で3Dアプリに有利。詳細は [ADR-001](adr/001-swr-adoption.md)             |
-| バリデーション         | Zod（Valibot・手動実装ではなく） | 型とバリデーションの一元化（`z.infer`）。Slackイベント判別に`discriminatedUnion`が最適。詳細は [ADR-002](adr/002-zod-adoption.md) |
+| 判断                   | 選択                             | 理由                                                                                                                                                             |
+| ---------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3D描画方式             | プロシージャル生成               | 各盆栽がユニークで連続変化するため。glTFモデルでは表現が制限される                                                                                               |
+| visual_stateの保存場所 | サーバーサイド（DB）             | 全クライアントで同一の見た目を保証するため                                                                                                                       |
+| 成長閾値の管理         | DBテーブル（growth_rules）       | デプロイなしで調整可能にするため                                                                                                                                 |
+| セッション管理         | iron-session                     | Slackのみの単一OAuth。next-authより軽量                                                                                                                          |
+| Slack連携方式          | Events API（リアルタイム）       | ポーリングでは盆栽成長のリアルタイム体験が損なわれる                                                                                                             |
+| 非同期処理             | Vercel waitUntil()               | Slackの3秒ルール対応。DB処理をレスポンス後に実行                                                                                                                 |
+| データ取得管理         | SWR（TanStack Queryではなく）    | フロントエンドがリードオンリーでミューテーション不要。軽量で3Dアプリに有利。詳細は [ADR-001](adr/001-swr-adoption.md)                                            |
+| バリデーション         | Zod（Valibot・手動実装ではなく） | 型とバリデーションの一元化（`z.infer`）。Slackイベント判別に`discriminatedUnion`が最適。詳細は [ADR-002](adr/002-zod-adoption.md)                                |
+| マルチテナント分離     | カスタム JWT + RLS (HS256)       | iron-session を Root of Trust とし `/api/auth/session-token` で都度発行。RLS は `bonsai.slack_team_id` 直接参照。詳細は [ADR-004](adr/004-custom-jwt-for-rls.md) |

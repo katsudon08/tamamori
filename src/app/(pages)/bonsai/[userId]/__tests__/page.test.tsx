@@ -70,7 +70,7 @@ describe('BonsaiPage (SSR)', () => {
         });
     });
 
-    test('クエリが users!inner JOIN + user_id + tenant filter + single を適用する', async () => {
+    test('クエリが users!inner JOIN (表示用) + user_id + slack_team_id 直接参照 + single を適用する', async () => {
         chainResolvedValue = { data: { id: 'bonsai-1', user_id: TARGET_USER_ID }, error: null };
         const { default: BonsaiPage } = await import('../page');
 
@@ -80,7 +80,8 @@ describe('BonsaiPage (SSR)', () => {
             { method: 'from', args: ['bonsai'] },
             { method: 'select', args: ['*, users!inner (display_name, avatar_url)'] },
             { method: 'eq', args: ['user_id', TARGET_USER_ID] },
-            { method: 'eq', args: ['users.slack_team_id', 'T_CURRENT'] },
+            // RLS と同じ列を参照する形に統一 (旧: users.slack_team_id)
+            { method: 'eq', args: ['slack_team_id', 'T_CURRENT'] },
             { method: 'single', args: [] },
         ]);
     });

@@ -5,6 +5,10 @@ const envSchema = z.object({
     SUPABASE_URL: z.string(),
     SUPABASE_ANON_KEY: z.string(),
     SUPABASE_SERVICE_ROLE_KEY: z.string(),
+    // RLS テナント分離用に独自発行する HS256 JWT の署名キー (Supabase ダッシュボード
+    // または `supabase status -o env` の JWT_SECRET と同一値)。32 文字未満では HS256 の
+    // 強度要件を満たさず偽造リスクが上がるため schema で強制する。
+    SUPABASE_JWT_SECRET: z.string().min(32, 'SUPABASE_JWT_SECRET must be at least 32 characters'),
 
     // Slack
     SLACK_CLIENT_ID: z.string(),

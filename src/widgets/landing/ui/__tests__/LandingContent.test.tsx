@@ -24,6 +24,14 @@ describe('LandingContent', () => {
         expect(alert).toHaveTextContent('認証に失敗しました');
     });
 
+    test('session_expired の場合は再ログインを促すメッセージが表示される', () => {
+        render(<LandingContent error="session_expired" />);
+
+        const alert = screen.getByRole('alert');
+        expect(alert).toBeInTheDocument();
+        expect(alert).toHaveTextContent('セッションの有効期限が切れました');
+    });
+
     test('エラーパラメータなしではエラーメッセージが表示されない', () => {
         render(<LandingContent />);
 

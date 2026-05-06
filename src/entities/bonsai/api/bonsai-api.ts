@@ -12,8 +12,9 @@ interface UpdateBonsaiData {
 
 /**
  * 指定 user_id の bonsai を tenant filter 付きで 1 件取得する。
- * 認可チェーンの中心的な API: `users!inner` JOIN + `users.slack_team_id` filter により、
- * 他テナントの user_id を渡しても行は返らない (= 越境アクセスが構造的に不可能)。
+ * 認可チェーンの中心的な API: bonsai.slack_team_id (denormalize 列) を直接参照
+ * してテナント境界を確立する。RLS ポリシーと同じ列を参照することで
+ * 「アプリ層 filter と RLS の意図が一致する」状態にしている。
  *
  * エラー契約 (caller は分けて扱うこと):
  * - PostgrestError `code = 'PGRST116'`: 該当行なし。
@@ -24,9 +25,9 @@ export async function getBonsaiByUserId(userId: string, slackTeamId: string) {
     const supabase = createServerClient();
     const { data, error } = await supabase
         .from('bonsai')
-        .select('*, users!inner(slack_team_id)')
+        .select('*')
         .eq('user_id', userId)
-        .eq('users.slack_team_id', slackTeamId)
+        .eq('slack_team_id', slackTeamId)
         .single();
     if (error) throw error;
     return data;
@@ -36,14 +37,17 @@ export async function getBonsaiByUserId(userId: string, slackTeamId: string) {
  * 新規 bonsai レコードを作成する。
  *
  * 注意: tenant 検証を内包していない「検証済み ID 専用 API」。
- * 呼び出し側で userId が現在セッションのテナントに属することを
- * 検証した上で呼ぶこと (現在の caller は OAuth callback のみ)。
+ * 呼び出し側で (userId, slackTeamId) が現在セッションのテナントに属する
+ * 検証済みの組み合わせであることを保証した上で呼ぶこと
+ * (現在の caller は OAuth callback のみ)。
+ *
+ * INSERT 時に slack_team_id をセットしないと NOT NULL 制約 + 複合 FK で弾かれる。
  */
-export async function createBonsai(userId: string) {
+export async function createBonsai(userId: string, slackTeamId: string) {
     const supabase = createServerClient();
     const { data, error } = await supabase
         .from('bonsai')
-        .insert({ user_id: userId })
+        .insert({ user_id: userId, slack_team_id: slackTeamId })
         .select()
         .single();
     if (error) throw error;
@@ -51,15 +55,21 @@ export async function createBonsai(userId: string) {
 }
 
 /**
- * bonsai を id 直接指定で更新する。
+ * bonsai を (id, slackTeamId) 指定で更新する。
  *
- * 注意: tenant 検証を内包していない「検証済み ID 専用 API」。
- * 呼び出し側で id が `getBonsaiByUserId(userId, slackTeamId)` の結果に由来する
- * 検証済み ID であることを保証した上で呼ぶこと (現在の caller は process-event のみ)。
+ * service_role 経由 (= RLS バイパス) なので、id 単独で UPDATE すると tenant
+ * 境界がアプリ層に依存してしまう。caller のバグ・誤った id 渡しによる
+ * 越境書き込みを構造的に防ぐため、API 自体で slack_team_id filter を持つ。
+ * caller (process-event) は user lookup の検証済み slack_team_id を渡すこと。
  */
-export async function updateBonsai(id: string, updateData: UpdateBonsaiData) {
+export async function updateBonsai(id: string, slackTeamId: string, updateData: UpdateBonsaiData) {
     const supabase = createServerClient();
-    const { data, error } = await supabase.from('bonsai').update(updateData).eq('id', id).single();
+    const { data, error } = await supabase
+        .from('bonsai')
+        .update(updateData)
+        .eq('id', id)
+        .eq('slack_team_id', slackTeamId)
+        .single();
     if (error) throw error;
     return data;
 }

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { LandingContent } from '@/widgets/landing';
-import { getServerSession } from '@/features/slack-auth';
+import { getServerSession, isAuthenticated } from '@/features/slack-auth';
 
 type PageProps = {
     searchParams: Promise<{ error?: string }>;
@@ -9,7 +9,7 @@ type PageProps = {
 export default async function Home({ searchParams }: PageProps) {
     const session = await getServerSession();
 
-    if (session.userId) {
+    if (isAuthenticated(session)) {
         redirect('/garden');
     }
 

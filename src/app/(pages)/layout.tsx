@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { getAuthenticatedSession } from '@/features/slack-auth';
+import { getAuthenticatedSession, LogoutButton } from '@/features/slack-auth';
 import { Header, NavLink } from '@/shared/ui';
 
 export default async function PagesLayout({ children }: { children: React.ReactNode }) {
@@ -21,9 +21,7 @@ export default async function PagesLayout({ children }: { children: React.ReactN
                             />
                         ) : null}
                         <span className="text-sm text-sub">{session.displayName}</span>
-                        <a href="/api/auth/logout" className="text-sm text-sub hover:text-main">
-                            ログアウト
-                        </a>
+                        <LogoutButton className="text-sm text-sub hover:text-main" />
                     </div>
                 }
             >

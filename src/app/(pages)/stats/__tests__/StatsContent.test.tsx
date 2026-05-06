@@ -13,11 +13,12 @@ const mockUseActionLogs =
     jest.fn<
         () => { data: unknown; error: unknown; isLoading: boolean; mutate: typeof mockMutate }
     >();
-const mockUseActionLogsWithArgs = jest.fn<(userId: string, startDate: string) => void>();
+const mockUseActionLogsWithArgs =
+    jest.fn<(userId: string, slackTeamId: string, startDate: string) => void>();
 
 jest.mock('@/entities/action', () => ({
-    useActionLogs: (userId: string, startDate: string) => {
-        mockUseActionLogsWithArgs(userId, startDate);
+    useActionLogs: (userId: string, slackTeamId: string, startDate: string) => {
+        mockUseActionLogsWithArgs(userId, slackTeamId, startDate);
         return mockUseActionLogs();
     },
 }));
@@ -41,6 +42,7 @@ jest.mock('@/widgets/stats-panel', () => ({
 import { StatsContent } from '../StatsContent';
 
 const MOCK_USER_ID = '12345678-1234-4123-8123-123456789abc';
+const MOCK_SLACK_TEAM_ID = 'T01XXXX';
 
 const MOCK_DATA = [
     { action_type: 'message', created_at: '2026-04-10T10:00:00Z' },
@@ -69,28 +71,36 @@ beforeEach(() => {
 // --- tests ---------------------------------------------------------------
 
 describe('StatsContent', () => {
-    test('useActionLogs(userId, startDate) フックを呼び出す', () => {
-        render(<StatsContent userId={MOCK_USER_ID} />);
+    test('useActionLogs(userId, slackTeamId, startDate) フックを呼び出す', () => {
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
-        expect(mockUseActionLogsWithArgs).toHaveBeenCalledWith(MOCK_USER_ID, expect.any(String));
+        expect(mockUseActionLogsWithArgs).toHaveBeenCalledWith(
+            MOCK_USER_ID,
+            MOCK_SLACK_TEAM_ID,
+            expect.any(String),
+        );
     });
 
     test('デフォルトは直近7日で取得する', () => {
-        render(<StatsContent userId={MOCK_USER_ID} />);
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         const expected = daysAgo(7);
-        expect(mockUseActionLogsWithArgs).toHaveBeenCalledWith(MOCK_USER_ID, expected);
+        expect(mockUseActionLogsWithArgs).toHaveBeenCalledWith(
+            MOCK_USER_ID,
+            MOCK_SLACK_TEAM_ID,
+            expected,
+        );
     });
 
     test('SWR データを GrowthTimeline に渡す', () => {
-        render(<StatsContent userId={MOCK_USER_ID} />);
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(screen.getByTestId('growth-timeline')).toBeInTheDocument();
         expect(capturedTimelineProps.actions).toEqual(MOCK_DATA);
     });
 
     test('SWR データを ActionBreakdown に渡す', () => {
-        render(<StatsContent userId={MOCK_USER_ID} />);
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(screen.getByTestId('action-breakdown')).toBeInTheDocument();
         expect(capturedBreakdownProps.actions).toEqual(MOCK_DATA);
@@ -104,7 +114,7 @@ describe('StatsContent', () => {
             mutate: mockMutate,
         });
 
-        render(<StatsContent userId={MOCK_USER_ID} />);
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(screen.getByTestId('loading')).toBeInTheDocument();
         expect(screen.queryByTestId('growth-timeline')).not.toBeInTheDocument();
@@ -118,7 +128,7 @@ describe('StatsContent', () => {
             mutate: mockMutate,
         });
 
-        render(<StatsContent userId={MOCK_USER_ID} />);
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(screen.getByText('データの取得に失敗しました')).toBeInTheDocument();
         expect(screen.queryByTestId('growth-timeline')).not.toBeInTheDocument();
@@ -132,7 +142,7 @@ describe('StatsContent', () => {
             mutate: mockMutate,
         });
 
-        render(<StatsContent userId={MOCK_USER_ID} />);
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(screen.getByTestId('growth-timeline')).toBeInTheDocument();
         expect(screen.getByTestId('action-breakdown')).toBeInTheDocument();
@@ -147,7 +157,7 @@ describe('StatsContent', () => {
             mutate: mockMutate,
         });
 
-        render(<StatsContent userId={MOCK_USER_ID} />);
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         expect(capturedTimelineProps.actions).toEqual([]);
         expect(capturedBreakdownProps.actions).toEqual([]);
@@ -156,12 +166,12 @@ describe('StatsContent', () => {
     test('30日ボタンをクリックすると startDate が30日前になる', async () => {
         const user = userEvent.setup();
 
-        render(<StatsContent userId={MOCK_USER_ID} />);
+        render(<StatsContent userId={MOCK_USER_ID} slackTeamId={MOCK_SLACK_TEAM_ID} />);
 
         await user.click(screen.getByRole('button', { name: '直近30日' }));
 
         const expected = daysAgo(30);
         const lastCall = mockUseActionLogsWithArgs.mock.calls.at(-1);
-        expect(lastCall![1]).toBe(expected);
+        expect(lastCall![2]).toBe(expected);
     });
 });

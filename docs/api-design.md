@@ -74,7 +74,7 @@ Slack App のイベントURL設定時に送信されるチャレンジリクエ�
 
 1. `X-Slack-Signature` で署名検証
 2. リクエストボディを Zod スキーマでバリデーション（`slack-event-schema.ts`）
-3. `event_id` で冪等性チェック（`action_log.slack_event_id` と照合）
+3. `event_id` と `team_id` で冪等性チェック（`action_log.slack_event_id` + `slack_team_id` と照合）
 4. `channel` が `SLACK_WATCHED_CHANNELS` に含まれるか確認
 5. `subtype` が null の通常メッセージのみ処理（bot メッセージ、編集等は除外）
 6. ユーザー upsert
@@ -201,6 +201,71 @@ interface SessionData {
 1. iron-session のセッションを破棄
 
 **Response:** `302 Redirect` → `/`
+
+クライアント側ではログアウトボタン (`<LogoutButton>`) が `clearSessionToken()` を
+呼んだ後にこの URL へ navigation する。完全なページ遷移により Realtime hook の
+WebSocket / Supabase client インスタンスは破棄される。
+
+### GET /api/auth/session-token
+
+iron-session 由来の独自 JWT (Supabase RLS 用 / HS256) を都度ミントして返す
+(#75 / [ADR-004](adr/004-custom-jwt-for-rls.md))。cookie には載せない。
+
+**処理内容:**
+
+1. `getSession()` で iron-session を読む
+2. `isAuthenticated` (= `userId` / `slackTeamId` 共に非空) を確認
+3. 認証済みなら `issueSupabaseJwt({ userId, slackTeamId, slackUserId })` を呼んで JSON で返す
+
+**Request:** GET `/api/auth/session-token` (same-origin cookie 付与必須)
+
+**Response (認証済み): `200 OK`**
+
+```json
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresAt": 1745308800
+}
+```
+
+**Response (未認証 / セッション復号失敗): `401 Unauthorized`**
+
+```json
+{ "token": null, "reason": "unauthenticated" }
+```
+
+**Response (発行失敗 — 鍵未設定など): `500 Internal Server Error`**
+
+```json
+{ "token": null, "reason": "server_error" }
+```
+
+**全レスポンス共通ヘッダ:**
+
+| ヘッダ                   | 値                  | 目的                                        |
+| ------------------------ | ------------------- | ------------------------------------------- |
+| `Cache-Control`          | `private, no-store` | 中間 proxy / ブラウザキャッシュへの保存防止 |
+| `X-Content-Type-Options` | `nosniff`           | MIME sniffing 抑制                          |
+| `Vary`                   | `Cookie`            | cookie 違いでレスポンスが変わる旨を明示     |
+
+**JWT claims:**
+
+```jsonc
+{
+    "sub": "<users.id (UUID)>",
+    "role": "authenticated",
+    "slack_team_id": "<Txxxxxx>", // RLS で auth.jwt() ->> 'slack_team_id' で参照
+    "slack_user_id": "<Uxxxxxx>",
+    "aud": "authenticated",
+    "iss": "tamamori",
+    "iat": 1745305200,
+    "exp": 1745308800, // iat + 3600 (TTL 1 時間)
+    "jti": "<random uuid>",
+}
+```
+
+`userId` / `slackTeamId` / `slackUserId` は **session からのみ** 取得する。
+リクエスト body や query には依存しない (ここを破ると IDOR に戻る)。
 
 ## 3. Supabase クライアント API（フロントエンド）
 
@@ -346,27 +411,50 @@ export function useBonsaiRealtime(userId?: string) {
 
 ## 4. Supabase Row Level Security (RLS)
 
-### ポリシー方針
+### ポリシー方針 (#75 / [ADR-004](adr/004-custom-jwt-for-rls.md))
 
-| テーブル     | SELECT               | INSERT             | UPDATE             |
-| ------------ | -------------------- | ------------------ | ------------------ |
-| users        | anon: 全行読み取り可 | サービスロールのみ | サービスロールのみ |
-| bonsai       | anon: 全行読み取り可 | サービスロールのみ | サービスロールのみ |
-| action_log   | anon: 全行読み取り可 | サービスロールのみ | なし（追記専用）   |
-| growth_rules | anon: 全行読み取り可 | サービスロールのみ | サービスロールのみ |
+`iron-session` 由来の独自 JWT (HS256 / `slack_team_id` claim) を `authenticated`
+ロールで流し、自テナント行のみ SELECT を許可する。書き込みはアプリ層の
+`service_role` 経由のみ行うためポリシーを追加しない (= デフォルト DENY)。
 
-- フロントエンドからの読み取りは `anon key` + RLS で制御
-- Slack Webhook からの書き込みは `service_role key`（API Route 内のみ使用、フロントエンドに露出しない）
+| テーブル     | SELECT (authenticated)                           | INSERT             | UPDATE             |
+| ------------ | ------------------------------------------------ | ------------------ | ------------------ |
+| users        | `slack_team_id = auth.jwt() ->> 'slack_team_id'` | サービスロールのみ | サービスロールのみ |
+| bonsai       | `slack_team_id = auth.jwt() ->> 'slack_team_id'` | サービスロールのみ | サービスロールのみ |
+| action_log   | `slack_team_id = auth.jwt() ->> 'slack_team_id'` | サービスロールのみ | なし（追記専用）   |
+| growth_rules | `USING (true)` — テナント非依存                  | サービスロールのみ | サービスロールのみ |
 
-### マルチテナント認可（アプリケーション層）
+**設計原則:**
 
-DB層RLSの強化（#75 で対応予定）に先行して、アプリ層でテナント（Slackワークスペース）単位のアクセス制御を行う。
+- ポリシーは **自テーブルの `slack_team_id` を直接参照**する。`users` JOIN や
+  EXISTS は postgres_changes RLS で評価できないため使わない (PoC で実証済み)。
+- フロントエンドからの読み取りは `anon key` + 独自 JWT (`accessToken` 関数オプション)
+  で `authenticated` ロールに昇格。
+- Slack Webhook からの書き込みは `service_role key`（API Route 内のみ使用、
+  フロントエンドに露出しない / RLS バイパス）。
+
+### マルチテナント認可（多層防御）
+
+#74 のアプリ層フィルタは #75 RLS と並走させて維持する。`service_role` 経路は
+RLS をバイパスするため、アプリ層が唯一の防御となる。
 
 - セッション (`iron-session`) に `slackTeamId` を保持し、OAuth callback (`/api/auth/slack/callback`) で Slack Identity から取得した値をセット
-- bonsai 取得クエリは `users!inner` JOIN + `.eq('users.slack_team_id', slackTeamId)` でテナントを絞り込む
+- bonsai 取得クエリは `bonsai.slack_team_id` 直接参照で絞り込む (`users!inner` JOIN は
+  display_name/avatar_url 表示用に維持)。RLS ポリシーと同じ列を参照することで
+  「アプリ層フィルタと RLS の意図が一致する」状態を作る
     - 対象: SSR (`src/app/(pages)/*/page.tsx`)・クライアント SWR (`src/entities/bonsai/api/bonsai-swr.ts`)・entities API (`getBonsaiByUserId`)
 - `/bonsai/[userId]` は他テナントの userId へのアクセスに対して `notFound()` で 404 を返す（存在情報を漏らさない）
-- Slack Event 処理 (`processSlackEvent`) は `payload.team_id !== user.slack_team_id` の場合は早期 return
+- Slack Event 処理 (`processSlackEvent`) は team-aware lookup で別テナントを早期 return
+
+### Realtime + RLS の必須要件 (#75 / PoC 由来)
+
+- **subscribe 前に `await supabase.realtime.setAuth(jwt)` を呼ぶ** (auto-setAuth
+  は race するため依存しない)
+- **`bonsai` / `action_log` を `REPLICA IDENTITY FULL`** に設定 (DEFAULT では
+  WAL に必要なカラムが乗らず RLS 評価できない)
+- 購読 filter に `slack_team_id=eq.${slackTeamId}` を付与し、RLS との二重防御
+  (`useAllBonsaiRealtime`)。`useBonsaiRealtime` は `user_id=eq.${userId}` 単独でも
+  `bonsai.user_id` UNIQUE のため一意
 - ページ共通レイアウト (`src/app/(pages)/layout.tsx`) は `session.slackTeamId` が空のとき `/` にリダイレクト（旧セッション cookie のユーザーに再ログインを促す）
 
 **注意**: Supabase Realtime 購読（`use-bonsai-realtime.ts`, `use-all-bonsai.ts`）は現段階ではテナントフィルタを適用していない。Realtime 起点の再検証は SWR fetcher 側のテナントフィルタで空結果になるため情報漏洩は発生しないが、購読そのもののスコープ制限は #75 の RLS + カスタム JWT で抜本対応する。

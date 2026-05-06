@@ -53,7 +53,7 @@ describe('GardenPage (SSR)', () => {
         });
     });
 
-    test('クエリが bonsai テーブルに users!inner JOIN + tenant filter を適用する', async () => {
+    test('クエリが bonsai に users!inner JOIN (表示用) + slack_team_id 直接参照 filter を適用する', async () => {
         const { default: GardenPage } = await import('../page');
 
         await GardenPage();
@@ -61,7 +61,8 @@ describe('GardenPage (SSR)', () => {
         expect(chainCalls).toEqual([
             { method: 'from', args: ['bonsai'] },
             { method: 'select', args: ['*, users!inner (display_name, avatar_url)'] },
-            { method: 'eq', args: ['users.slack_team_id', 'T_CURRENT'] },
+            // RLS と同じ列を参照する形に統一 (旧: users.slack_team_id)
+            { method: 'eq', args: ['slack_team_id', 'T_CURRENT'] },
             { method: 'order', args: ['created_at', { ascending: true }] },
         ]);
     });

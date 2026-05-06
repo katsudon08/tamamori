@@ -14,7 +14,7 @@ type BonsaiPageContentProps = {
 
 export function BonsaiPageContent({ userId, slackTeamId, growthRules }: BonsaiPageContentProps) {
     const { data, error, isLoading, mutate } = useBonsai(userId, slackTeamId);
-    useBonsaiRealtime(userId);
+    useBonsaiRealtime(userId, slackTeamId);
 
     if (isLoading) {
         return (

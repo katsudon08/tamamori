@@ -48,14 +48,16 @@ jest.mock('@/entities/user', () => ({
     upsertUser: (...args: unknown[]) => mockUpsertUser(...(args as [unknown])),
 }));
 
-const mockGetBonsaiByUserId = jest.fn<(userId: unknown) => Promise<Record<string, string>>>();
+const mockGetBonsaiByUserId =
+    jest.fn<(userId: unknown, slackTeamId: unknown) => Promise<Record<string, string>>>();
 const mockCreateBonsai = jest
-    .fn<(userId: unknown) => Promise<Record<string, string>>>()
+    .fn<(userId: unknown, slackTeamId: unknown) => Promise<Record<string, string>>>()
     .mockResolvedValue({ id: 'bonsai-uuid' });
 
 jest.mock('@/entities/bonsai', () => ({
-    getBonsaiByUserId: (...args: unknown[]) => mockGetBonsaiByUserId(...(args as [unknown])),
-    createBonsai: (...args: unknown[]) => mockCreateBonsai(...(args as [unknown])),
+    getBonsaiByUserId: (...args: unknown[]) =>
+        mockGetBonsaiByUserId(...(args as [unknown, unknown])),
+    createBonsai: (...args: unknown[]) => mockCreateBonsai(...(args as [unknown, unknown])),
 }));
 
 // --- helpers -------------------------------------------------------------
@@ -126,14 +128,14 @@ describe('GET /api/auth/slack/callback', () => {
         });
     });
 
-    test('bonsai未存在時(PGRST116)にcreateBonsaiが呼ばれる', async () => {
+    test('bonsai未存在時(PGRST116)にcreateBonsaiが userId + slackTeamId で呼ばれる', async () => {
         const pgrst116 = Object.assign(new Error('no rows'), { code: 'PGRST116' });
         mockGetBonsaiByUserId.mockRejectedValueOnce(pgrst116);
         const { GET } = await import('../route');
 
         await GET(new Request(callbackUrl()));
 
-        expect(mockCreateBonsai).toHaveBeenCalledWith('uuid-123');
+        expect(mockCreateBonsai).toHaveBeenCalledWith('uuid-123', 'T12345');
     });
 
     test('bonsai既存時にcreateBonsaiが呼ばれない', async () => {

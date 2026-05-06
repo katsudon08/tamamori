@@ -30,7 +30,7 @@ describe('user-api (サーバー用関数)', () => {
     });
 
     describe('upsertUser', () => {
-        test('usersテーブルにslack_user_idでupsertする', async () => {
+        test('users テーブルに (slack_user_id, slack_team_id) 複合 onConflict で upsert する', async () => {
             const userData = {
                 slack_user_id: 'U01XXXX',
                 slack_team_id: 'T01XXXX',
@@ -44,7 +44,7 @@ describe('user-api (サーバー用関数)', () => {
 
             expect(mockFrom).toHaveBeenCalledWith('users');
             expect(mockUpsert).toHaveBeenCalledWith(userData, {
-                onConflict: 'slack_user_id',
+                onConflict: 'slack_user_id,slack_team_id',
             });
             expect(result).toEqual(expected);
         });
