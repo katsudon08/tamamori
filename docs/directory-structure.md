@@ -6,16 +6,15 @@
 
 ## FSD レイヤー概要
 
-```
-app        ← 最上位。ルーティング・レイアウト・プロバイダー（Next.js App Router）
- ↓
-widgets    ← 大きなUI構成ブロック。複数 features/entities を組み合わせる
- ↓
-features   ← ユーザーインタラクション・ビジネスロジック
- ↓
-entities   ← ビジネスエンティティ（型・API・UIパーツ）
- ↓
-shared     ← ビジネスロジックを持たない共有コード
+```mermaid
+graph TD
+    app["app\n最上位\nルーティング・レイアウト・プロバイダー（Next.js App Router）"]
+    widgets["widgets\n大きなUI構成ブロック\n複数 features/entities を組み合わせる"]
+    features["features\nユーザーインタラクション・ビジネスロジック"]
+    entities["entities\nビジネスエンティティ（型・API・UIパーツ）"]
+    shared["shared\nビジネスロジックを持たない共有コード"]
+
+    app --> widgets --> features --> entities --> shared
 ```
 
 **依存ルール**: 上位レイヤーは下位レイヤーのみをインポートできる。同一レイヤー内の他スライスへの直接インポートは禁止。
@@ -30,7 +29,10 @@ tamamori/
 │   ├── tech-stack.md                        #   技術スタック
 │   ├── directory-structure.md               #   ディレクトリ構成（本ファイル）
 │   ├── api-design.md                        #   API設計
-│   └── data-model.md                        #   データモデル設計
+│   ├── data-model.md                        #   データモデル設計
+│   └── adr/                                 #   Architecture Decision Records
+│       ├── 001-swr-adoption.md              #     データ取得ライブラリとしてSWR採用
+│       └── 002-zod-adoption.md              #     バリデーションライブラリとしてZod採用
 │
 ├── supabase/
 │   └── migrations/                          # DBマイグレーションSQL
@@ -46,7 +48,7 @@ tamamori/
 ├── src/
 │   ├── app/                                 # ===== FSD: app 層 =====
 │   │   │                                    # Next.js App Router のルーティング・レイアウト
-│   │   ├── layout.tsx                       # ルートレイアウト（プロバイダー設定）
+│   │   ├── layout.tsx                       # ルートレイアウト（SWRConfig, プロバイダー設定）
 │   │   ├── page.tsx                         # / ランディング・サインイン
 │   │   ├── (pages)/                         # ルートグループ（URLに影響しない）
 │   │   │   ├── garden/
@@ -95,7 +97,10 @@ tamamori/
 │   │   │   ├── model/
 │   │   │   │   └── session.ts               #   iron-session 設定、セッション型定義
 │   │   │   └── lib/
-│   │   │       └── verify-signature.ts      #   Slack 署名検証
+│   │   │       ├── verify-signature.ts      #   Slack 署名検証
+│   │   │       ├── slack-event-schema.ts    #   Slackイベントペイロードの Zod スキーマ
+│   │   │       └── slack-oauth-schema.ts    #   OAuthレスポンスの Zod スキーマ
+│   │   │
 │   │   ├── bonsai-growth/                   # 盆栽成長計算
 │   │   │   ├── index.ts
 │   │   │   ├── model/
@@ -104,20 +109,20 @@ tamamori/
 │   │   │   └── lib/
 │   │   │       ├── classify-event.ts        #   Slackイベント分類
 │   │   │       └── hash.ts                  #   決定的ハッシュ関数
-│   │   └── realtime-sync/                   # リアルタイム同期
+│   │   └── realtime-sync/                   # リアルタイム同期（Realtime → SWR mutate）
 │   │       ├── index.ts
 │   │       └── model/
-│   │           ├── use-bonsai-realtime.ts   #   単一盆栽のRealtime購読フック
-│   │           └── use-all-bonsai.ts        #   全盆栽のRealtime購読フック
+│   │           ├── use-bonsai-realtime.ts   #   単一盆栽のRealtime購読 + SWRキャッシュ更新
+│   │           └── use-all-bonsai.ts        #   全盆栽のRealtime購読 + SWRキャッシュ更新
 │   │
 │   ├── entities/                            # ===== FSD: entities 層 =====
 │   │   │                                    # ビジネスエンティティ
 │   │   ├── bonsai/                          # 盆栽エンティティ
 │   │   │   ├── index.ts
 │   │   │   ├── model/
-│   │   │   │   └── types.ts                 #   BonsaiVisualState, GrowthStage 型
+│   │   │   │   └── types.ts                 #   Zodスキーマ + 型導出（BonsaiVisualState, GrowthStage）
 │   │   │   ├── api/
-│   │   │   │   └── bonsai-api.ts            #   盆栽データ取得・更新
+│   │   │   │   └── bonsai-api.ts            #   SWRフック（useBonsai, useAllBonsai）
 │   │   │   └── ui/
 │   │   │       ├── BonsaiScene.tsx           #   3Dシーン（Canvas, ライティング）
 │   │   │       ├── Bonsai.tsx               #   盆栽コンポーネント（全パーツ統合）
@@ -130,15 +135,15 @@ tamamori/
 │   │   ├── user/                            # ユーザーエンティティ
 │   │   │   ├── index.ts
 │   │   │   ├── model/
-│   │   │   │   └── types.ts                 #   User 型
+│   │   │   │   └── types.ts                 #   Zodスキーマ + 型導出（User）
 │   │   │   └── api/
 │   │   │       └── user-api.ts              #   ユーザーデータ取得・upsert
 │   │   └── action/                          # アクションエンティティ
 │   │       ├── index.ts
 │   │       ├── model/
-│   │       │   └── types.ts                 #   ActionLog, ActionType 型
+│   │       │   └── types.ts                 #   Zodスキーマ + 型導出（ActionLog, ActionType）
 │   │       └── api/
-│   │           └── action-api.ts            #   アクションログ取得・挿入
+│   │           └── action-api.ts            #   SWRフック（useActionLogs）+ サーバー用挿入関数
 │   │
 │   └── shared/                              # ===== FSD: shared 層 =====
 │       │                                    # ビジネスロジックを持たない共有コード
@@ -155,11 +160,9 @@ tamamori/
 │       │   │   └── types.ts                 #   Supabase 自動生成型（supabase gen types）
 │       │   └── slack/
 │       │       └── client.ts                #   Slack API クライアント初期化
-│       ├── config/                          # 設定
-│       │   ├── index.ts                     #   Public API
-│       │   └── env.ts                       #   環境変数のバリデーション・エクスポート
-│       └── types/                           # 共通型定義
-│           └── index.ts                     #   Public API（型の再エクスポート）
+│       └── config/                          # 設定
+│           ├── index.ts                     #   Public API
+│           └── env.ts                       #   環境変数の Zod バリデーション・エクスポート
 │
 ├── .env.local                               # 環境変数（Git管理外）
 ├── .gitignore
@@ -183,7 +186,7 @@ Next.js の `app/` ディレクトリは FSD の app 層に対応する。ペー
 import { GardenViewer } from '@/widgets/garden-viewer';
 
 export default function GardenPage() {
-  return <GardenViewer />;
+    return <GardenViewer />;
 }
 ```
 
@@ -197,14 +200,14 @@ import { processSlackEvent } from '@/features/slack-auth';
 import { verifySignature } from '@/features/slack-auth';
 
 export async function POST(request: Request) {
-  // 署名検証 → features 層に委譲
-  // イベント処理 → features 層に委譲
+    // 署名検証 → features 層に委譲
+    // イベント処理 → features 層に委譲
 }
 ```
 
 ### Public API (index.ts)
 
-各スライスは `index.ts` でパブリックAPIを定義する。外部からのインポートは必ず `index.ts` 経由とする。shared 層も同様に、各セグメント（`ui/`, `lib/`, `config/`, `types/`）が `index.ts` を持ち、Public API として機能する。
+各スライスは `index.ts` でパブリックAPIを定義する。外部からのインポートは必ず `index.ts` 経由とする。shared 層も同様に、各セグメント（`ui/`, `lib/`, `config/`）が `index.ts` を持ち、Public API として機能する。
 
 ```tsx
 // OK: index.ts 経由
@@ -223,21 +226,19 @@ import { Header } from '@/shared/ui/Header';
 
 ### 主要ルール
 
-| ルール | 内容 |
-|-------|------|
-| `fsd/forbidden-imports` | レイヤー階層の違反を防止（上位→下位のみ許可） |
-| `fsd/no-public-api-sidestep` | Public API（index.ts）を迂回した内部モジュールへの直接インポートを禁止 |
-| `fsd/no-cross-slice-dependency` | 同一レイヤー内の他スライスへの直接依存を禁止 |
-| `fsd/no-relative-imports` | クロスレイヤー/スライスではエイリアスベースのインポートを強制 |
+| ルール                          | 内容                                                                   |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| `fsd/forbidden-imports`         | レイヤー階層の違反を防止（上位→下位のみ許可）                          |
+| `fsd/no-public-api-sidestep`    | Public API（index.ts）を迂回した内部モジュールへの直接インポートを禁止 |
+| `fsd/no-cross-slice-dependency` | 同一レイヤー内の他スライスへの直接依存を禁止                           |
+| `fsd/no-relative-imports`       | クロスレイヤー/スライスではエイリアスベースのインポートを強制          |
 
 ### 設定例（Flat Config）
 
 ```javascript
 import fsdPlugin from 'eslint-plugin-fsd-lint';
 
-export default [
-  fsdPlugin.configs.recommended,
-];
+export default [fsdPlugin.configs.recommended];
 ```
 
 ## パスエイリアス
@@ -246,15 +247,16 @@ export default [
 
 ```json
 {
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
+    "compilerOptions": {
+        "paths": {
+            "@/*": ["./src/*"]
+        }
     }
-  }
 }
 ```
 
 使用例:
+
 - `@/shared/lib/supabase/server`
 - `@/entities/bonsai`
 - `@/features/bonsai-growth`

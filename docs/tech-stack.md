@@ -2,17 +2,20 @@
 
 ## 概要
 
-| カテゴリ | 技術 | バージョン方針 |
-|---------|------|-------------|
-| フレームワーク | Next.js (App Router) | 最新安定版 |
-| 言語 | TypeScript | 最新安定版 |
-| 3D描画 | Three.js + React Three Fiber | 最新安定版 |
-| データベース | Supabase (PostgreSQL) | Supabase Cloud |
-| リアルタイム | Supabase Realtime | Supabase Cloud 付属 |
-| 認証 | Slack OAuth + iron-session | - |
-| CSS | Tailwind CSS | 最新安定版 |
-| デプロイ | Vercel | - |
-| パッケージマネージャ | npm | - |
+| カテゴリ             | 技術                         | バージョン方針      |
+| -------------------- | ---------------------------- | ------------------- |
+| フレームワーク       | Next.js (App Router)         | 最新安定版          |
+| 言語                 | TypeScript                   | 最新安定版          |
+| 3D描画               | Three.js + React Three Fiber | 最新安定版          |
+| データベース         | Supabase (PostgreSQL)        | Supabase Cloud      |
+| リアルタイム         | Supabase Realtime            | Supabase Cloud 付属 |
+| 認証                 | Slack OAuth + iron-session   | -                   |
+| データ取得           | SWR                          | 最新安定版          |
+| バリデーション       | Zod                          | 最新安定版          |
+| CSS                  | Tailwind CSS                 | 最新安定版          |
+| CI                   | GitHub Actions               | -                   |
+| デプロイ             | Vercel                       | -                   |
+| パッケージマネージャ | npm                          | -                   |
 
 ## フロントエンド
 
@@ -37,6 +40,29 @@
 - **役割**: R3Fのユーティリティ集。OrbitControls、Html（3D空間内のHTML描画）、InstancedMesh等
 - **選定理由**: 頻出パターンの再実装を避ける
 
+### SWR
+
+- **役割**: クライアントサイドのデータ取得・キャッシュ管理
+- **主要機能**:
+    - `useSWR` — 宣言的なデータフェッチフック（stale-while-revalidate戦略）
+    - `mutate()` — キャッシュの手動更新（Supabase Realtimeとの連携に使用）
+    - `SWRConfig` の `fallback` — SSRで取得したデータの注入
+- **選定理由**: フロントエンドがリードオンリーのため、ミューテーション管理が不要。TanStack Queryと比較して軽量（バンドルサイズ約1/3）で、シンプルなAPI。Three.jsを使う3Dアプリではバンドルサイズの軽量さが有利。詳細は [ADR-001](adr/001-swr-adoption.md) を参照
+
+### Zod
+
+- **役割**: ランタイムスキーマバリデーション + TypeScript型の自動導出
+- **主要機能**:
+    - `z.object` / `z.discriminatedUnion` — 外部データの構造検証
+    - `z.infer<typeof schema>` — スキーマからTypeScript型を導出（型の二重管理を防止）
+    - `z.enum` — 成長ステージ等の列挙型定義
+- **適用箇所**:
+    - 環境変数（`shared/config/env.ts`）— 起動時に全設定を一括検証
+    - Slackイベントペイロード（`features/slack-auth/`）— Webhookリクエストの構造検証
+    - OAuthコールバック（`features/slack-auth/`）— クエリパラメータ・トークンレスポンスの検証
+    - エンティティ型定義（`entities/*/model/types.ts`）— Zodスキーマから型を導出
+- **選定理由**: 外部境界が多く（Slack Webhook、OAuth、環境変数、Supabaseレスポンス）ランタイムバリデーションが不可欠。Valibotより若干大きいが、エコシステムの充実度とdiscriminated unionの表現力で優位。詳細は [ADR-002](adr/002-zod-adoption.md) を参照
+
 ### Tailwind CSS
 
 - **役割**: ユーティリティファーストCSS
@@ -48,17 +74,17 @@
 
 - **役割**: マネージドPostgreSQL + Realtime + Auth基盤
 - **主要機能**:
-  - **PostgreSQL**: データ永続化（users, bonsai, action_log, growth_rules テーブル）
-  - **Realtime**: bonsaiテーブルの変更をWebSocketでフロントエンドにPush
-  - **型生成**: `supabase gen types typescript` でDBスキーマからTypeScript型を自動生成
+    - **PostgreSQL**: データ永続化（users, bonsai, action_log, growth_rules テーブル）
+    - **Realtime**: bonsaiテーブルの変更をWebSocketでフロントエンドにPush
+    - **型生成**: `supabase gen types typescript` でDBスキーマからTypeScript型を自動生成
 - **選定理由**: SQLによる集計クエリの容易さ、リレーショナルデータモデルとの相性、Realtime機能の提供
 
 ### Supabase クライアントライブラリ
 
-| パッケージ | 用途 |
-|-----------|------|
-| `@supabase/supabase-js` | Supabase JavaScript クライアント |
-| `@supabase/ssr` | Next.js App Router でのSSR対応ヘルパー |
+| パッケージ              | 用途                                   |
+| ----------------------- | -------------------------------------- |
+| `@supabase/supabase-js` | Supabase JavaScript クライアント       |
+| `@supabase/ssr`         | Next.js App Router でのSSR対応ヘルパー |
 
 ### iron-session
 
@@ -76,13 +102,13 @@
 
 - **方式**: Slack Events API（リアルタイムイベント受信）
 - **必要なBot Token Scopes**:
-  - `channels:history` - チャンネルメッセージ読み取り
-  - `channels:read` - チャンネル一覧取得
-  - `reactions:read` - リアクションイベント受信
-  - `users:read` - ユーザープロフィール取得
+    - `channels:history` - チャンネルメッセージ読み取り
+    - `channels:read` - チャンネル一覧取得
+    - `reactions:read` - リアクションイベント受信
+    - `users:read` - ユーザープロフィール取得
 - **Event Subscriptions**:
-  - `message.channels` - メッセージ投稿イベント
-  - `reaction_added` - リアクション追加イベント
+    - `message.channels` - メッセージ投稿イベント
+    - `reaction_added` - リアクション追加イベント
 - **署名検証**: `x-slack-signature` ヘッダーによるリクエスト検証
 
 ## テスト
@@ -97,28 +123,46 @@
 
 ### テストツール
 
-| レイヤー | ツール | 用途 |
-|---------|-------|------|
-| ロジック（単体テスト） | Jest | ビジネスロジック・ユーティリティ関数のテスト |
+| レイヤー                   | ツール                            | 用途                                         |
+| -------------------------- | --------------------------------- | -------------------------------------------- |
+| ロジック（単体テスト）     | Jest                              | ビジネスロジック・ユーティリティ関数のテスト |
 | UI（コンポーネントテスト） | Storybook + React Testing Library | コンポーネントの描画・インタラクションテスト |
-| E2E（統合テスト） | Playwright | ユーザーフロー全体の動作確認 |
+| E2E（統合テスト）          | Playwright                        | ユーザーフロー全体の動作確認                 |
 
 ### テスト対象の分類
 
-| テスト種別 | 対象例 | ツール |
-|-----------|--------|-------|
-| 単体テスト | 成長ポイント計算、アクション判定ロジック | Jest |
-| コンポーネントテスト | 盆栽表示、ダッシュボードUI | Storybook + React Testing Library |
-| E2Eテスト | ログイン → 盆栽閲覧 → 水やりフロー | Playwright |
+| テスト種別           | 対象例                                   | ツール                            |
+| -------------------- | ---------------------------------------- | --------------------------------- |
+| 単体テスト           | 成長ポイント計算、アクション判定ロジック | Jest                              |
+| コンポーネントテスト | 盆栽表示、ダッシュボードUI               | Storybook + React Testing Library |
+| E2Eテスト            | ログイン → 盆栽閲覧 → 水やりフロー       | Playwright                        |
+
+## CI（継続的インテグレーション）
+
+### GitHub Actions
+
+- **役割**: PR・pushごとにコード品質を自動検証
+- **ワークフロー**: `.github/workflows/ci.yml`
+- **トリガー**: `main` / `develop` ブランチへのpush・PR
+- **実行ジョブ**（4ジョブ並列実行）:
+
+| ジョブ     | コマンド                 | 検証内容                         |
+| ---------- | ------------------------ | -------------------------------- |
+| Lint       | `npm run lint`           | ESLint + FSDアーキテクチャルール |
+| Format     | `npx prettier --check .` | コードフォーマット統一           |
+| Type Check | `npx tsc --noEmit`       | TypeScript型エラー               |
+| Test       | `npm test`               | Jest単体テスト                   |
+
+- **ブランチ保護**: `main` / `develop` にRulesetを設定し、全ジョブ通過をマージ条件とする
 
 ## 開発ツール
 
-| ツール | 用途 |
-|-------|------|
+| ツール                          | 用途                                  |
+| ------------------------------- | ------------------------------------- |
 | ESLint + eslint-plugin-fsd-lint | Linting + FSDアーキテクチャルール強制 |
-| Prettier | コードフォーマット |
-| ngrok | 開発時のSlack Webhook受信用トンネル |
-| Supabase CLI | マイグレーション管理、型生成 |
+| Prettier                        | コードフォーマット                    |
+| ngrok                           | 開発時のSlack Webhook受信用トンネル   |
+| Supabase CLI                    | マイグレーション管理、型生成          |
 
 ## npm パッケージ一覧（予定）
 
@@ -134,6 +178,8 @@ three
 @supabase/supabase-js
 @supabase/ssr
 iron-session
+swr
+zod
 ```
 
 ### devDependencies
