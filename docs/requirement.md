@@ -19,3 +19,55 @@
 分報や日々の状況共有を行っている、または促進したいチームのメンバー
 
 初期対応は**Slack**を利用しているチームを対象とし、将来的に対応チャットツールを拡張する。
+
+## ワークフロー
+
+```mermaid
+%%{init: {"flowchart": {"curve": "stepAfter"}}}%%
+flowchart TD
+    subgraph Team["チームメンバー"]
+        direction TB
+        UserPost["チャットツールに発言する"]
+    end
+
+    subgraph Chat["チャットツール（外部）"]
+        direction TB
+        ChatEvent["発言イベントを生成する"]
+        WebhookPush["Webhookでイベントを送信する"]
+    end
+
+    subgraph Backend["バックエンド"]
+        direction TB
+        Receive["イベントを受信する"]
+        Validate{"イベント検証に成功？"}
+        Reject["イベントを破棄する"]
+        Finish["処理を終了する"]
+        Record["発言を活動として記録する"]
+        Growth["盆栽の成長状態を計算する"]
+    end
+
+    subgraph Store["データストア"]
+        direction TB
+        ActivityDb[("活動ログDB")]
+        BonsaiDb[("盆栽状態DB")]
+    end
+
+    subgraph Frontend["フロントエンド"]
+        direction TB
+        FetchState["盆栽状態を購読する"]
+        Render["画面上の盆栽に反映する"]
+    end
+
+    UserPost --> ChatEvent
+    ChatEvent --> WebhookPush
+    WebhookPush -->|Webhook push| Receive
+    Receive --> Validate
+    Validate -->|失敗| Reject
+    Reject --> Finish
+    Validate -->|成功| Record
+    Record --> Growth
+    Record -->|保存| ActivityDb
+    Growth -->|更新| BonsaiDb
+    BonsaiDb -.->|WebSocket Subscription| FetchState
+    FetchState --> Render
+```
