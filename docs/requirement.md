@@ -297,6 +297,26 @@ Slack固有のイベント形式は、そのまま活動ログとして保存し
 
 ### デプロイ先
 
-### DB
+フロントエンドとバックエンドは分離してデプロイする。
 
-### Websocket Subscription基盤
+### apps/web
+
+Reactフロントエンドとして、Vercelにデプロイする。
+開発体験とデプロイの容易さを優先する。
+
+運用上の問題やAWSへ統一する必要が生じた場合は、S3 + CloudFrontへの移行を検討する。
+
+### apps/api
+
+Hono + Slack Boltを用いたバックエンドとして、AWS Lambda + API Gatewayにデプロイする。
+
+**主な役割**
+
+- HTTP APIの提供
+- Slack Events APIのWebhook受信
+- Slackイベントの内部活動イベントへの変換
+- 活動ログ・盆栽状態の保存
+- 盆栽状態更新時のWebSocket配信
+
+Slack Events APIの受信には、BoltのAwsLambdaReceiverを利用する。
+WebSocket配信は、API Gateway WebSocket APIを候補とする。
