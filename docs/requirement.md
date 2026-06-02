@@ -54,7 +54,7 @@ flowchart TD
 
     subgraph Frontend["フロントエンド"]
         direction TB
-        FetchState["盆栽状態を購読する"]
+        FetchState["盆栽状態を取得する"]
         Render["画面上の盆栽に反映する"]
     end
 
@@ -68,7 +68,7 @@ flowchart TD
     Record --> Growth
     Record -->|保存| ActivityDb
     Growth -->|更新| BonsaiDb
-    BonsaiDb -.->|WebSocket Subscription| FetchState
+    BonsaiDb -.->|HTTP + WebSocket| FetchState
     FetchState --> Render
 ```
 
@@ -177,9 +177,9 @@ flowchart TD
 ```mermaid
 %%{init: {"flowchart": {"curve": "stepAfter"}}}%%
 flowchart TD
-    Entry(["ログイン後"]) --> MyBonsai["自分の盆栽画面"]
-    MyBonsai -->|チーム一覧ボタン| TeamBonsai["チームの盆栽一覧画面"]
-    TeamBonsai -->|自分の盆栽ボタン| MyBonsai
+    Entry(["ログイン後"]) --> TeamBonsai["チームの盆栽一覧画面"]
+    TeamBonsai -->|自分の盆栽ボタン| MyBonsai["自分の盆栽画面"]
+    MyBonsai -->|チーム一覧ボタン| TeamBonsai
 ```
 
 ## 扱うデータ
@@ -243,3 +243,60 @@ Slack上の会話内容そのものは保存しない。
 - 添付ファイル
 - リンク先の内容
 - リアクション対象の投稿本文
+
+## アーキテクチャ
+
+### モノレポ構成
+
+#### apps/web (フロントエンド)
+ 
+自分の盆栽画面とチームの盆栽一覧画面を表示。
+
+#### apps/api (バックエンド)
+
+MVPでは、HTTP API、Slack Webhook受信、盆栽状態更新、WebSocket配信を担当する。
+
+- 初期表示
+
+HTTP APIで現在の自分 / チームの盆栽状態を返す。
+
+- 更新
+
+SlackからのWebhookを受け取り、内部の活動イベントへ変換した上で、活動ログ・盆栽状態をDBに保存する。
+
+1. WebhookでSlackイベントを受け取る。
+2. Slackイベントを内部の活動イベントへ変換する。
+3. 活動イベントを活動ログとしてDBに保存する。
+4. 活動ログを元に、盆栽状態を計算してDBに保存する。
+5. WebSocketで最新の自分 / チームの盆栽状態を配信する。
+
+将来的にチャットツール連携やイベント処理が複雑になった場合、Webhook受信・イベント変換・盆栽状態計算・WebSocket配信を別のパッケージまたは別アプリとして切り出す。
+
+## 外部連携
+
+### Slack (チャットツール)
+
+Slack Events APIの**HTTP Request URL**で、Slack上の活動イベントを受信する。
+
+#### 主な用途
+
+- メッセージ投稿イベントの受信
+- リアクション追加イベントの受信
+- Slackリクエストの署名検証
+- Slackチーム・Slackユーザーの識別
+- Slackイベントの重複処理防止
+
+#### 主な活動種別
+
+- **発言**
+- **リアクション**
+- **感謝 (発言内容から感謝表現を検出)**
+
+Slackから受け取ったイベントは、サービス内部ではチャットツールに依存しない活動イベントへ変換する。
+Slack固有のイベント形式は、そのまま活動ログとして保存しない。
+
+### デプロイ先
+
+### DB
+
+### Websocket Subscription基盤
