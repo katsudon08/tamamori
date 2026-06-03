@@ -297,26 +297,28 @@ Slack固有のイベント形式は、そのまま活動ログとして保存し
 
 ### デプロイ先
 
-フロントエンドとバックエンドは分離してデプロイする。
+- フロントエンドとバックエンドは分離してデプロイする。
+- apps/webはVercel、apps/apiはCloud Runを利用する。
+- apps/apiはコンテナとして管理する。
 
 ### apps/web
 
-Reactフロントエンドとして、Vercelにデプロイする。
-開発体験とデプロイの容易さを優先する。
-
-運用上の問題やAWSへ統一する必要が生じた場合は、S3 + CloudFrontへの移行を検討する。
+- デプロイ先: Vercel
+- 対象: Reactフロントエンド
+- 採用理由: フロントエンドの開発体験とデプロイの容易さを優先する
 
 ### apps/api
 
-Hono + Slack Boltを用いたバックエンドとして、AWS Lambda + API Gatewayにデプロイする。
+- デプロイ先: Cloud Run
+- 対象: Hono + Slack Boltを用いたバックエンドコンテナ
+- 採用理由: HTTP API・Slack Events API・WebSocketを1つのNode.jsバックエンドで扱いやすい
+- Slack Boltの扱い: Slackイベントの受信・検証・ハンドリングを行う部品として利用する
+- 注意点: Webhook受信時の速やかな応答、WebSocketの再接続、複数インスタンス時の状態同期を考慮する
 
-**主な役割**
+## 非機能要件
 
-- HTTP APIの提供
-- Slack Events APIのWebhook受信
-- Slackイベントの内部活動イベントへの変換
-- 活動ログ・盆栽状態の保存
-- 盆栽状態更新時のWebSocket配信
+## 制約条件
 
-Slack Events APIの受信には、BoltのAwsLambdaReceiverを利用する。
-WebSocket配信は、API Gateway WebSocket APIを候補とする。
+## 優先順位
+
+## 受け入れ条件
