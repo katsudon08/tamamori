@@ -13,7 +13,7 @@ flowchart TD
     Slack["Slack"]
     Web["apps/web<br />React / Vercel"]
     Api["apps/api<br />Hono + Slack Bolt / Cloud Run"]
-    Db[("DB")]
+    Db[("PostgreSQL")]
 
     User --> Web
     Slack -->|Events API Webhook| Api
@@ -46,7 +46,7 @@ flowchart TD
 
 ### データストア
 
-- DBは未定。
+- DBにはPostgreSQLを採用する。
 - apps/apiのみがDBへアクセスする。
 - apps/webはDBへ直接アクセスしない。
 
@@ -143,4 +143,4 @@ MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新、WebSoc
 
 ### 関連ADR
 
-現時点では未作成。
+- [ADR-001: PostgreSQLを採用する](adr/001-postgresql-adoption.md)
