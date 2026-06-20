@@ -1,203 +1,146 @@
-# アーキテクチャ構成
+# アーキテクチャ設計
 
-## システム全体像
+## 1. システム概要
+
+たま森は、チャットツール上の活動を元にユーザーごとの盆栽状態を更新し、フロントエンドへ表示・反映するサービスである。
+
+MVPでは、フロントエンドとバックエンドを分離しつつ、バックエンドは単一のAPIサーバーとして構築する。
 
 ```mermaid
+%%{init: {"flowchart": {"curve": "linear"}}}%%
 flowchart TD
-    subgraph Slack["Slack Workspace"]
-        S[Slack]
-    end
+    User["チームメンバー"]
+    Slack["Slack"]
+    Web["apps/web<br />React / Vercel"]
+    Api["apps/api<br />Hono + Slack Bolt / Cloud Run"]
+    Db[("PostgreSQL")]
 
-    subgraph Vercel["Next.js (Vercel)"]
-        API["API Routes\n/api/slack/events\n/api/auth/slack/*"]
-        GE["Growth Engine\nイベント分類\nカウンター更新\nステージ判定\nビジュアルステート計算"]
-        FE["Frontend (React/R3F)\n盆栽3Dビューア\n花壇ビュー\n統計ページ"]
-
-        API --> GE --> FE
-    end
-
-    subgraph Supabase
-        PG["PostgreSQL\nusers / bonsai\naction_log / growth_rules"]
-        RT["Realtime\nWebSocket"]
-    end
-
-    S -- "Events API" --> API
-    S <-- "OAuth" --> API
-    GE --> PG
-    RT -- "Push to Frontend" --> FE
+    User --> Web
+    Slack -->|Events API Webhook| Api
+    Web -->|HTTP API| Api
+    Web -.->|WebSocket| Api
+    Api --> Db
 ```
 
-## イベント処理フロー
+### 前提
 
-```mermaid
-flowchart TD
-    A["1. Slackでイベント発生\n（メッセージ投稿 / リアクション追加）"]
-    B["2. Slack Events API\nPOST /api/slack/events"]
-    C["3. 署名検証\n(x-slack-signature)"]
-    D["4. 200 OK を即座に返却\n（Slackの3秒ルール対応）"]
-    E["5. waitUntil() で非同期処理を開始"]
-    F6a["6a. チャンネルフィルタリング\n（SLACK_WATCHED_CHANNELS に含まれるか）"]
-    F6b["6b. 冪等性チェック\n（slack_event_id + slack_team_id が action_log に存在するか）"]
-    F6c["6c. イベント分類"]
-    F6c_msg["message.channels → message\n(+ 感謝キーワードがあれば thanks も)"]
-    F6c_react["reaction_added → reaction"]
-    F7["7. ユーザー upsert（users テーブル）"]
-    F8["8. action_log に挿入"]
-    F9["9. bonsai カウンター更新\n(total_messages / total_reactions / total_thanks)"]
-    F10["10. 成長ステージ再判定\n（growth_rules テーブルと比較）"]
-    F11["11. visual_state 再計算\nbonsai テーブル UPDATE"]
-    G["Supabase Realtime が変更を検知"]
-    H["フロントエンドに WebSocket で Push"]
-    I["Three.js シーンが lerp アニメーションで更新"]
+- 初期対応チャットツールはSlackのみとする。
+- フロントエンドとバックエンドは分離して構築する。
+- バックエンドはBFFではなく、独立したAPIサーバーとして構築する。
+- 投稿本文や会話履歴は保存しない。
+- Slackイベントは内部の活動イベントへ変換して扱う。
 
-    A --> B --> C --> D --> E
-    E --> F6a --> F6b --> F6c
-    F6c --> F6c_msg
-    F6c --> F6c_react
-    F6c --> F7 --> F8 --> F9 --> F10 --> F11
-    F11 --> G --> H --> I
+## 2. 技術スタック
+
+### apps/web
+
+- React
+- Vercel
+
+### apps/api
+
+- Hono
+- Slack Bolt
+- WebSocket
+- Cloud Run
+
+### データストア
+
+- DBにはPostgreSQLを採用する。
+- apps/apiのみがDBへアクセスする。
+- apps/webはDBへ直接アクセスしない。
+
+## 3. 主要ディレクトリ構成
+
+```text
+apps/
+    web/
+    api/
+
+docs/
+    requirement.md
+    architecture.md
+    api.md
+    database.md
+    adr/
 ```
 
-## 認証フロー
+### apps/web
 
-```mermaid
-sequenceDiagram
-    actor User as ユーザー
-    participant App as Next.js App
-    participant SlackOAuth as Slack OAuth
-    participant DB as Supabase
+- 自分の盆栽画面を表示する。
+- チームの盆栽一覧画面を表示する。
+- 初期表示時はHTTP APIで盆栽状態を取得する。
+- 盆栽状態の更新はWebSocketで受け取る。
 
-    User->>App: 1. "/" にアクセス
-    App-->>User: ランディングページ表示
-    User->>App: 2. "Sign in with Slack" クリック
-    App->>SlackOAuth: 3. GET /api/auth/slack → 認可URLにリダイレクト<br/>(scopes: openid, profile)
-    User->>SlackOAuth: 4. Slackで認可
-    SlackOAuth->>App: 5. GET /api/auth/slack/callback?code=xxx
-    App->>SlackOAuth: 6. code をトークンに交換
-    SlackOAuth-->>App: user_id, team_id, display_name, avatar
-    App->>DB: 7. users upsert + bonsai レコード作成（未存在時）
-    App->>App: 8. iron-session でセッションCookie設定
-    App-->>User: 9. /garden にリダイレクト
-```
+### apps/api
 
-### Supabase RLS 用 JWT 取得フロー (#75 / ADR-004)
+- HTTP APIを提供する。
+- Slack Events APIのWebhookを受信する。
+- Slackイベントを内部の活動イベントへ変換する。
+- 活動ログを保存する。
+- 盆栽状態を計算・保存する。
+- 盆栽状態の更新をWebSocketで配信する。
 
-iron-session を Root of Trust として、ブラウザ側で必要になったタイミングで
-独自 JWT を発行する。cookie には載せず、メモリキャッシュのみで保持する。
+## 4. 主要データフロー
 
-```mermaid
-sequenceDiagram
-    participant Hook as Realtime/SWR Hook
-    participant Cache as token-cache (memory)
-    participant API as /api/auth/session-token
-    participant Sess as iron-session
-    participant Sup as Supabase (RLS)
+### 初期表示
 
-    Hook->>Cache: getSessionToken()
-    alt キャッシュ有効
-        Cache-->>Hook: token (期限残り > 60s)
-    else 期限切れ・未取得
-        Cache->>API: GET (same-origin cookie)
-        API->>Sess: getSession() → isAuthenticated?
-        Sess-->>API: { userId, slackTeamId, slackUserId }
-        API->>API: issueSupabaseJwt() (HS256)
-        API-->>Cache: { token, expiresAt }
-        Cache-->>Hook: token
-    end
-    Note over Hook: Realtime: subscribe 前に<br/>await supabase.realtime.setAuth(token)
-    Hook->>Sup: REST/Realtime (Bearer token)
-    Sup->>Sup: auth.jwt() ->> 'slack_team_id' で RLS 評価
-    Sup-->>Hook: 自テナント行のみ
-```
+1. ユーザーがapps/webを開く。
+2. apps/webがapps/apiのHTTP APIから現在の盆栽状態を取得する。
+3. apps/webが自分の盆栽画面またはチームの盆栽一覧画面を表示する。
 
-**重要な設計上の制約 (ADR-004 §決定 6)**:
+### Slackイベント処理
 
-- Realtime hook は `subscribe` 前に **`await supabase.realtime.setAuth(token)`** を必須化
-- `accessToken` 関数オプションの auto-setAuth は fire-and-forget で race するため依存しない
-- ログアウト時は `clearSessionToken()` + ページ遷移 (`/api/auth/logout`) で WebSocket 等を一括破棄
+1. Slack Events APIからapps/apiへイベントが送信される。
+2. apps/apiでSlackリクエストの署名を検証する。
+3. Slackイベントを内部の活動イベントへ変換する。
+4. 活動イベントを活動ログとして保存する。
+5. 活動ログを元に、盆栽状態を計算して保存する。
+6. 更新された盆栽状態をWebSocketでapps/webへ配信する。
 
-## レイヤーアーキテクチャ (FSD)
+### リアルタイム更新
 
-本プロジェクトは Feature-Sliced Design (FSD) アーキテクチャを採用する。
+1. apps/webがapps/apiのWebSocketを購読する。
+2. 盆栽状態が更新された場合、apps/apiがWebSocketで更新を配信する。
+3. apps/webが画面上の盆栽状態を更新する。
+4. WebSocketが切断された場合、apps/webは再接続する。
 
-### レイヤー構成と依存ルール
+## 5. 設計判断・関連ADR
 
-```mermaid
-graph TD
-    app["app\nエントリポイント\nNext.js App Router のルーティング・レイアウト・プロバイダー"]
-    widgets["widgets\n大きなUI構成ブロック\n複数の features/entities を組み合わせる"]
-    features["features\nユーザーインタラクション\nビジネスロジックを含む"]
-    entities["entities\nビジネスエンティティ\n型定義、API呼び出し、UIパーツ"]
-    shared["shared\n共有インフラ\nUI基盤、ユーティリティ、設定、型"]
+### フロントエンドとバックエンドを分離する
 
-    app -- "import" --> widgets
-    widgets -- "import" --> features
-    features -- "import" --> entities
-    entities -- "import" --> shared
-```
+- apps/webとapps/apiは分離して構築する。
+- apps/webは画面表示に集中する。
+- apps/apiはHTTP API、Slack Webhook受信、盆栽状態更新、WebSocket配信を担当する。
 
-**依存ルール**: 上位レイヤーは下位レイヤーのみをインポートできる。同一レイヤー内の他スライスへのインポートは禁止。
+### バックエンドはBFFではなく独立したAPIサーバーとする
 
-### 各レイヤーの責務
+- apps/apiは単なるフロントエンド向けの中継層にはしない。
+- Slackイベント処理、活動ログ記録、盆栽状態計算をバックエンドの責務として扱う。
 
-| レイヤー | 責務                                   | このプロジェクトでの例                                                 |
-| -------- | -------------------------------------- | ---------------------------------------------------------------------- |
-| app      | ルーティング、レイアウト、プロバイダー | Next.js App Router のページ、Supabaseプロバイダー                      |
-| widgets  | 画面を構成する大きなブロック           | BonsaiViewer（盆栽3Dビューア）、GardenViewer（花壇ビュー）、StatsPanel |
-| features | ユーザー操作・ビジネスロジック         | Slack認証フロー、成長計算エンジン、リアルタイム同期                    |
-| entities | ビジネスエンティティ                   | Bonsai（型, API, UI）、User、Action                                    |
-| shared   | ビジネスロジックを持たない共有コード   | UIコンポーネント、Supabase/Slackクライアント、設定、型定義             |
+### Slackイベントは内部活動イベントへ変換する
 
-### スライス内の構成（Segment）
+- Slack固有のイベント形式を、そのままアプリケーション全体で扱わない。
+- Slackイベントは、サービス内部で扱う活動イベントへ変換してから保存・更新処理に渡す。
+- 将来的に他のチャットツールへ拡張できるようにする。
 
-各スライスは以下のセグメントで構成される:
+### apps/apiはCloud Runにデプロイする
 
-```
-feature-name/
-├── index.ts          # Public API（外部に公開するもの）
-├── ui/               # UIコンポーネント
-├── model/            # ビジネスロジック、型定義、状態管理
-├── api/              # API呼び出し、データフェッチ
-└── lib/              # ユーティリティ関数
-```
+- Hono + Slack Boltを用いたバックエンドコンテナとして管理する。
+- HTTP API、Slack Events API、WebSocketを1つのNode.jsバックエンドで扱う。
+- Webhook受信時の速やかな応答、WebSocketの再接続、複数インスタンス時の状態同期を考慮する。
 
-## デプロイアーキテクチャ
+### 将来の切り出し方針
 
-```mermaid
-flowchart TD
-    subgraph Vercel
-        App["Next.js App"]
-        SSR["SSR/SSG\nStatic + Server-side rendering"]
-        Routes["API Routes\nSlack Webhook, Auth endpoints"]
-        Edge["Edge"]
+MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新、WebSocket配信を担当する。
 
-        App --- SSR
-        App --- Routes
-        App --- Edge
-    end
+将来的にチャットツール連携やイベント処理が複雑になった場合、以下の責務を別パッケージまたは別アプリとして切り出す。
 
-    subgraph Supabase["Supabase (Cloud)"]
-        Database
-        Realtime
-        Auth["Auth *\n* 将来的に利用検討"]
-    end
+- Webhook受信
+- イベント変換
+- 盆栽状態計算
+- WebSocket配信
 
-    Vercel -- "HTTPS" --> Supabase
-```
+### 関連ADR
 
-- **Vercel**: Next.jsアプリのホスティング。自動デプロイ（Git push）、プレビューデプロイ対応
-- **Supabase**: マネージドPostgreSQL + Realtime。無料枠で十分な規模
-
-## 設計判断の記録
-
-| 判断                   | 選択                             | 理由                                                                                                                                                             |
-| ---------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 3D描画方式             | プロシージャル生成               | 各盆栽がユニークで連続変化するため。glTFモデルでは表現が制限される                                                                                               |
-| visual_stateの保存場所 | サーバーサイド（DB）             | 全クライアントで同一の見た目を保証するため                                                                                                                       |
-| 成長閾値の管理         | DBテーブル（growth_rules）       | デプロイなしで調整可能にするため                                                                                                                                 |
-| セッション管理         | iron-session                     | Slackのみの単一OAuth。next-authより軽量                                                                                                                          |
-| Slack連携方式          | Events API（リアルタイム）       | ポーリングでは盆栽成長のリアルタイム体験が損なわれる                                                                                                             |
-| 非同期処理             | Vercel waitUntil()               | Slackの3秒ルール対応。DB処理をレスポンス後に実行                                                                                                                 |
-| データ取得管理         | SWR（TanStack Queryではなく）    | フロントエンドがリードオンリーでミューテーション不要。軽量で3Dアプリに有利。詳細は [ADR-001](adr/001-swr-adoption.md)                                            |
-| バリデーション         | Zod（Valibot・手動実装ではなく） | 型とバリデーションの一元化（`z.infer`）。Slackイベント判別に`discriminatedUnion`が最適。詳細は [ADR-002](adr/002-zod-adoption.md)                                |
-| マルチテナント分離     | カスタム JWT + RLS (HS256)       | iron-session を Root of Trust とし `/api/auth/session-token` で都度発行。RLS は `bonsai.slack_team_id` 直接参照。詳細は [ADR-004](adr/004-custom-jwt-for-rls.md) |
+- [ADR-001: PostgreSQLを採用する](adr/001-postgresql-adoption.md)
