@@ -32,23 +32,64 @@ flowchart TD
 
 ## 2. 技術スタック
 
-### apps/web
+本節は**目標構成（北極星）の技術を正**として記述する。実コードは現状 `src/` 配下の Next.js 16 + Supabase 構成であり、そこから本節のスタックへ移行中である。現状との差分は各項の「移行メモ」で補足する。バージョンはメジャーを明記する。
 
-- React
-- Vercel
+ツールチェーンは Vite を中心とした **VoidZero 系（Vite / Vitest / Oxc / Rolldown）へ統一**する方針とする。
 
-### apps/api
+### 2.1 共通基盤
 
-- Hono
-- Slack Bolt
-- WebSocket
-- Cloud Run
+- **TypeScript 5** — apps/web・apps/api 双方の実装言語。
+- **pnpm workspaces** — モノレポ管理。`apps/*` を workspace として扱う。（移行メモ: 現状は npm）
+- **zod 4** — 入出力・内部活動イベントのスキーマ検証。web / api 双方で利用する。
 
-### データストア
+### 2.2 apps/web（フロントエンド）
 
-- DBにはPostgreSQLを採用する。
-- apps/apiのみがDBへアクセスする。
-- apps/webはDBへ直接アクセスしない。
+画面表示に専念する。初期表示は HTTP API、状態更新は WebSocket で受信する。
+
+- **Vite + React 19** — SPA として構築する。（移行メモ: 現状は Next.js 16。表示専念の SPA へ移行する）
+- **Tailwind CSS v4** — スタイリング。
+- **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。
+- **SWR** — HTTP API からの初期状態取得とキャッシュ。
+- **WebSocket クライアント** — 盆栽状態更新の受信。切断時は再接続する。
+- **recharts** — 活動量などの補助的な可視化。
+- **lucide-react** — アイコン。
+- デプロイ先は **Vercel**（静的配信）。詳細は §5・requirements.md を参照。
+
+### 2.3 apps/api（バックエンド）
+
+HTTP API・Slack Webhook 受信・活動イベント変換・盆栽状態計算・WebSocket 配信を担う。DB へアクセスするのは apps/api のみとする。
+
+- **Hono** — HTTP API フレームワーク。
+- **Slack Bolt** — Slack Events API の受信・署名検証・イベントハンドリング。
+- **WebSocket 配信** — 盆栽状態更新の配信。複数インスタンス間の配信（fan-out）は将来課題とし、必要になった時点で Pub/Sub を検討する。
+- **Drizzle ORM** — PostgreSQL へのアクセス層。スキーマ定義・型生成・マイグレーションを担う。採用判断は [ADR-002](adr/002-drizzle-orm-adoption.md) を参照。（移行メモ: 現状は Supabase client）
+- **zod 4** — リクエスト・イベントの検証。
+- **認証 / セッション** — Slack OAuth でログインし、**iron-session**（Cookie セッション）＋ **jose**（JWT）でセッションを扱う。
+- デプロイ先は **Cloud Run**（コンテナ）。詳細は §5・requirements.md を参照。
+
+### 2.4 データストア
+
+- **PostgreSQL** を採用する。apps/api のみがアクセスする。apps/web は DB へ直接アクセスしない。
+- マイグレーションは Drizzle で管理する。
+- スキーマ詳細は database-design.md、採用判断は [ADR-001](adr/001-postgresql-adoption.md)・[ADR-002](adr/002-drizzle-orm-adoption.md) を参照。
+
+### 2.5 開発ツール・品質
+
+ツールチェーンは VoidZero 系へ統一する。ただし Lint は FSD 境界強制の都合でハイブリッド構成とする。
+
+- **ビルド / Dev サーバ** — apps/web は **Vite**。apps/api は **tsdown**（Rolldown ベース）でバンドルする。rolldown-vite・oxc-formatter は安定後に採用を検討する。
+- **Lint（ハイブリッド）** — **oxlint** を主として高速にチェックする。加えて **ESLint 9 + eslint-plugin-fsd-lint** を FSD レイヤー境界の強制のみに残す。両者は単一の lint スクリプト（`pnpm lint`）で連結して実行する。将来 oxlint 側で FSD 境界を表現できるようになれば ESLint を畳む。
+- **フォーマット** — **Prettier**（oxc-formatter は安定後に検討）。
+- **単体テスト** — **Vitest**。（移行メモ: 現状は Jest）
+- **E2E テスト** — **Playwright**。
+- **UI カタログ** — **Storybook**（addon-a11y などを利用）。
+
+### 2.6 インフラ・デプロイ・CI/CD
+
+- **apps/web** — Vercel。
+- **apps/api** — Cloud Run（コンテナ）。
+- **CI/CD** — GitHub Actions。（移行メモ: 現在一旦廃止しており、再整備を予定）
+- 秘密情報は環境変数で管理する。
 
 ## 3. 主要ディレクトリ構成
 
@@ -144,3 +185,4 @@ MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新、WebSoc
 ### 関連ADR
 
 - [ADR-001: PostgreSQLを採用する](adr/001-postgresql-adoption.md)
+- [ADR-002: DBアクセス層にDrizzle ORMを採用する](adr/002-drizzle-orm-adoption.md)
