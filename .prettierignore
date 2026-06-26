@@ -1,0 +1,16 @@
+# Lockfiles（生成物。整形しない）
+pnpm-lock.yaml
+package-lock.json
+
+# apps/* は各アプリ側で整形を統治する（apps/web は Vite+ の oxfmt）。
+# ルートの prettier は src/ のみを対象とする（eslint の globalIgnores と揃える）。
+apps/
+
+# ビルド出力 / レポート
+**/dist
+.next/
+out/
+storybook-static/
+coverage/
+playwright-report/
+test-results/

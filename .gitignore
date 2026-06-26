@@ -1,5 +1,5 @@
 # dependencies
-/node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -17,6 +17,10 @@
 
 # production
 /build
+
+# monorepo apps build output (apps/web=Vite, apps/api)
+apps/*/dist
+**/.vite/
 
 # misc
 .DS_Store
