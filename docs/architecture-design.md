@@ -34,7 +34,7 @@ flowchart TD
 
 本節は**目標構成（北極星）の技術を正**として記述する。実コードは現状 `src/` 配下の Next.js 16 + Supabase 構成であり、そこから本節のスタックへ移行中である。現状との差分は各項の「移行メモ」で補足する。バージョンはメジャーを明記する。
 
-ツールチェーンは Vite を中心とした **VoidZero 系（Vite / Vitest / Oxc / Rolldown）へ統一**する方針とする。
+ツールチェーンは VoidZero の統合ツールチェーン **Vite+（CLI: `vp`）** に統一する。Vite+ は Vite / Vitest / Oxlint / Oxfmt / Rolldown / tsdown を 1 つに束ね、`vite.config.ts` 単一で構成し、パッケージマネージャ（pnpm）をラップして動作する。詳細は §2.5。
 
 ### 2.1 共通基盤
 
@@ -46,7 +46,7 @@ flowchart TD
 
 画面表示に専念する。初期表示は HTTP API、状態更新は WebSocket で受信する。
 
-- **Vite + React 19** — SPA として構築する。（移行メモ: 現状は Next.js 16。表示専念の SPA へ移行する）
+- **Vite+（`vp`）+ React 19** — SPA として構築する。dev/build/check/test は `vp` に集約する。（移行メモ: 現状は Next.js 16。表示専念の SPA へ移行する）
 - **Tailwind CSS v4** — スタイリング。
 - **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。
 - **SWR** — HTTP API からの初期状態取得とキャッシュ。
@@ -75,14 +75,14 @@ HTTP API・Slack Webhook 受信・活動イベント変換・盆栽状態計算�
 
 ### 2.5 開発ツール・品質
 
-ツールチェーンは VoidZero 系へ統一する。ただし Lint は FSD 境界強制の都合でハイブリッド構成とする。
+apps/web のツールチェーンは **Vite+（CLI: `vp`）** に一本化する。Vite+ は Vite / Vitest / Oxlint / Oxfmt / Rolldown / tsdown を 1 つに束ね、`vite.config.ts` 単一で構成し、pnpm をラップして動作する（本記述時点では alpha、npm パッケージ `vite-plus`。バージョンはピン留めする）。
 
-- **ビルド / Dev サーバ** — apps/web は **Vite**。apps/api は **tsdown**（Rolldown ベース）でバンドルする。rolldown-vite・oxc-formatter は安定後に採用を検討する。
-- **Lint（ハイブリッド）** — **oxlint** を主として高速にチェックする。加えて **ESLint 9 + eslint-plugin-fsd-lint** を FSD レイヤー境界の強制のみに残す。両者は単一の lint スクリプト（`pnpm lint`）で連結して実行する。将来 oxlint 側で FSD 境界を表現できるようになれば ESLint を畳む。
-- **フォーマット** — **Prettier**（oxc-formatter は安定後に検討）。
-- **単体テスト** — **Vitest**。（移行メモ: 現状は Jest）
+- **ビルド / Dev** — apps/web は `vp dev` / `vp build`（内部は Vite + Rolldown）。apps/api は Vite+ の対象外（フロントエンド専用）のため、`tsx` で起動し **tsdown**（Rolldown ベース）でバンドルする。
+- **Lint・フォーマット・型チェック** — apps/web は `vp check`（**Oxlint + Oxfmt + 型チェック**を一括）。ただし **FSD レイヤー境界は Oxlint で表現できないため、ESLint + eslint-plugin-fsd-lint を併走**させるハイブリッドとする（`vp` のカスタムタスク等で連結。`src/` → apps/web 移行＝#93 以降で適用）。
+- **単体テスト** — apps/web は `vp test`（**Vitest**）。
 - **E2E テスト** — **Playwright**。
-- **UI カタログ** — **Storybook**（addon-a11y などを利用）。
+- **UI カタログ** — **Storybook**。
+- **移行中の root（`src/` の Next.js）** — 移行完了まで現行の **ESLint + Prettier + Jest** で統治する。Vite+ への一本化は段階的に行う。
 
 ### 2.6 インフラ・デプロイ・CI/CD
 
