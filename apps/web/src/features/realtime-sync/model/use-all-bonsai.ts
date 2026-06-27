@@ -1,12 +1,12 @@
-import { useEffect } from 'react';
-import { useSWRConfig } from 'swr';
+import { useEffect } from "react";
+import { useSWRConfig } from "swr";
 
-import { createBrowserClient, getSessionToken, onTokenRefresh } from '@/shared/lib/supabase';
-import type { Database } from '@/shared/lib/supabase';
-import { handleSessionExpired, isSessionExpiredError } from '@/shared/lib/auth/session-expired';
+import { createBrowserClient, getSessionToken, onTokenRefresh } from "@/shared/lib/supabase";
+import type { Database } from "@/shared/lib/supabase";
+import { handleSessionExpired, isSessionExpiredError } from "@/shared/lib/auth/session-expired";
 
-type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
-type BonsaiPayloadRow = Partial<Pick<BonsaiRow, 'user_id' | 'slack_team_id'>>;
+type BonsaiRow = Database["public"]["Tables"]["bonsai"]["Row"];
+type BonsaiPayloadRow = Partial<Pick<BonsaiRow, "user_id" | "slack_team_id">>;
 
 /**
  * テナント全員の bonsai UPDATE を購読する。
@@ -24,64 +24,64 @@ type BonsaiPayloadRow = Partial<Pick<BonsaiRow, 'user_id' | 'slack_team_id'>>;
  *   cleanup 時には unsubscribe + removeChannel の両方を行う。
  */
 export function useAllBonsaiRealtime(slackTeamId: string | undefined) {
-    const { mutate } = useSWRConfig();
+  const { mutate } = useSWRConfig();
 
-    useEffect(() => {
-        if (!slackTeamId) return;
+  useEffect(() => {
+    if (!slackTeamId) return;
 
-        const supabase = createBrowserClient();
-        let cancelled = false;
-        let channel: ReturnType<typeof supabase.channel> | null = null;
-        let unsubscribeRefresh: (() => void) | null = null;
+    const supabase = createBrowserClient();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let unsubscribeRefresh: (() => void) | null = null;
 
-        (async () => {
-            try {
-                const token = await getSessionToken();
-                if (cancelled) return;
-                await supabase.realtime.setAuth(token);
-                if (cancelled) return;
+    (async () => {
+      try {
+        const token = await getSessionToken();
+        if (cancelled) return;
+        await supabase.realtime.setAuth(token);
+        if (cancelled) return;
 
-                unsubscribeRefresh = onTokenRefresh((newToken) => {
-                    void supabase.realtime.setAuth(newToken).catch((err) => {
-                        console.error('[useAllBonsaiRealtime] refresh setAuth failed:', err);
-                    });
-                });
+        unsubscribeRefresh = onTokenRefresh((newToken) => {
+          void supabase.realtime.setAuth(newToken).catch((err) => {
+            console.error("[useAllBonsaiRealtime] refresh setAuth failed:", err);
+          });
+        });
 
-                channel = supabase
-                    .channel(`bonsai-changes-all-${slackTeamId}`)
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: 'bonsai',
-                            filter: `slack_team_id=eq.${slackTeamId}`,
-                        },
-                        (payload) => {
-                            const newRow = payload.new as BonsaiPayloadRow | null;
-                            if (newRow?.slack_team_id !== slackTeamId) return;
-                            mutate('all-bonsai');
-                            if (newRow.user_id) {
-                                mutate(['bonsai', newRow.user_id]);
-                            }
-                        },
-                    )
-                    .subscribe();
-            } catch (err) {
-                if (isSessionExpiredError(err)) {
-                    handleSessionExpired();
-                    return;
-                }
-                console.error('[useAllBonsaiRealtime] subscribe failed:', err);
-            }
-        })();
+        channel = supabase
+          .channel(`bonsai-changes-all-${slackTeamId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "bonsai",
+              filter: `slack_team_id=eq.${slackTeamId}`,
+            },
+            (payload) => {
+              const newRow = payload.new as BonsaiPayloadRow | null;
+              if (newRow?.slack_team_id !== slackTeamId) return;
+              mutate("all-bonsai");
+              if (newRow.user_id) {
+                mutate(["bonsai", newRow.user_id]);
+              }
+            },
+          )
+          .subscribe();
+      } catch (err) {
+        if (isSessionExpiredError(err)) {
+          handleSessionExpired();
+          return;
+        }
+        console.error("[useAllBonsaiRealtime] subscribe failed:", err);
+      }
+    })();
 
-        return () => {
-            cancelled = true;
-            unsubscribeRefresh?.();
-            if (channel) {
-                supabase.removeChannel(channel);
-            }
-        };
-    }, [slackTeamId, mutate]);
+    return () => {
+      cancelled = true;
+      unsubscribeRefresh?.();
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [slackTeamId, mutate]);
 }

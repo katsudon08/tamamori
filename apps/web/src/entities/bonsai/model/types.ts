@@ -1,44 +1,44 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const growthStageSchema = z.enum([
-    'seed',
-    'sprout',
-    'young',
-    'branching',
-    'leafy',
-    'budding',
-    'flowering',
-    'full_bloom',
+  "seed",
+  "sprout",
+  "young",
+  "branching",
+  "leafy",
+  "budding",
+  "flowering",
+  "full_bloom",
 ]);
 
 export const branchSchema = z.object({
-    angle: z.number(),
-    length: z.number(),
-    depth: z.number().int(),
-    seed: z.number(),
+  angle: z.number(),
+  length: z.number(),
+  depth: z.number().int(),
+  seed: z.number(),
 });
 
 export const visualStateSchema = z.object({
-    trunkHeight: z.number(),
-    trunkThickness: z.number(),
-    branches: z.array(branchSchema),
-    leaves: z.number().int(),
-    leafColor: z.string(),
-    flowers: z.number().int(),
-    flowerColor: z.string(),
-    potColor: z.string(),
+  trunkHeight: z.number(),
+  trunkThickness: z.number(),
+  branches: z.array(branchSchema),
+  leaves: z.number().int(),
+  leafColor: z.string(),
+  flowers: z.number().int(),
+  flowerColor: z.string(),
+  potColor: z.string(),
 });
 
 export const bonsaiSchema = z.object({
-    id: z.uuid(),
-    user_id: z.uuid(),
-    total_messages: z.number().int(),
-    total_reactions: z.number().int(),
-    total_thanks: z.number().int(),
-    growth_stage: growthStageSchema,
-    visual_state: visualStateSchema,
-    created_at: z.iso.datetime({ offset: true }),
-    updated_at: z.iso.datetime({ offset: true }),
+  id: z.uuid(),
+  user_id: z.uuid(),
+  total_messages: z.number().int(),
+  total_reactions: z.number().int(),
+  total_thanks: z.number().int(),
+  growth_stage: growthStageSchema,
+  visual_state: visualStateSchema,
+  created_at: z.iso.datetime({ offset: true }),
+  updated_at: z.iso.datetime({ offset: true }),
 });
 
 export type GrowthStage = z.infer<typeof growthStageSchema>;

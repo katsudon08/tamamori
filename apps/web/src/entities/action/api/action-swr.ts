@@ -1,6 +1,6 @@
-import useSWR from 'swr';
+import useSWR from "swr";
 
-import { createBrowserClient } from '@/shared/lib/supabase';
+import { createBrowserClient } from "@/shared/lib/supabase";
 
 /**
  * 自分の action_log を期間指定で取得する SWR フック。
@@ -10,22 +10,22 @@ import { createBrowserClient } from '@/shared/lib/supabase';
  * ことで、テナント切替時に古いキャッシュを再利用しないようにする。
  */
 export function useActionLogs(
-    userId: string | undefined,
-    slackTeamId: string | undefined,
-    startDate: string,
+  userId: string | undefined,
+  slackTeamId: string | undefined,
+  startDate: string,
 ) {
-    const key =
-        userId && slackTeamId ? (['action-logs', userId, slackTeamId, startDate] as const) : null;
-    return useSWR(key, async ([, id, teamId, start]) => {
-        const supabase = createBrowserClient();
-        const { data, error } = await supabase
-            .from('action_log')
-            .select('action_type, created_at')
-            .eq('user_id', id)
-            .eq('slack_team_id', teamId)
-            .gte('created_at', start)
-            .order('created_at', { ascending: true });
-        if (error) throw error;
-        return data;
-    });
+  const key =
+    userId && slackTeamId ? (["action-logs", userId, slackTeamId, startDate] as const) : null;
+  return useSWR(key, async ([, id, teamId, start]) => {
+    const supabase = createBrowserClient();
+    const { data, error } = await supabase
+      .from("action_log")
+      .select("action_type, created_at")
+      .eq("user_id", id)
+      .eq("slack_team_id", teamId)
+      .gte("created_at", start)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return data;
+  });
 }

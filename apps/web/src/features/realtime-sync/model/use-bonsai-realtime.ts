@@ -1,12 +1,12 @@
-import { useEffect } from 'react';
-import { useSWRConfig } from 'swr';
+import { useEffect } from "react";
+import { useSWRConfig } from "swr";
 
-import { createBrowserClient, getSessionToken, onTokenRefresh } from '@/shared/lib/supabase';
-import type { Database } from '@/shared/lib/supabase';
-import { handleSessionExpired, isSessionExpiredError } from '@/shared/lib/auth/session-expired';
+import { createBrowserClient, getSessionToken, onTokenRefresh } from "@/shared/lib/supabase";
+import type { Database } from "@/shared/lib/supabase";
+import { handleSessionExpired, isSessionExpiredError } from "@/shared/lib/auth/session-expired";
 
-type BonsaiRow = Database['public']['Tables']['bonsai']['Row'];
-type BonsaiPayloadRow = Partial<Pick<BonsaiRow, 'user_id' | 'slack_team_id'>>;
+type BonsaiRow = Database["public"]["Tables"]["bonsai"]["Row"];
+type BonsaiPayloadRow = Partial<Pick<BonsaiRow, "user_id" | "slack_team_id">>;
 
 /**
  * 単一 user の bonsai UPDATE を購読する。
@@ -26,64 +26,64 @@ type BonsaiPayloadRow = Partial<Pick<BonsaiRow, 'user_id' | 'slack_team_id'>>;
  *   cleanup 時には unsubscribe + removeChannel の両方を行う。
  */
 export function useBonsaiRealtime(userId: string | undefined, slackTeamId: string | undefined) {
-    const { mutate } = useSWRConfig();
+  const { mutate } = useSWRConfig();
 
-    useEffect(() => {
-        if (!userId || !slackTeamId) return;
+  useEffect(() => {
+    if (!userId || !slackTeamId) return;
 
-        const supabase = createBrowserClient();
-        let cancelled = false;
-        let channel: ReturnType<typeof supabase.channel> | null = null;
-        let unsubscribeRefresh: (() => void) | null = null;
+    const supabase = createBrowserClient();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let unsubscribeRefresh: (() => void) | null = null;
 
-        (async () => {
-            try {
-                const token = await getSessionToken();
-                if (cancelled) return;
-                await supabase.realtime.setAuth(token);
-                if (cancelled) return;
+    (async () => {
+      try {
+        const token = await getSessionToken();
+        if (cancelled) return;
+        await supabase.realtime.setAuth(token);
+        if (cancelled) return;
 
-                unsubscribeRefresh = onTokenRefresh((newToken) => {
-                    void supabase.realtime.setAuth(newToken).catch((err) => {
-                        console.error('[useBonsaiRealtime] refresh setAuth failed:', err);
-                    });
-                });
+        unsubscribeRefresh = onTokenRefresh((newToken) => {
+          void supabase.realtime.setAuth(newToken).catch((err) => {
+            console.error("[useBonsaiRealtime] refresh setAuth failed:", err);
+          });
+        });
 
-                channel = supabase
-                    .channel(`bonsai-changes-${slackTeamId}-${userId}`)
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: 'bonsai',
-                            filter: `slack_team_id=eq.${slackTeamId}`,
-                        },
-                        (payload) => {
-                            const newRow = payload.new as BonsaiPayloadRow | null;
-                            if (newRow?.slack_team_id !== slackTeamId) return;
-                            // tenant 内のうち、自分以外の bonsai UPDATE は無視
-                            // (mutate('all-bonsai') は花壇ビュー側の hook が担当)
-                            if (newRow.user_id !== userId) return;
-                            mutate(['bonsai', newRow.user_id]);
-                        },
-                    )
-                    .subscribe();
-            } catch (err) {
-                if (isSessionExpiredError(err)) {
-                    handleSessionExpired();
-                    return;
-                }
-                console.error('[useBonsaiRealtime] subscribe failed:', err);
-            }
-        })();
+        channel = supabase
+          .channel(`bonsai-changes-${slackTeamId}-${userId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "bonsai",
+              filter: `slack_team_id=eq.${slackTeamId}`,
+            },
+            (payload) => {
+              const newRow = payload.new as BonsaiPayloadRow | null;
+              if (newRow?.slack_team_id !== slackTeamId) return;
+              // tenant 内のうち、自分以外の bonsai UPDATE は無視
+              // (mutate('all-bonsai') は花壇ビュー側の hook が担当)
+              if (newRow.user_id !== userId) return;
+              mutate(["bonsai", newRow.user_id]);
+            },
+          )
+          .subscribe();
+      } catch (err) {
+        if (isSessionExpiredError(err)) {
+          handleSessionExpired();
+          return;
+        }
+        console.error("[useBonsaiRealtime] subscribe failed:", err);
+      }
+    })();
 
-        return () => {
-            cancelled = true;
-            unsubscribeRefresh?.();
-            if (channel) {
-                supabase.removeChannel(channel);
-            }
-        };
-    }, [userId, slackTeamId, mutate]);
+    return () => {
+      cancelled = true;
+      unsubscribeRefresh?.();
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [userId, slackTeamId, mutate]);
 }

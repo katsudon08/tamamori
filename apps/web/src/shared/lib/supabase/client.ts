@@ -1,7 +1,7 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-import type { Database } from './types';
-import { getSessionToken } from './token-cache';
+import type { Database } from "./types";
+import { getSessionToken } from "./token-cache";
 
 /**
  * ブラウザ用 Supabase クライアントを生成する。
@@ -15,16 +15,16 @@ import { getSessionToken } from './token-cache';
  *   詳細は ADR-004 §決定 6 / docs/review/75/issue/03-realtime-auth.md。
  */
 export function createClient() {
-    return createSupabaseClient<Database>(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY,
-        {
-            accessToken: async () => getSessionToken(),
-            auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false,
-            },
-        },
-    );
+  return createSupabaseClient<Database>(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY,
+    {
+      accessToken: async () => getSessionToken(),
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  );
 }

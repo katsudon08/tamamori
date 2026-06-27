@@ -1,9 +1,9 @@
-import { navigateTo } from './navigate';
+import { navigateTo } from "./navigate";
 
-import { clearSessionToken } from '@/shared/lib/supabase';
+import { clearSessionToken } from "@/shared/lib/supabase";
 
 interface LogoutButtonProps {
-    className?: string;
+  className?: string;
 }
 
 /**
@@ -19,14 +19,14 @@ interface LogoutButtonProps {
  * 明示的な `removeAllChannels` は省略する。
  */
 export function LogoutButton({ className }: LogoutButtonProps) {
-    function handleClick() {
-        clearSessionToken();
-        navigateTo('/api/auth/logout');
-    }
+  function handleClick() {
+    clearSessionToken();
+    navigateTo("/api/auth/logout");
+  }
 
-    return (
-        <button type="button" onClick={handleClick} className={className}>
-            ログアウト
-        </button>
-    );
+  return (
+    <button type="button" onClick={handleClick} className={className}>
+      ログアウト
+    </button>
+  );
 }

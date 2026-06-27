@@ -1,2 +1,2 @@
 // Public API
-export { LandingContent } from './ui/LandingContent';
+export { LandingContent } from "./ui/LandingContent";

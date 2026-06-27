@@ -1,3 +1,3 @@
 // Public API
-export { createBrowserClient } from './supabase';
-export type { Database } from './supabase';
+export { createBrowserClient } from "./supabase";
+export type { Database } from "./supabase";

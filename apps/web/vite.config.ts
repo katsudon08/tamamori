@@ -1,16 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import tsconfigPaths from "vite-tsconfig-paths";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 
 // apps/web (#93 移行中): src/ を Vite SPA 化。
-// - パスエイリアス(@/*)は tsconfig.json の "paths" を唯一の正とし、
-//   vite-tsconfig-paths プラグインが dev/build/test すべてに反映する(二重定義しない)。
+// - パスエイリアス(@/*)は tsconfig.json の "paths" を唯一の正とする。
+//   Vite+ がネイティブに解決するため resolve.tsconfigPaths を有効化(プラグイン不要)。
 // - server.proxy: /api/* を Next backend(:3000) へ転送する暫定シム。
 //   これにより token-cache の credentials:'same-origin' が成立する(#94 で Hono へ差し替え)。
-// - TanStack Router プラグインは Phase 3(routes 追加時)で導入する。
+// - tanstackRouter は react プラグインより前に置く(公式要件)。
 export default defineConfig({
-  plugins: [tsconfigPaths(), react(), tailwindcss()],
+  plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
+  resolve: {
+    tsconfigPaths: true,
+  },
   server: {
     proxy: {
       "/api": "http://localhost:3000",
