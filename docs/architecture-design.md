@@ -70,8 +70,9 @@ HTTP API・Slack Webhook 受信・活動イベント変換・盆栽状態計算�
 ### 2.4 データストア
 
 - **PostgreSQL** を採用する。apps/api のみがアクセスする。apps/web は DB へ直接アクセスしない。
+- ホスティングは **Cloud SQL for PostgreSQL**（apps/api と同一 GCP・同一リージョン、Cloud SQL Connector + IAM 認証）。**ローカル開発は Docker の素の PostgreSQL** を用い、drizzle-kit の同一マイグレーションでスキーマ整合を保つ。採用判断は [ADR-003](adr/003-cloud-sql-hosting.md) を参照。
 - マイグレーションは Drizzle で管理する。
-- スキーマ詳細は database-design.md、採用判断は [ADR-001](adr/001-postgresql-adoption.md)・[ADR-002](adr/002-drizzle-orm-adoption.md) を参照。
+- スキーマ詳細は database-design.md、採用判断は [ADR-001](adr/001-postgresql-adoption.md)・[ADR-002](adr/002-drizzle-orm-adoption.md)・[ADR-003](adr/003-cloud-sql-hosting.md) を参照。
 
 ### 2.5 開発ツール・品質
 
@@ -88,6 +89,7 @@ apps/web のツールチェーンは **Vite+（CLI: `vp`）** に一本化する
 
 - **apps/web** — Vercel。
 - **apps/api** — Cloud Run（コンテナ）。
+- **データベース** — Cloud SQL for PostgreSQL（apps/api と同一 GCP・同一リージョン）。ローカル開発は Docker PostgreSQL。詳細は [ADR-003](adr/003-cloud-sql-hosting.md)。
 - **CI/CD** — GitHub Actions。（移行メモ: 現在一旦廃止しており、再整備を予定）
 - 秘密情報は環境変数で管理する。
 
@@ -186,3 +188,4 @@ MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新、WebSoc
 
 - [ADR-001: PostgreSQLを採用する](adr/001-postgresql-adoption.md)
 - [ADR-002: DBアクセス層にDrizzle ORMを採用する](adr/002-drizzle-orm-adoption.md)
+- [ADR-003: PostgreSQL のホスティングに Cloud SQL を採用する](adr/003-cloud-sql-hosting.md)
