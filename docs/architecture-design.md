@@ -17,8 +17,7 @@ flowchart TD
 
     User --> Web
     Slack -->|Events API Webhook| Api
-    Web -->|HTTP API| Api
-    Web -.->|WebSocket| Api
+    Web -->|HTTP API（初期表示・ポーリング）| Api
     Api --> Db
 ```
 
@@ -44,24 +43,24 @@ flowchart TD
 
 ### 2.2 apps/web（フロントエンド）
 
-画面表示に専念する。初期表示は HTTP API、状態更新は WebSocket で受信する。
+画面表示に専念する。初期表示・状態更新ともに HTTP API で取得する（更新はポーリング）。
 
 - **Vite+（`vp`）+ React 19** — SPA として構築する。dev/build/check/test は `vp` に集約する。（移行メモ: 現状は Next.js 16。表示専念の SPA へ移行する）
 - **Tailwind CSS v4** — スタイリング。
 - **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。
 - **SWR** — HTTP API からの初期状態取得とキャッシュ。
-- **WebSocket クライアント** — 盆栽状態更新の受信。切断時は再接続する。
+- **ポーリング（SWR `refreshInterval`）** — 盆栽状態更新を一定間隔で再取得して反映する（目安 30〜60 秒）。更新反映の方式は [ADR-004](adr/004-update-delivery-polling.md) を参照。
 - **recharts** — 活動量などの補助的な可視化。
 - **lucide-react** — アイコン。
 - デプロイ先は **Vercel**（静的配信）。詳細は §5・requirements.md を参照。
 
 ### 2.3 apps/api（バックエンド）
 
-HTTP API・Slack Webhook 受信・活動イベント変換・盆栽状態計算・WebSocket 配信を担う。DB へアクセスするのは apps/api のみとする。
+HTTP API・Slack Webhook 受信・活動イベント変換・盆栽状態計算を担う。DB へアクセスするのは apps/api のみとする。更新の反映は apps/web 側のポーリングで行うため、push 配信（WebSocket）は持たず stateless な HTTP API に保つ。
 
 - **Hono** — HTTP API フレームワーク。
 - **Slack Bolt** — Slack Events API の受信・署名検証・イベントハンドリング。
-- **WebSocket 配信** — 盆栽状態更新の配信。複数インスタンス間の配信（fan-out）は将来課題とし、必要になった時点で Pub/Sub を検討する。
+- **更新の反映** — apps/web のポーリングで行う。apps/api は push 配信を持たないため、複数インスタンス間の fan-out は不要（[ADR-004](adr/004-update-delivery-polling.md)）。
 - **Drizzle ORM** — PostgreSQL へのアクセス層。スキーマ定義・型生成・マイグレーションを担う。採用判断は [ADR-002](adr/002-drizzle-orm-adoption.md) を参照。（移行メモ: 現状は Supabase client）
 - **zod 4** — リクエスト・イベントの検証。
 - **認証 / セッション** — Slack OAuth でログインし、**iron-session**（Cookie セッション）＋ **jose**（JWT）でセッションを扱う。
@@ -113,7 +112,7 @@ docs/
 - 自分の盆栽画面を表示する。
 - チームの盆栽一覧画面を表示する。
 - 初期表示時はHTTP APIで盆栽状態を取得する。
-- 盆栽状態の更新はWebSocketで受け取る。
+- 盆栽状態の更新はポーリングで定期取得して反映する。
 
 ### apps/api
 
@@ -122,7 +121,6 @@ docs/
 - Slackイベントを内部の活動イベントへ変換する。
 - 活動ログを保存する。
 - 盆栽状態を計算・保存する。
-- 盆栽状態の更新をWebSocketで配信する。
 
 ## 4. 主要データフロー
 
@@ -138,15 +136,15 @@ docs/
 2. apps/apiでSlackリクエストの署名を検証する。
 3. Slackイベントを内部の活動イベントへ変換する。
 4. 活動イベントを活動ログとして保存する。
-5. 活動ログを元に、盆栽状態を計算して保存する。
-6. 更新された盆栽状態をWebSocketでapps/webへ配信する。
+5. 活動ログを元に、盆栽状態を計算して保存する。（apps/api は push 配信を行わない。更新は apps/web の次回ポーリングで反映される）
 
-### リアルタイム更新
+### 更新の反映（ポーリング）
 
-1. apps/webがapps/apiのWebSocketを購読する。
-2. 盆栽状態が更新された場合、apps/apiがWebSocketで更新を配信する。
-3. apps/webが画面上の盆栽状態を更新する。
-4. WebSocketが切断された場合、apps/webは再接続する。
+1. apps/webが一定間隔（SWR `refreshInterval`、目安 30〜60 秒）でapps/apiのHTTP APIから最新の盆栽状態を取得する。
+2. 取得した最新状態で画面上の盆栽状態を更新する。
+3. 一時的な取得失敗は次回のポーリングで回復する（持続接続を持たないため再接続処理は不要）。
+
+更新反映の方式は [ADR-004](adr/004-update-delivery-polling.md) を参照。
 
 ## 5. 設計判断・関連ADR
 
@@ -154,7 +152,7 @@ docs/
 
 - apps/webとapps/apiは分離して構築する。
 - apps/webは画面表示に集中する。
-- apps/apiはHTTP API、Slack Webhook受信、盆栽状態更新、WebSocket配信を担当する。
+- apps/apiはHTTP API、Slack Webhook受信、盆栽状態更新を担当する（更新の反映は apps/web のポーリング）。
 
 ### バックエンドはBFFではなく独立したAPIサーバーとする
 
@@ -170,22 +168,22 @@ docs/
 ### apps/apiはCloud Runにデプロイする
 
 - Hono + Slack Boltを用いたバックエンドコンテナとして管理する。
-- HTTP API、Slack Events API、WebSocketを1つのNode.jsバックエンドで扱う。
-- Webhook受信時の速やかな応答、WebSocketの再接続、複数インスタンス時の状態同期を考慮する。
+- HTTP API、Slack Events APIを1つのNode.jsバックエンドで扱う。
+- Webhook受信時の速やかな応答を考慮する。更新の反映は apps/web のポーリングで行うため、push 配信は持たず stateless に保つ（複数インスタンス間の状態同期・fan-out は不要）。
 
 ### 将来の切り出し方針
 
-MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新、WebSocket配信を担当する。
+MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新を担当する。
 
 将来的にチャットツール連携やイベント処理が複雑になった場合、以下の責務を別パッケージまたは別アプリとして切り出す。
 
 - Webhook受信
 - イベント変換
 - 盆栽状態計算
-- WebSocket配信
 
 ### 関連ADR
 
 - [ADR-001: PostgreSQLを採用する](adr/001-postgresql-adoption.md)
 - [ADR-002: DBアクセス層にDrizzle ORMを採用する](adr/002-drizzle-orm-adoption.md)
 - [ADR-003: PostgreSQL のホスティングに Cloud SQL を採用する](adr/003-cloud-sql-hosting.md)
+- [ADR-004: 盆栽状態の更新反映にポーリングを採用する](adr/004-update-delivery-polling.md)
