@@ -5,6 +5,8 @@
     "packageManager": "pnpm@9.15.9",
     "scripts": {
         "dev": "next dev",
+        "dev:web": "pnpm -F @tamamori/web dev",
+        "dev:all": "concurrently -k -n web,legacy -c blue,magenta \"pnpm -F @tamamori/web dev\" \"next dev\"",
         "build": "next build",
         "start": "next start",
         "lint": "eslint",
@@ -44,6 +46,7 @@
         "@tailwindcss/postcss": "^4",
         "@testing-library/react": "^16.3.0",
         "@types/jest": "^30.0.0",
+        "concurrently": "^9.1.0",
         "@types/node": "^20",
         "@types/react": "^19",
         "@types/react-dom": "^19",
