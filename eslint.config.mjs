@@ -20,6 +20,8 @@ const eslintConfig = defineConfig([
         // Storybook config and build output are outside FSD structure
         '.storybook/**',
         'storybook-static/**',
+        // apps/* は各アプリ固有の lint 整備を後続 Issue (#93/#94/#96) に委ねる
+        'apps/**',
     ]),
     ...storybook.configs['flat/recommended'],
 ]);
