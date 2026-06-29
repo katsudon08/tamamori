@@ -47,7 +47,7 @@ flowchart TD
 
 - **Vite+（`vp`）+ React 19** — SPA として構築する。dev/build/check/test は `vp` に集約する。（移行メモ: 現状は Next.js 16。表示専念の SPA へ移行する）
 - **Tailwind CSS v4** — スタイリング。
-- **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。
+- **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。表現方針（成長段階・季節・活力・個体差）は [visual-design.md](visual-design.md) を参照。
 - **SWR** — HTTP API からの初期状態取得とキャッシュ。
 - **ポーリング（SWR `refreshInterval`）** — 盆栽状態更新を一定間隔で再取得して反映する（目安 30〜60 秒）。更新反映の方式は [ADR-004](adr/004-update-delivery-polling.md) を参照。
 - **recharts** — 活動量などの補助的な可視化。

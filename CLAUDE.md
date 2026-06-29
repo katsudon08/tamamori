@@ -92,4 +92,5 @@ shared    … src/shared    汎用UI・lib・config（最下層）
 - `docs/architecture-design.md` — アーキテクチャ設計
 - `docs/api-design.md` — API設計
 - `docs/database-design.md` — DB設計
+- `docs/visual-design.md` — ビジュアル設計（盆栽の3D表現・成長・季節）
 - `docs/adr/` — アーキテクチャ決定記録（ADR）
