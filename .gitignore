@@ -49,3 +49,7 @@ storybook-static/
 # playwright
 /test-results/
 /playwright-report/
+
+# AI 作業メモ（個人用・README.md 以外は Git 管理しない）
+docs/ai/*
+!docs/ai/README.md
