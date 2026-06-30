@@ -49,3 +49,7 @@ storybook-static/
 # playwright
 /test-results/
 /playwright-report/
+
+# AI discussion scratch space
+docs/ai/**
+!docs/ai/README.md

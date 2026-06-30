@@ -18,6 +18,8 @@ Accepted
 
 候補（Supabase / Neon / Cloud SQL / Railway）を6軸（Cloud Run 接続 / Drizzle 互換 / コスト / RLS・認証 / Realtime / 移行・運用）で調査・比較した。全候補が標準 PostgreSQL のため RLS・Drizzle・データ移植性（pg_dump）は共通して満たし、差は「稼働クラウドと Cloud Run の co-location・接続方式・コスト・運用一体性」に出た。Realtime は将来 apps/api の自前 WebSocket へ移行予定のため評価上の重要度は低い。
 
+> **追記（[ADR-004](004-update-delivery-polling.md) 決定後）**: その後 ADR-004 で盆栽更新の反映は **ポーリング**に決定し、WebSocket は不採用となった。上記「自前 WebSocket へ移行予定」は本 ADR 決定時点の前提であり現在は当てはまらない。ただし Realtime の評価上の重要度が低いという結論は、ポーリング採用後もそのまま変わらない（むしろ持続接続を持たないため一層当てはまる）。
+
 ## Decision
 
 デプロイ環境（本番・ステージング）の PostgreSQL ホスティングに **Cloud SQL for PostgreSQL** を採用する。

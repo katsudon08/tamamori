@@ -7,7 +7,6 @@
 MVPでは、フロントエンドとバックエンドを分離しつつ、バックエンドは単一のAPIサーバーとして構築する。
 
 ```mermaid
-%%{init: {"flowchart": {"curve": "linear"}}}%%
 flowchart TD
     User["チームメンバー"]
     Slack["Slack"]
@@ -47,10 +46,9 @@ flowchart TD
 
 - **Vite+（`vp`）+ React 19** — SPA として構築する。dev/build/check/test は `vp` に集約する。（移行メモ: 現状は Next.js 16。表示専念の SPA へ移行する）
 - **Tailwind CSS v4** — スタイリング。
-- **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。
+- **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。表現方針（成長段階・季節・活力・個体差）は [visual-design.md](visual-design.md) を参照。
 - **SWR** — HTTP API からの初期状態取得とキャッシュ。
 - **ポーリング（SWR `refreshInterval`）** — 盆栽状態更新を一定間隔で再取得して反映する（目安 30〜60 秒）。更新反映の方式は [ADR-004](adr/004-update-delivery-polling.md) を参照。
-- **recharts** — 活動量などの補助的な可視化。
 - **lucide-react** — アイコン。
 - デプロイ先は **Vercel**（静的配信）。詳細は §5・requirements.md を参照。
 
@@ -100,10 +98,11 @@ apps/
     api/
 
 docs/
-    requirement.md
-    architecture.md
-    api.md
-    database.md
+    requirements.md
+    architecture-design.md
+    api-design.md
+    database-design.md
+    visual-design.md
     adr/
 ```
 
@@ -187,3 +186,5 @@ MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新を担当
 - [ADR-002: DBアクセス層にDrizzle ORMを採用する](adr/002-drizzle-orm-adoption.md)
 - [ADR-003: PostgreSQL のホスティングに Cloud SQL を採用する](adr/003-cloud-sql-hosting.md)
 - [ADR-004: 盆栽状態の更新反映にポーリングを採用する](adr/004-update-delivery-polling.md)
+- [ADR-005: 盆栽の描画入力をサーバが調理し apps/web はビューアに徹する](adr/005-server-rendered-bonsai-inputs.md)
+- [ADR-006: 成長ルールを apps/api のコード定数として持つ](adr/006-growth-rules-as-code.md)
