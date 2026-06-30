@@ -50,7 +50,6 @@ flowchart TD
 - **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。表現方針（成長段階・季節・活力・個体差）は [visual-design.md](visual-design.md) を参照。
 - **SWR** — HTTP API からの初期状態取得とキャッシュ。
 - **ポーリング（SWR `refreshInterval`）** — 盆栽状態更新を一定間隔で再取得して反映する（目安 30〜60 秒）。更新反映の方式は [ADR-004](adr/004-update-delivery-polling.md) を参照。
-- **recharts** — 活動量などの補助的な可視化。
 - **lucide-react** — アイコン。
 - デプロイ先は **Vercel**（静的配信）。詳細は §5・requirements.md を参照。
 

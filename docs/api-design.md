@@ -54,19 +54,21 @@ Slack上の活動は、Slack Events API Webhookで受信する。
 
 ### 盆栽状態
 
-盆栽状態レスポンスには、画面表示に必要な情報を含める。
+apps/webは受け取った値を描くだけのビューアであり、盆栽の描画入力はすべてapps/apiが生成（調理）してレスポンスに載せる。発言数・リアクション数・感謝数や活動量（`activity_score`）はサーバ計算のための内部値であり、レスポンスには含めない。
 
-主な項目:
+盆栽状態レスポンスは、シーン共通の環境プロパティ（`season`）と、盆栽ごとの情報（`user` / `render`）で構成する。
 
-- ユーザーID
-- 表示名
-- アイコン画像URL
-- 成長段階
-- 発言数
-- リアクション数
-- 感謝数
-- 活動量
-- 最終更新日時
+- `season` — 季節。シーン共通（チーム全員が同じ）なため、レスポンスの最上位に置く。サーバがレスポンス時刻（基準TZ=JST）から導出する。保存しない。
+- `user` — ユーザー情報。
+  - `id` — ユーザーID
+  - `displayName` — 表示名
+  - `avatarUrl` — アイコン画像URL
+- `render` — 盆栽ごとの描画入力。すべてサーバが調理する。
+  - `stage` — 成長段階の序数（1..6）。`bonsai_states.stage` をそのまま載せる。
+  - `seed` — 個体差シード。`user_id` から決定論的に算出（hash）する。保存しない。
+  - `vitality` — 活力（0..1）。`now - last_active_at` の減衰関数で算出する。`last_active_at` が未設定（未活動）でも穏やかな下限値を返し、枯れさせない。保存しない。
+
+`stage` の序数と名前（実生 / 若木 / 幹の成長 / 仕立て / 成熟 / 風格）・見た目パラメータの対応は apps/api が持つ（詳細は [visual-design.md](visual-design.md)）。成長ルール（重み・閾値）も apps/api のコード定数を単一の正とする。
 
 ### `GET /api/bonsai/me`
 
@@ -74,8 +76,21 @@ Slack上の活動は、Slack Events API Webhookで受信する。
 
 レスポンス:
 
-- 自分のユーザー情報
-- 自分の盆栽状態
+- `season` — シーン共通の季節
+- `user` — 自分のユーザー情報
+- `render` — 自分の盆栽の描画入力（`stage` / `seed` / `vitality`）
+
+```jsonc
+{
+  "season": "summer",
+  "user": {
+    "id": "a1b2c3d4-e5f6-4789-9abc-def012345678",
+    "displayName": "松原",
+    "avatarUrl": "https://example.com/avatars/matsubara.png"
+  },
+  "render": { "stage": 5, "seed": 2847123, "vitality": 0.82 }
+}
+```
 
 ### `GET /api/bonsai/team`
 
@@ -83,8 +98,26 @@ Slack上の活動は、Slack Events API Webhookで受信する。
 
 レスポンス:
 
-- チームメンバーごとのユーザー情報
-- チームメンバーごとの盆栽状態
+- `season` — シーン共通の季節
+- `team` — チーム情報（`id` / `name`）
+- `members` — チームメンバーごとの `user` と `render` の配列
+
+```jsonc
+{
+  "season": "summer",
+  "team": { "id": "3f9c0e1a-7b2d-4c5e-9f10-aaaaaaaaaaaa", "name": "Tamable" },
+  "members": [
+    {
+      "user": { "id": "a1b2c3d4-…-345678", "displayName": "松原", "avatarUrl": "…" },
+      "render": { "stage": 5, "seed": 2847123, "vitality": 0.82 }
+    },
+    {
+      "user": { "id": "b2c3d4e5-…-456789", "displayName": "田中", "avatarUrl": "…" },
+      "render": { "stage": 2, "seed": 9931002, "vitality": 0.10 }
+    }
+  ]
+}
+```
 
 ### `POST /api/slack/events`
 
