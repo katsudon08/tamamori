@@ -50,6 +50,6 @@ storybook-static/
 /test-results/
 /playwright-report/
 
-# AI 作業メモ（個人用・README.md 以外は Git 管理しない）
-docs/ai/*
+# AI discussion scratch space
+docs/ai/**
 !docs/ai/README.md
