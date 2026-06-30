@@ -23,7 +23,6 @@
 ## 3. ワークフロー
 
 ```mermaid
-%%{init: {"flowchart": {"curve": "stepAfter"}}}%%
 flowchart TD
     subgraph Team["チームメンバー"]
         direction TB
@@ -187,7 +186,6 @@ flowchart TD
 ### 画面遷移
 
 ```mermaid
-%%{init: {"flowchart": {"curve": "stepAfter"}}}%%
 flowchart TD
     Entry(["ログイン後"]) --> TeamBonsai["チームの盆栽一覧画面"]
     TeamBonsai -->|自分の盆栽ボタン| MyBonsai["自分の盆栽画面"]

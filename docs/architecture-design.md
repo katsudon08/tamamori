@@ -7,7 +7,6 @@
 MVPでは、フロントエンドとバックエンドを分離しつつ、バックエンドは単一のAPIサーバーとして構築する。
 
 ```mermaid
-%%{init: {"flowchart": {"curve": "linear"}}}%%
 flowchart TD
     User["チームメンバー"]
     Slack["Slack"]
