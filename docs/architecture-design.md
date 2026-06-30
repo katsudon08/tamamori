@@ -99,10 +99,11 @@ apps/
     api/
 
 docs/
-    requirement.md
-    architecture.md
-    api.md
-    database.md
+    requirements.md
+    architecture-design.md
+    api-design.md
+    database-design.md
+    visual-design.md
     adr/
 ```
 

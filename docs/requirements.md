@@ -232,7 +232,7 @@ Slack上で活動があったことを記録し、重複処理を防ぐ。
 
 ユーザーごとの盆栽の成長状態を表示・更新する。
 
-- **盆栽状態ID**
+- **盆栽状態ID (PK)**
 - **チームID (FK)**
 - **ユーザーID (FK)**
 - 発言数
@@ -276,12 +276,7 @@ HTTP APIで現在の自分 / チームの盆栽状態を返す。
 
 - 更新
 
-SlackからのWebhookを受け取り、内部の活動イベントへ変換した上で、活動ログ・盆栽状態をDBに保存する。
-
-1. WebhookでSlackイベントを受け取る。
-2. Slackイベントを内部の活動イベントへ変換する。
-3. 活動イベントを活動ログとしてDBに保存する。
-4. 活動ログを元に、盆栽状態を計算してDBに保存する。
+SlackからのWebhookを受け取り、内部の活動イベントへ変換した上で、活動ログ・盆栽状態をDBに保存する。詳細なデータフローは [architecture-design.md](architecture-design.md) §4 を参照。
 
 apps/api は push 配信を行わず、apps/web が一定間隔のポーリングで最新の自分 / チームの盆栽状態を取得して反映する。
 
@@ -313,22 +308,9 @@ Slack固有のイベント形式は、そのまま活動ログとして保存し
 ### デプロイ先
 
 - フロントエンドとバックエンドは分離してデプロイする。
-- apps/webはVercel、apps/apiはCloud Runを利用する。
-- apps/apiはコンテナとして管理する。
+- apps/web は Vercel、apps/api は Cloud Run（コンテナ）にデプロイする。
 
-### apps/web
-
-- デプロイ先: Vercel
-- 対象: Reactフロントエンド
-- 採用理由: フロントエンドの開発体験とデプロイの容易さを優先する
-
-### apps/api
-
-- デプロイ先: Cloud Run
-- 対象: Hono + Slack Boltを用いたバックエンドコンテナ
-- 採用理由: HTTP API・Slack Events API を1つのNode.jsバックエンドで扱いやすい
-- Slack Boltの扱い: Slackイベントの受信・検証・ハンドリングを行う部品として利用する
-- 注意点: Webhook受信時の速やかな応答を考慮する（更新の反映は apps/web のポーリングで行うため push 配信・複数インスタンス間の状態同期は不要）
+技術スタック（Hono + Slack Bolt 等）と採用理由の詳細は [architecture-design.md](architecture-design.md) を参照。
 
 ## 11. 非機能要件
 
