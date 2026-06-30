@@ -187,3 +187,4 @@ MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新を担当
 - [ADR-003: PostgreSQL のホスティングに Cloud SQL を採用する](adr/003-cloud-sql-hosting.md)
 - [ADR-004: 盆栽状態の更新反映にポーリングを採用する](adr/004-update-delivery-polling.md)
 - [ADR-005: 盆栽の描画入力をサーバが調理し apps/web はビューアに徹する](adr/005-server-rendered-bonsai-inputs.md)
+- [ADR-006: 成長ルールを apps/api のコード定数として持つ](adr/006-growth-rules-as-code.md)
