@@ -79,44 +79,44 @@ Slack上で発生した活動を表す。
 
 Slackワークスペースを管理する。
 
-主なカラム:
-
-- `id`
-- `slack_team_id`
-- `name`
-- `created_at`
-- `updated_at`
+| カラム | 型 | 制約・説明 |
+| --- | --- | --- |
+| `id` | `uuid` | PK, default `gen_random_uuid()` |
+| `slack_team_id` | `text` | UNIQUE。SlackチームID |
+| `name` | `text` | チーム名 |
+| `created_at` | `timestamptz` | 作成日時。default `now()` |
+| `updated_at` | `timestamptz` | 更新日時。default `now()` |
 
 ### users
 
 チーム内のSlackユーザーを管理する。
 
-主なカラム:
-
-- `id`
-- `team_id`
-- `slack_user_id`
-- `display_name`
-- `avatar_url`
-- `created_at`
-- `updated_at`
+| カラム | 型 | 制約・説明 |
+| --- | --- | --- |
+| `id` | `uuid` | PK, default `gen_random_uuid()` |
+| `team_id` | `uuid` | FK → `teams.id` |
+| `slack_user_id` | `text` | SlackユーザーID。`(team_id, slack_user_id)` を UNIQUE |
+| `display_name` | `text` | 表示名 |
+| `avatar_url` | `text` | アイコン画像URL |
+| `created_at` | `timestamptz` | 作成日時。default `now()` |
+| `updated_at` | `timestamptz` | 更新日時。default `now()` |
 
 ### activity_logs
 
 ユーザーの活動を記録する。
 
-主なカラム:
+| カラム | 型 | 制約・説明 |
+| --- | --- | --- |
+| `id` | `uuid` | PK, default `gen_random_uuid()` |
+| `team_id` | `uuid` | FK → `teams.id` |
+| `user_id` | `uuid` | FK → `users.id` |
+| `slack_event_id` | `text` | SlackイベントID。重複処理防止の一意制約に用いる |
+| `activity_type` | `activity_type`（enum） | 活動種別。Postgres enum 型 |
+| `occurred_at` | `timestamptz` | 活動日時（Slack 上で発生した時刻） |
+| `created_at` | `timestamptz` | 記録日時。default `now()` |
+| `updated_at` | `timestamptz` | 更新日時。default `now()` |
 
-- `id`
-- `team_id`
-- `user_id`
-- `slack_event_id`
-- `activity_type`
-- `occurred_at`
-- `created_at`
-- `updated_at`
-
-`activity_type` はMVPでは以下を扱う。
+`activity_type` は Postgres の enum 型として定義し、MVP では以下の値を扱う。
 
 - `message`
 - `reaction`
@@ -126,19 +126,19 @@ Slackワークスペースを管理する。
 
 ユーザーごとの現在の盆栽状態を管理する。
 
-主なカラム:
-
-- `id`
-- `team_id`
-- `user_id`
-- `message_count`
-- `reaction_count`
-- `thanks_count`
-- `activity_score`
-- `stage`
-- `last_active_at`
-- `created_at`
-- `updated_at`
+| カラム | 型 | 制約・説明 |
+| --- | --- | --- |
+| `id` | `uuid` | PK, default `gen_random_uuid()` |
+| `team_id` | `uuid` | FK → `teams.id` |
+| `user_id` | `uuid` | FK → `users.id`。`(team_id, user_id)` を UNIQUE |
+| `message_count` | `integer` | 発言数。default `0` |
+| `reaction_count` | `integer` | リアクション数。default `0` |
+| `thanks_count` | `integer` | 感謝数。default `0` |
+| `activity_score` | `integer` | 重み付き和（成長段階判定用）。default `0` |
+| `stage` | `smallint` | 成長段階の序数（1〜6、6 は維持フェーズ）。単調・不可逆 |
+| `last_active_at` | `timestamptz` | 最終活動時刻。vitality 算出元。NULL 許容 |
+| `created_at` | `timestamptz` | 作成日時。default `now()` |
+| `updated_at` | `timestamptz` | 更新日時。default `now()` |
 
 各カラムの意味は以下である。
 
