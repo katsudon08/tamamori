@@ -37,7 +37,8 @@ flowchart TD
 ### 2.1 共通基盤
 
 - **TypeScript 5** — apps/web・apps/api 双方の実装言語。
-- **pnpm workspaces** — モノレポ管理。`apps/*` を workspace として扱う。（移行メモ: 現状は npm）
+- **pnpm workspaces** — モノレポ管理。`apps/*` を workspace として扱う。
+- **mise** — Node.js（将来 go / python 等）のバージョン管理と開発コマンドの窓口一本化。Node は 22 LTS を web / api / root で整合させ、`vp env off` で `vp` から Node 管理を切り離す。採用判断は [ADR-007](adr/007-mise-toolchain-management.md) を参照。
 - **zod 4** — 入出力・内部活動イベントのスキーマ検証。web / api 双方で利用する。
 
 ### 2.2 apps/web（フロントエンド）
@@ -60,8 +61,9 @@ HTTP API・Slack Webhook 受信・活動イベント変換・盆栽状態計算�
 - **Slack Bolt** — Slack Events API の受信・署名検証・イベントハンドリング。
 - **更新の反映** — apps/web のポーリングで行う。apps/api は push 配信を持たないため、複数インスタンス間の fan-out は不要（[ADR-004](adr/004-update-delivery-polling.md)）。
 - **Drizzle ORM** — PostgreSQL へのアクセス層。スキーマ定義・型生成・マイグレーションを担う。採用判断は [ADR-002](adr/002-drizzle-orm-adoption.md) を参照。（移行メモ: 現状は Supabase client）
-- **zod 4** — リクエスト・イベントの検証。
+- **zod 4** — リクエスト・イベントの検証。契約（`contracts/`）としてモジュール境界に置く。
 - **認証 / セッション** — Slack OAuth でログインし、**iron-session**（Cookie セッション）＋ **jose**（JWT）でセッションを扱う。
+- **内部構成（ヘキサゴナル）** — `domain/`（純粋コア: activity 変換・bonsai 計算）＋ `adapters/`（slack / http / db）＋ `auth/` ＋ `contracts/`（zod）＋ `config/` ＋ composition root。DB アクセスは db アダプタのみ。単一サービスで構築し、将来 §5 の切り出しに備える。採用判断は [ADR-008](adr/008-apps-api-hexagonal.md) を参照。
 - デプロイ先は **Cloud Run**（コンテナ）。詳細は §5・requirements.md を参照。
 
 ### 2.4 データストア
@@ -75,9 +77,10 @@ HTTP API・Slack Webhook 受信・活動イベント変換・盆栽状態計算�
 
 apps/web のツールチェーンは **Vite+（CLI: `vp`）** に一本化する。Vite+ は Vite / Vitest / Oxlint / Oxfmt / Rolldown / tsdown を 1 つに束ね、`vite.config.ts` 単一で構成し、pnpm をラップして動作する（本記述時点では alpha、npm パッケージ `vite-plus`。バージョンはピン留めする）。
 
+- **ランタイム / コマンド管理** — **mise** で Node（22 LTS）を web / api / root 整合させ、`vp env off`（system-first）で `vp` は Node 管理を mise に委譲する。開発コマンドは mise タスクで集約する。詳細は [ADR-007](adr/007-mise-toolchain-management.md)。
 - **ビルド / Dev** — apps/web は `vp dev` / `vp build`（内部は Vite + Rolldown）。apps/api は Vite+ の対象外（フロントエンド専用）のため、`tsx` で起動し **tsdown**（Rolldown ベース）でバンドルする。
-- **Lint・フォーマット・型チェック** — apps/web は `vp check`（**Oxlint + Oxfmt + 型チェック**を一括）。ただし **FSD レイヤー境界は Oxlint で表現できないため、ESLint + eslint-plugin-fsd-lint を併走**させるハイブリッドとする（`vp` のカスタムタスク等で連結。`src/` → apps/web 移行＝#93 以降で適用）。
-- **単体テスト** — apps/web は `vp test`（**Vitest**）。
+- **Lint・フォーマット・型チェック** — apps/web は `vp check`（**Oxlint + Oxfmt + 型チェック**を一括）。ただし **FSD レイヤー境界は Oxlint で表現できないため、ESLint + eslint-plugin-fsd-lint を併走**させるハイブリッドとする（`vp` のカスタムタスク等で連結。`src/` → apps/web 移行＝#93 以降で適用）。apps/api は Vite+ 対象外のため、**oxlint（型認識ルール ON / tsgolint）+ oxfmt を standalone** で採用し mise タスクで実行する（web と同系に統一）。採用判断は [ADR-008](adr/008-apps-api-hexagonal.md) の周辺方針に準ずる。
+- **単体テスト** — apps/web は `vp test`（**Vitest**）。apps/api は Vite+ 対象外のため **standalone Vitest**（`domain/` は純粋ユニット、`adapters/`（db / http）は **Testcontainers** で実 Postgres 統合）。詳細は [ADR-008](adr/008-apps-api-hexagonal.md)。
 - **E2E テスト** — **Playwright**。
 - **UI カタログ** — **Storybook**。
 - **移行中の root（`src/` の Next.js）** — 移行完了まで現行の **ESLint + Prettier + Jest** で統治する。Vite+ への一本化は段階的に行う。
@@ -96,6 +99,13 @@ apps/web のツールチェーンは **Vite+（CLI: `vp`）** に一本化する
 apps/
     web/
     api/
+        src/
+            domain/      # 純粋コア（activity / bonsai）
+            adapters/    # slack / http / db
+            auth/
+            contracts/   # zod（境界）
+            config/
+            index.ts     # composition root
 
 docs/
     requirements.md
@@ -188,3 +198,5 @@ MVPではapps/apiがHTTP API、Slack Webhook受信、盆栽状態更新を担当
 - [ADR-004: 盆栽状態の更新反映にポーリングを採用する](adr/004-update-delivery-polling.md)
 - [ADR-005: 盆栽の描画入力をサーバが調理し apps/web はビューアに徹する](adr/005-server-rendered-bonsai-inputs.md)
 - [ADR-006: 成長ルールを apps/api のコード定数として持つ](adr/006-growth-rules-as-code.md)
+- [ADR-007: Node / ツールチェーンのバージョン管理に mise を採用する](adr/007-mise-toolchain-management.md)
+- [ADR-008: apps/api を単一サービス＋ヘキサゴナル構成で構築する](adr/008-apps-api-hexagonal.md)
