@@ -14,11 +14,11 @@ Accepted
 
 ## Decision
 
-apps/api は当面 **単一の TypeScript サービス**（Hono + Slack Bolt + Drizzle + iron-session / jose + zod）として Cloud Run にデプロイする。内部は **ヘキサゴナル（ポート & アダプタ）** で構成する。
+apps/api は当面 **単一の TypeScript サービス**（Hono + Slack Bolt + Drizzle + 認証（jose / DB セッション）+ zod）として Cloud Run にデプロイする。内部は **ヘキサゴナル（ポート & アダプタ）** で構成する。
 
 - `domain/`（activity 変換・bonsai 計算 / 成長ルール）= framework / infra 非依存の純粋コア
 - `adapters/`（slack = Bolt / http = Hono / db = Drizzle）
-- `auth/`（Slack OAuth + iron-session + jose）
+- `auth/`（Slack OAuth / OIDC・セッション。詳細は [ADR-009](009-auth-architecture.md)・[ADR-010](010-slack-hono-receiver.md)）
 - `contracts/`（zod = モジュール間・外部との境界）
 - `config/` / `index.ts`（composition root）
 
