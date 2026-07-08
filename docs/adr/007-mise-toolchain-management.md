@@ -10,7 +10,7 @@ Accepted
 
 apps/web の `vp`（vite-plus）は Node を自前管理する機能を持つが、apps/api・root も含めた **Node バージョンをリポジトリ全体で整合**させたい。また、開発コマンドの入口が web(`vp`) / api(`tsx`) / root(`pnpm`) に分散している。
 
-将来 apps/api の一部（Webhook受信 / イベント変換 / 盆栽状態計算）を別言語（Go / Python 等）へ切り出す可能性（[architecture-design.md](../architecture-design.md) §5）も見据え、**複数ランタイムを統一的に管理**できる仕組みが望ましい。
+将来 apps/api の一部（Webhook受信 / イベント変換 / 盆栽状態計算）を別言語（Go / Python 等）へ切り出す可能性（[architecture.md](../architecture.md) §5）も見据え、**複数ランタイムを統一的に管理**できる仕組みが望ましい。
 
 ## Decision
 

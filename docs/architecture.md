@@ -47,7 +47,7 @@ flowchart TD
 
 - **Vite+（`vp`）+ React 19** — SPA として構築する。dev/build/check/test は `vp` に集約する。（移行メモ: 現状は Next.js 16。表示専念の SPA へ移行する）
 - **Tailwind CSS v4** — スタイリング。
-- **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。表現方針（成長段階・季節・活力・個体差）は [visual-design.md](visual-design.md) を参照。
+- **Three.js + @react-three/fiber + @react-three/drei** — 盆栽の 3D 描画。表現方針（成長段階・季節・活力・個体差）は [visual.md](visual.md) を参照。
 - **SWR** — HTTP API からの初期状態取得とキャッシュ。
 - **ポーリング（SWR `refreshInterval`）** — 盆栽状態更新を一定間隔で再取得して反映する（目安 30〜60 秒）。更新反映の方式は [ADR-004](adr/004-update-delivery-polling.md) を参照。
 - **lucide-react** — アイコン。
@@ -71,7 +71,7 @@ HTTP API・Slack Webhook 受信・活動イベント変換・盆栽状態計算�
 - **PostgreSQL** を採用する。apps/api のみがアクセスする。apps/web は DB へ直接アクセスしない。
 - ホスティングは **Cloud SQL for PostgreSQL**（apps/api と同一 GCP・同一リージョン、Cloud SQL Connector + IAM 認証）。**ローカル開発は Docker の素の PostgreSQL** を用い、drizzle-kit の同一マイグレーションでスキーマ整合を保つ。採用判断は [ADR-003](adr/003-cloud-sql-hosting.md) を参照。
 - マイグレーションは Drizzle で管理する。
-- スキーマ詳細は database-design.md、採用判断は [ADR-001](adr/001-postgresql-adoption.md)・[ADR-002](adr/002-drizzle-orm-adoption.md)・[ADR-003](adr/003-cloud-sql-hosting.md) を参照。
+- スキーマ詳細は db-design.md、採用判断は [ADR-001](adr/001-postgresql-adoption.md)・[ADR-002](adr/002-drizzle-orm-adoption.md)・[ADR-003](adr/003-cloud-sql-hosting.md) を参照。
 
 ### 2.5 開発ツール・品質
 
@@ -109,10 +109,10 @@ apps/
 
 docs/
     requirements.md
-    architecture-design.md
-    api-design.md
-    database-design.md
-    visual-design.md
+    architecture.md
+    api.md
+    db-design.md
+    visual.md
     adr/
 ```
 

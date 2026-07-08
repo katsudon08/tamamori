@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-[architecture-design.md](../architecture-design.md) §1 は「MVP はバックエンドを単一の API サーバーとして構築する」、§5 は「将来 Webhook受信 / イベント変換 / 盆栽状態計算 を別パッケージ / 別アプリへ切り出す」としている。
+[architecture.md](../architecture.md) §1 は「MVP はバックエンドを単一の API サーバーとして構築する」、§5 は「将来 Webhook受信 / イベント変換 / 盆栽状態計算 を別パッケージ / 別アプリへ切り出す」としている。
 
 本プロジェクトの目的（分報を促すチーム内エンゲージメント）に対し、ドメインの計算は軽量（重み付き和 / 閾値判定 / 減衰 / hash / 日付→enum）で、**性能由来で別言語 / 別サービスが必要になる処理は無い**（重い 3D 描画はクライアント: [ADR-005](005-server-rendered-bonsai-inputs.md)）。
 

@@ -68,7 +68,7 @@ apps/webは受け取った値を描くだけのビューアであり、盆栽の
   - `seed` — 個体差シード。`user_id` から決定論的に算出（hash）する。保存しない。
   - `vitality` — 活力（0..1）。`now - last_active_at` の減衰関数で算出する。`last_active_at` が未設定（未活動）でも穏やかな下限値を返し、枯れさせない。保存しない。
 
-`stage` の序数と名前（実生 / 若木 / 幹の成長 / 仕立て / 成熟 / 風格）・見た目パラメータの対応は apps/api が持つ（詳細は [visual-design.md](visual-design.md)）。成長ルール（重み・閾値）も apps/api のコード定数を単一の正とする。
+`stage` の序数と名前（実生 / 若木 / 幹の成長 / 仕立て / 成熟 / 風格）・見た目パラメータの対応は apps/api が持つ（詳細は [visual.md](visual.md)）。成長ルール（重み・閾値）も apps/api のコード定数を単一の正とする。
 
 ### `GET /api/bonsai/me`
 

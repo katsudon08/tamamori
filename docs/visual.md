@@ -1,7 +1,7 @@
 # ビジュアル設計（盆栽の3D表現・成長・季節）
 
 apps/web で盆栽をどう見せるかの設計。成長段階・季節・活力・個体差・アニメーション・レイアウトの「正」とする。
-実装スタックは Three.js + React Three Fiber（[architecture-design.md](architecture-design.md) §2.2）。
+実装スタックは Three.js + React Three Fiber（[architecture.md](architecture.md) §2.2）。
 
 ## 1. 方針
 
@@ -102,9 +102,9 @@ apps/web で盆栽をどう見せるかの設計。成長段階・季節・活�
 - **`vitality`**: 活力（直近の活動に基づく“映え”の度合い。§4）。`last_active_at` からの減衰として 0..1 でサーバ算出する（保存しない）。
 - **`season`**: 季節（§3）。サーバがレスポンス時刻（基準TZ=JST）から導出する。シーン共通（全員同じ）なのでレスポンスでは最上位に置き、盆栽ごとには持たない（保存しない）。
 
-`stage`/`seed`/`vitality` は盆栽ごとの描画入力としてレスポンスの `render` に、`season` はシーン共通として最上位に載る（構造は [api-design.md](api-design.md)）。
+`stage`/`seed`/`vitality` は盆栽ごとの描画入力としてレスポンスの `render` に、`season` はシーン共通として最上位に載る（構造は [api.md](api.md)）。
 
-保存される項目（`last_active_at` など、`vitality` の算出元）の詳細スキーマは [database-design.md](database-design.md) で定義する。
+保存される項目（`last_active_at` など、`vitality` の算出元）の詳細スキーマは [db-design.md](db-design.md) で定義する。
 
 ## 9. スコープ外（将来）
 

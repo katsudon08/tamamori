@@ -135,7 +135,7 @@ flowchart TD
 
 - 盆栽および周囲の環境は、現実の季節に応じて見た目が変化すること（四季）。
 - 日々の活動に応じて、その季節に合った「活力」表現（例: 春の開花）が加点的に現れること。非活動でも枯れず穏やかに保たれること（マイナス要因を持たない）。
-- 成長段階・季節・活力の見た目の正は [visual-design.md](visual-design.md) に従う。
+- 成長段階・季節・活力の見た目の正は [visual.md](visual.md) に従う。
 
 ### 盆栽表示
 
@@ -158,7 +158,7 @@ flowchart TD
 - やわらかな進捗表現（生の活動数値は出さない）
 - 季節に応じた盆栽・風景の変化、活動による活力の反映
 
-詳細な見た目は [visual-design.md](visual-design.md) に従う。
+詳細な見た目は [visual.md](visual.md) に従う。
 
 主な操作:
 
@@ -175,7 +175,7 @@ flowchart TD
 - 各メンバーの表示名
 - 各メンバーの成長段階
 
-レイアウト・見た目は [visual-design.md](visual-design.md) に従う。
+レイアウト・見た目は [visual.md](visual.md) に従う。
 
 主な操作:
 
@@ -274,7 +274,7 @@ HTTP APIで現在の自分 / チームの盆栽状態を返す。
 
 - 更新
 
-SlackからのWebhookを受け取り、内部の活動イベントへ変換した上で、活動ログ・盆栽状態をDBに保存する。詳細なデータフローは [architecture-design.md](architecture-design.md) §4 を参照。
+SlackからのWebhookを受け取り、内部の活動イベントへ変換した上で、活動ログ・盆栽状態をDBに保存する。詳細なデータフローは [architecture.md](architecture.md) §4 を参照。
 
 apps/api は push 配信を行わず、apps/web が一定間隔のポーリングで最新の自分 / チームの盆栽状態を取得して反映する。
 
@@ -308,7 +308,7 @@ Slack固有のイベント形式は、そのまま活動ログとして保存し
 - フロントエンドとバックエンドは分離してデプロイする。
 - apps/web は Vercel、apps/api は Cloud Run（コンテナ）にデプロイする。
 
-技術スタック（Hono + Slack Bolt 等）と採用理由の詳細は [architecture-design.md](architecture-design.md) を参照。
+技術スタック（Hono + Slack Bolt 等）と採用理由の詳細は [architecture.md](architecture.md) を参照。
 
 ## 11. 非機能要件
 
