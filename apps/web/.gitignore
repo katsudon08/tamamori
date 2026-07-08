@@ -1,6 +1,0 @@
-# TanStack Router の生成物(vite dev/build で再生成される)。
-# 整形/lint 対象から外すため gitignore する(oxfmt/oxlint は gitignore を尊重)。
-src/routeTree.gen.ts
-
-# build 出力
-dist

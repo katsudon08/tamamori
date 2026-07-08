@@ -1,7 +1,0 @@
-# pnpm workspaces 定義。
-# packages には apps/* のみを宣言する。
-# 既存のルートアプリ（src/ の Next.js）は workspace メンバーに含めず、
-# root を legacy app 兼 workspace root として温存する（#92 移行方針: Strangler）。
-# src/ の apps/web への物理移設は #93 で行う。
-packages:
-    - 'apps/*'
