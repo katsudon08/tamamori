@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-visual-design.md が要求する盆栽の描画入力（成長段階・個体差・活力・季節）を「どこで生成するか」が論点だった。seed を `user_id` から、season をクライアント時計から、vitality をクライアント計算で導出する案もあり得た。
+visual.md が要求する盆栽の描画入力（成長段階・個体差・活力・季節）を「どこで生成するか」が論点だった。seed を `user_id` から、season をクライアント時計から、vitality をクライアント計算で導出する案もあり得た。
 
 前提として、apps/web は画面表示に専念し（FE/BE 分離）、更新反映はポーリング（[ADR-004](004-update-delivery-polling.md)）で行う。ポーリングのたびにサーバが現在時点の値を返せる構造である。
 

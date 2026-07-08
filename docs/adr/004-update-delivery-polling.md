@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-requirements.md・architecture-design.md は当初、盆栽状態の更新反映の手段として WebSocket を前提していた。複数インスタンス（Cloud Run）での fan-out 方式（#91）を決める前に、そもそも WebSocket が必要かを再検討した。
+requirements.md・architecture.md は当初、盆栽状態の更新反映の手段として WebSocket を前提していた。複数インスタンス（Cloud Run）での fan-out 方式（#91）を決める前に、そもそも WebSocket が必要かを再検討した。
 
 本サービスの性質は以下である。
 
