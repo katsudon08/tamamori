@@ -9,7 +9,7 @@ Accepted
 [ADR-001](001-postgresql-adoption.md) でデータストアにPostgreSQLを採用した。
 目標構成では、DBへアクセスするのはapps/apiのみであり、apps/apiからPostgreSQLへアクセスする層が必要になる。
 
-実コードは現状、Supabase clientを介してDBへアクセスしているが、目標構成では素のPostgreSQLへ移行する。これに伴い、DBアクセス層を選定し直す必要がある。
+apps/api を新規に構築するにあたり、素のPostgreSQLへアクセスする層を選定する必要がある。
 
 DBアクセス層には、以下の性質を求める。
 
@@ -25,7 +25,6 @@ apps/apiのDBアクセス層にDrizzle ORMを採用する。
 
 - スキーマ定義・型生成・クエリをDrizzleで行う。
 - マイグレーションは drizzle-kit で管理する。
-- Supabase client への依存は、目標構成への移行に伴い段階的に外す。
 
 ## Consequences
 
@@ -42,7 +41,6 @@ apps/apiのDBアクセス層にDrizzle ORMを採用する。
 - Prismaと比べて、周辺ツールやGUIなどのエコシステムは小さい。
 - 抽象度が低い分、複雑なクエリではSQLの知識が必要になる。
 - 比較的新しく、APIが変化する可能性がある。バージョンはピン留めして扱う。
-- Supabase client からの移行コスト（既存の型生成フローやアクセス箇所の置き換え）が発生する。
 
 ## Alternatives
 
@@ -58,8 +56,8 @@ apps/apiのDBアクセス層にDrizzle ORMを採用する。
 - 一方で、型の整合とマイグレーションを自前で整備する必要があり、開発コストが上がる。
 - 軽量さは魅力だが、型安全とマイグレーション管理を標準で得られるDrizzleを優先する。
 
-### Supabase client の継続利用
+### Supabase client（BaaS SDK）
 
-- 現状の実装をそのまま使え、移行コストが発生しない。
-- 一方で、目標構成（素のPostgreSQL・apps/apiのみがアクセス）と矛盾し、ベンダーロックインが残る。
-- 目標構成への移行方針と整合しないため採用しない。
+- BaaS の SDK 経由で DB へアクセスでき、周辺機能（auth / storage / realtime）と一体で使える。
+- 一方で、目標構成（素のPostgreSQL・apps/apiのみがアクセス）と矛盾し、ベンダーロックインを抱える。
+- 目標構成と整合しないため採用しない。

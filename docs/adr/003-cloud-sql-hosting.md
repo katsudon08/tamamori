@@ -36,21 +36,20 @@ Accepted
 - Cloud Run と同一 GCP・同一リージョンのため接続レイテンシが最小で、クロスクラウドのネットワーク区間が無い。
 - IAM 認証・Cloud Monitoring・Terraform（`google_sql_database_instance`）が GCP で一体運用でき、apps/api と同じ基盤・権限管理に乗る。
 - 標準 PostgreSQL のため RLS・Drizzle・pg_dump がそのまま使え、データ層のロックインは低い。
-- ローカル開発が Docker PostgreSQL 単体で完結し、オフライン・無料・軽量。CI も同一手段で再現でき、Supabase CLI スタックへの依存が外れる。
+- ローカル開発が Docker PostgreSQL 単体で完結し、オフライン・無料・軽量。CI も同一手段で再現でき、Supabase CLI スタックに依存しない。
 
 ### Negative
 
 - 無料枠が無く常時課金になる（dedicated-core は小規模でも概ね月 $50〜、東京リージョンはさらに高い。shared-core は月 ~$10 だが dev 専用で SLA 無し）。
-- 現状 Supabase からの移行コストが発生する（pg_dump / DMS でのデータ移行、RLS ポリシー内の `auth.*` 参照の書き換え、Supabase 固有の auth/storage/realtime からの脱却）。これらは #94 / #95 の範囲で対応する。
 - 運用面で GCP ロックインが生じる（ただしデータは標準 Postgres で持ち出し可能）。
 - Cloud Run は1インスタンスあたり接続数上限（目安 100）があるため、コネクションプーリングの設計が必要。トランザクションプーリング利用時は prepared statements 等の制約に注意する。
 
 ## Alternatives
 
-### Supabase 継続（現状）
+### Supabase
 
-- 移行コストがゼロで、RLS + 独自 JWT が既に稼働している。
-- 一方で AWS 限定であり Cloud Run（GCP）からは常にクロスクラウド接続になる。auth / storage / realtime 等の Supabase 固有機能へのロックインも残る。目標構成（apps/api が DB の唯一のアクセス者・GCP 一体）との整合を優先し、採用しない。
+- マネージド PostgreSQL に RLS・auth・storage・realtime が一体で付属し、初期立ち上げが速い。
+- 一方で AWS 限定であり Cloud Run（GCP）からは常にクロスクラウド接続になる。auth / storage / realtime 等の Supabase 固有機能へのロックインも抱える。目標構成（apps/api が DB の唯一のアクセス者・GCP 一体）との整合を優先し、採用しない。
 
 ### Neon
 
