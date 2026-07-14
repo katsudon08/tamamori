@@ -21,7 +21,7 @@ WebSocket の強み（双方向・低遅延・高頻度）はいずれも要件�
 
 ## Decision
 
-盆栽状態の更新反映は **ポーリング**（apps/web が apps/api の HTTP API を一定間隔で再取得する。SWR の `refreshInterval`、目安 30〜60 秒）で行う。WebSocket・SSE は採用しない。
+盆栽状態の更新反映は **ポーリング**（apps/web が apps/api の HTTP API を一定間隔で再取得する。TanStack Query の `refetchInterval`、目安 30〜60 秒）で行う。WebSocket・SSE は採用しない。
 
 - apps/api は **stateless な HTTP API のみ**を提供し、持続接続・push 配信は持たない。
 - これにより複数インスタンス間の fan-out（#91）は不要となる（#91 はクローズ）。
@@ -32,7 +32,7 @@ WebSocket の強み（双方向・低遅延・高頻度）はいずれも要件�
 
 ### Positive
 
-- 実装が最小（SWR は既に導入済み。`refreshInterval` を設定するだけ）。
+- 実装が最小（TanStack Query の `refetchInterval` を設定するだけ）。
 - apps/api が stateless に保たれ、Cloud Run と相性が良い（scale-to-zero 可、接続管理不要）。
 - 複数インスタンス間 fan-out・接続管理・再接続処理が一切不要（#91 解消）。
 - 初期表示と更新が同一経路でシンプル。インフラ追加（Redis / Pub/Sub 等）が不要でコスト最小。
