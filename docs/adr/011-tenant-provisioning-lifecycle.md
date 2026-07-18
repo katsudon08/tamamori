@@ -26,7 +26,7 @@ Slack 由来の重要な制約:
 - `app_uninstalled` を**自前で購読・処理**する（`tokens_revoked` は任意で補助）。到達順に依存せず、**冪等**（既に削除済みなら no-op）に実装する。
 - 処理内容:
   - **即時破棄**: `slack_installations`（bot トークン）と当該 team の `sessions` を削除。
-  - **猶予付きソフトデリート**: `teams`/`users`/`activity_logs`/`bonsai_states` は `deleted_at` を打ち、**約30日後に背景ジョブでハード削除**。猶予中の再インストールで復元する。
+  - **猶予付きソフトデリート**: `teams`（および該当する `users`）に `deleted_at` を打ち、**約30日後に背景ジョブでハード削除**。猶予中の再インストールで復元する。`activity_logs`/`bonsai_states` は `deleted_at` を持たず、ハード削除時に FK の `ON DELETE CASCADE` で連鎖削除される（詳細は [db.md](../db.md) §5.1・§5.3）。
   - **DSR（削除要求）**: 猶予を待たず即時削除するパスを用意する。
 
 ### スコープ外（MVP）

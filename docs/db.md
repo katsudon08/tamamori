@@ -242,6 +242,8 @@ Slack イベント受信時は、以下の順序で処理する（フロー全�
 | 活動履歴索引 | `activity_logs(user_id, occurred_at)` | INDEX | ユーザーの活動履歴参照 |
 | セッション索引 | `sessions(user_id)` / `sessions(expires_at)` | INDEX | 失効（user 単位削除）・期限切れ掃除 |
 
+外部キー（`team_id` / `user_id` 等）はすべて **`ON DELETE CASCADE`** とする。親（`teams` / `users`）の物理削除で子が連鎖削除され、テナント退会の後始末を**冪等・順序非依存**に行える（§5.3）。
+
 ### 5.2 データ保護
 
 以下は保存しない。Slack イベントの内容は活動種別の判定と感謝表現の検出にのみ利用する。
@@ -255,9 +257,10 @@ Slack イベント受信時は、以下の順序で処理する（フロー全�
 ワークスペースのアンインストール（`app_uninstalled`）時は、以下を**冪等・順序非依存**に行う（[ADR-011](adr/011-tenant-provisioning-lifecycle.md)、検知は [api.md](api.md) §5）。
 
 - **即時破棄**: `slack_installations`（bot トークン）と当該 `team_id` の `sessions` を削除する。
-- **猶予付きソフトデリート**: `teams` / `users` / `activity_logs` / `bonsai_states` に `deleted_at` を打ち、**約30日後に背景ジョブでハード削除**する。猶予中の再インストールで復元する。
+- **猶予付きソフトデリート**: `teams`（および該当ユーザーの `users`）に `deleted_at` を打って隠し、**約30日後に背景ジョブでハード削除**する。猶予中の再インストールで復元する。`activity_logs` / `bonsai_states` は `deleted_at` を持たず（§3.3・§3.4）、常に `team` / `user` 経由で参照するため、親を隠せば実質的に隠れる。
+- **ハード削除の連鎖**: 猶予後（または DSR）の削除は `teams` の行を物理削除すれば足りる。全 FK が `ON DELETE CASCADE`（§5.1）のため、`users` / `activity_logs` / `bonsai_states` / `sessions` / `slack_installations` は連鎖削除される。
 - **DSR（削除要求）**: 猶予を待たず即時ハード削除するパスを用意する。
-- 通常参照クエリは `deleted_at IS NULL` で絞る。
+- 通常参照クエリは `deleted_at IS NULL`（`teams` / `users`）で絞る。
 
 ## 関連リンク
 
