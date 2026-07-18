@@ -53,6 +53,14 @@ run = "pnpm --filter @tamamori/api test"
 description = "Check the PostgreSQL connection through Drizzle"
 run = "pnpm --filter @tamamori/api db:check"
 
+[tasks."api:db:generate"]
+description = "Generate SQL migrations from the Drizzle schema"
+run = "pnpm --filter @tamamori/api db:generate"
+
+[tasks."api:db:migrate"]
+description = "Apply pending migrations to PostgreSQL"
+run = "pnpm --filter @tamamori/api db:migrate"
+
 [tasks."db:up"]
 description = "Start local PostgreSQL"
 run = "docker compose up -d --wait postgres"

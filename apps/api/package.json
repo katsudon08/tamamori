@@ -11,7 +11,9 @@
     "format": "oxfmt src",
     "format:check": "oxfmt --check src",
     "test": "vitest run",
-    "db:check": "tsx src/db/check.ts"
+    "db:check": "tsx src/adapters/db/check.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/adapters/db/migrate.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.6",
@@ -23,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^22.15.0",
     "@types/pg": "^8.15.5",
+    "drizzle-kit": "0.31.6",
     "oxfmt": "^0.59.0",
     "oxlint": "^1.73.0",
     "oxlint-tsgolint": "^0.24.0",
