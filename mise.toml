@@ -1,0 +1,74 @@
+[tools]
+node = "22"
+pnpm = "10.34.0"
+
+[env]
+_.file = ".env"
+
+[tasks.install]
+description = "Install all workspace dependencies"
+run = "pnpm install"
+
+[tasks."web:dev"]
+description = "Start the web development server"
+run = "pnpm --filter @tamamori/web dev"
+
+[tasks."web:build"]
+description = "Build the web application"
+run = "pnpm --filter @tamamori/web build"
+
+[tasks."web:check"]
+description = "Format, lint, and type-check the web application"
+run = "pnpm --filter @tamamori/web check"
+
+[tasks."web:test"]
+description = "Run web tests"
+run = "pnpm --filter @tamamori/web test"
+
+[tasks."api:dev"]
+description = "Start the API development server"
+run = "pnpm --filter @tamamori/api dev"
+
+[tasks."api:typecheck"]
+description = "Type-check the API"
+run = "pnpm --filter @tamamori/api typecheck"
+
+[tasks."api:lint"]
+description = "Lint the API with Oxlint"
+run = "pnpm --filter @tamamori/api lint"
+
+[tasks."api:format"]
+description = "Format the API with Oxfmt"
+run = "pnpm --filter @tamamori/api format"
+
+[tasks."api:format:check"]
+description = "Check API formatting with Oxfmt"
+run = "pnpm --filter @tamamori/api format:check"
+
+[tasks."api:test"]
+description = "Run API tests"
+run = "pnpm --filter @tamamori/api test"
+
+[tasks."api:db:check"]
+description = "Check the PostgreSQL connection through Drizzle"
+run = "pnpm --filter @tamamori/api db:check"
+
+[tasks."db:up"]
+description = "Start local PostgreSQL"
+run = "docker compose up -d --wait postgres"
+
+[tasks."db:down"]
+description = "Stop local PostgreSQL"
+run = "docker compose down"
+
+[tasks."db:status"]
+description = "Show local PostgreSQL status"
+run = "docker compose ps"
+
+[tasks.check]
+description = "Run all static checks"
+depends = ["web:check", "api:typecheck", "api:lint", "api:format:check"]
+
+[tasks.test]
+description = "Run all workspace tests"
+depends = ["web:test", "api:test"]
