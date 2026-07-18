@@ -2,7 +2,7 @@
 
 Slack 上のチームの活動（発言・リアクション・感謝）を「盆栽」として可視化し、分報を書くきっかけとチーム内の状況共有をゆるやかに促すサービス。発言量を競わせるのではなく、日々の小さな発信が盆栽の成長として見えることを狙う。
 
-> **現状**: このリポジトリは設計ドキュメントのみで構成されている（実装はこれから）。`docs/` を正として `apps/web`・`apps/api` をゼロから構築していく。
+> **現状**: Issue #128 により、ローカル開発基盤と web/api の最小スキャフォールドを整備している。機能実装の仕様は引き続き `docs/` を正とする。
 
 ## 何をするサービスか
 
@@ -38,7 +38,59 @@ Slack 上のチームの活動（発言・リアクション・感謝）を「�
 
 ## 開発
 
-現在は実装コードを持たない。今後 `apps/web`・`apps/api` を pnpm ワークスペースのモノレポとして構築していく。セットアップ手順・開発コマンドは実装着手時に本 README へ追記する。
+### 前提ツール
+
+- [mise](https://mise.jdx.dev/) で Node.js 22 を管理する。
+- [Vite+](https://viteplus.dev/) の `vp` CLI を導入する。
+- Docker Desktopなど、Docker Composeを実行できる環境を用意する。
+
+Vite+のNode.js管理を無効化し、Node.jsの管理をmiseへ委譲する。
+
+```sh
+curl -fsSL https://vite.plus | bash
+vp env off
+mise trust
+mise install
+```
+
+### 初回セットアップ
+
+```sh
+cp .env.example .env
+mise run install
+```
+
+`.env`にはローカルPostgreSQLの接続情報が含まれます。実際の秘密情報は記載せず、`.env`をGitへコミットしないでください。
+
+### ローカルPostgreSQL
+
+```sh
+mise run db:up
+mise run db:status
+mise run api:db:check
+mise run db:down
+```
+
+`api:db:check`はDrizzle経由で`SELECT 1`を実行し、apps/apiからPostgreSQLへ接続できることを確認します。
+
+### 開発コマンド
+
+```sh
+mise run web:dev
+mise run api:dev
+mise run web:build
+mise run web:check
+mise run web:test
+mise run api:typecheck
+mise run api:lint
+mise run api:format
+mise run api:format:check
+mise run api:test
+mise run check
+mise run test
+```
+
+Issue #128では開発基盤と最小スキャフォールドのみを扱います。Drizzleスキーマ・マイグレーションは#129、domainの成長ルールは#130、画面やルーティングは#135以降、Slack連携と認証は#132・#133、APIの本番バンドルとDockerfileは#140で実装します。
 
 ## ライセンス
 
