@@ -1,0 +1,16 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+mise.local.toml
+mise.*.local.toml
+
+# OS/editor files
+.DS_Store
+*.log
