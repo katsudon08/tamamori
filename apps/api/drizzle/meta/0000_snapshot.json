@@ -1,5 +1,5 @@
 {
-  "id": "c6285805-476a-41d8-8fc0-b94018deecec",
+  "id": "5d027276-7dbb-4237-91db-c896114061e9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -207,11 +207,11 @@
         }
       },
       "indexes": {
-        "bonsai_states_team_id_idx": {
-          "name": "bonsai_states_team_id_idx",
+        "bonsai_states_user_id_idx": {
+          "name": "bonsai_states_user_id_idx",
           "columns": [
             {
-              "expression": "team_id",
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -335,6 +335,21 @@
           "columns": [
             {
               "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sessions_team_id_idx": {
+          "name": "sessions_team_id_idx",
+          "columns": [
+            {
+              "expression": "team_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -576,23 +591,7 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "users_team_id_idx": {
-          "name": "users_team_id_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "users_team_id_teams_id_fk": {
           "name": "users_team_id_teams_id_fk",

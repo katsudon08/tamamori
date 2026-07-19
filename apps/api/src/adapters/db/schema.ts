@@ -13,7 +13,11 @@ import {
 // 作成・更新日時の共通カラム (db.md §3 冒頭: 日時は timestamptz、既定値 now())
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  // updatedAt は UPDATE 時に現在時刻へ更新する。$onUpdate は Drizzle 実行時フックで DDL には影響しない (#2)
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 };
 
 // 活動種別 enum (db.md §3.3 / glossary §5)
@@ -45,8 +49,8 @@ export const users = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => [
+    // 単独 team_id 索引は複合ユニークの先頭列で代替されるため設けない (#4)
     unique('users_team_id_slack_user_id_unique').on(table.teamId, table.slackUserId),
-    index('users_team_id_idx').on(table.teamId),
   ],
 );
 
@@ -98,7 +102,8 @@ export const bonsaiStates = pgTable(
   },
   (table) => [
     unique('bonsai_states_team_id_user_id_unique').on(table.teamId, table.userId),
-    index('bonsai_states_team_id_idx').on(table.teamId),
+    // 単独 team_id 索引は複合ユニークの先頭列で代替。user 単位 cascade 用に user_id 索引を設ける (#5)
+    index('bonsai_states_user_id_idx').on(table.userId),
   ],
 );
 
@@ -137,5 +142,7 @@ export const sessions = pgTable(
   (table) => [
     index('sessions_user_id_idx').on(table.userId),
     index('sessions_expires_at_idx').on(table.expiresAt),
+    // team 退会時の一括削除・cascade 用 (#6)
+    index('sessions_team_id_idx').on(table.teamId),
   ],
 );

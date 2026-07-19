@@ -78,7 +78,7 @@ ALTER TABLE "sessions" ADD CONSTRAINT "sessions_team_id_teams_id_fk" FOREIGN KEY
 ALTER TABLE "slack_installations" ADD CONSTRAINT "slack_installations_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "activity_logs_user_id_occurred_at_idx" ON "activity_logs" USING btree ("user_id","occurred_at");--> statement-breakpoint
-CREATE INDEX "bonsai_states_team_id_idx" ON "bonsai_states" USING btree ("team_id");--> statement-breakpoint
+CREATE INDEX "bonsai_states_user_id_idx" ON "bonsai_states" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "sessions_user_id_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "sessions_expires_at_idx" ON "sessions" USING btree ("expires_at");--> statement-breakpoint
-CREATE INDEX "users_team_id_idx" ON "users" USING btree ("team_id");
+CREATE INDEX "sessions_team_id_idx" ON "sessions" USING btree ("team_id");
