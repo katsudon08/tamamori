@@ -94,7 +94,7 @@ erDiagram
     }
 ```
 
-各レコードはチーム単位で分離する（テナント分離）。ユーザー・盆栽状態・セッションを取得する際は、必ず `team_id` を条件に含める（§5）。
+各レコードはチーム単位で分離する（テナント分離）。ユーザー・盆栽状態・セッションを取得する際は、必ず `team_id` を条件に含める（§5）。さらに参照クエリは `team_id` だけでなく、親（`teams` / `users`）の `deleted_at IS NULL` も条件に含め、ソフトデリート済みのテナント/ユーザーの子データ（`bonsai_states` / `activity_logs`）が猶予期間中に露出しないよう除外する（§5.3）。
 
 ## 3. テーブル定義
 
@@ -238,9 +238,11 @@ Slack イベント受信時は、以下の順序で処理する（フロー全�
 | 盆栽状態一意 | `bonsai_states(team_id, user_id)` | UNIQUE | 1 ユーザー 1 状態 |
 | イベント一意 | `activity_logs(team_id, slack_event_id)` | UNIQUE | Slack イベントの重複処理防止 |
 | インストール一意 | `slack_installations(team_id)` | UNIQUE | 1 ワークスペース 1 インストール |
-| チーム索引 | `users(team_id)` / `bonsai_states(team_id)` | INDEX | チームの盆栽一覧取得 |
+| ユーザー索引 | `bonsai_states(user_id)` | INDEX | ユーザー単位の連鎖削除（cascade） |
 | 活動履歴索引 | `activity_logs(user_id, occurred_at)` | INDEX | ユーザーの活動履歴参照 |
-| セッション索引 | `sessions(user_id)` / `sessions(expires_at)` | INDEX | 失効（user 単位削除）・期限切れ掃除 |
+| セッション索引 | `sessions(user_id)` / `sessions(expires_at)` / `sessions(team_id)` | INDEX | 失効（user 単位削除）・期限切れ掃除・テナント退会の一括削除 |
+
+`users(team_id)` / `bonsai_states(team_id)` の単独索引は設けない。いずれも複合ユニーク（`users(team_id, slack_user_id)` / `bonsai_states(team_id, user_id)`）の**先頭列**が同等の索引として機能し、`team_id` 絞り込みや team 単位の連鎖削除を賄えるため冗長になる。一方 `bonsai_states(user_id)` は複合ユニークの先頭列（`team_id`）に含まれず user 単位の絞り込み・連鎖削除に効かないため、専用の索引を設ける。
 
 外部キー（`team_id` / `user_id` 等）はすべて **`ON DELETE CASCADE`** とする。親（`teams` / `users`）の物理削除で子が連鎖削除され、テナント退会の後始末を**冪等・順序非依存**に行える（§5.3）。
 
@@ -250,7 +252,7 @@ Slack イベント受信時は、以下の順序で処理する（フロー全�
 
 - 投稿本文 / チャンネル内の会話履歴 / Slack イベント payload 全体 / 添付ファイル / リンク先の内容 / リアクション対象の投稿本文
 
-保存するデータは、チーム・ユーザー・活動種別・活動日時・盆栽状態の更新に必要な最小限に限定する。**認証情報（`slack_installations.bot_token`）は暗号化して保管**する（アプリ層での暗号化、または Secret Manager 参照）。チームごとのデータが他チームに見えないよう、DB アクセス時は `team_id` による絞り込みを必須とする（テナント分離）。
+保存するデータは、チーム・ユーザー・活動種別・活動日時・盆栽状態の更新に必要な最小限に限定する。**認証情報（`slack_installations.bot_token`）は暗号化して保管**する（アプリ層での暗号化、または Secret Manager 参照）。チームごとのデータが他チームに見えないよう、DB アクセス時は `team_id` による絞り込みを必須とする（テナント分離）。加えて、`bonsai_states` / `activity_logs` は `deleted_at` を持たないため（§3.3・§3.4）、参照クエリでは親（`teams` / `users`）の `deleted_at IS NULL` も条件に含め、ソフトデリート済みテナント/ユーザーの子データが猶予期間中に露出しないよう除外する（§5.3）。
 
 ### 5.3 アンインストール／退会のライフサイクル
 
